@@ -60,12 +60,12 @@ Timing is provisional: HHMM values use the inferred `.cmp` clock base `1400` and
 ## Enemy Air Threat Estimate
 This section intentionally avoids decoded enemy ATO/package knowledge. It is based on active enemy squadron bases within the threat radius, known aircraft types, and bearing from those bases to the package/INI target-area anchors. Treat it as likely fighter threat axes, not a prediction of specific launches, callsigns, package IDs, or timings.
 
-| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |
-| --- | --- | --- | --- | --- | --- |
-| NE | MiG-19PM; J-6; MiG-21bis | Q-5II | INI GRD | 15.8 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
-| NW | MiG-29A; MiG-21bis; MiG-23ML; J-6 | Il-28 | Mudhen 3 CAP STPT 3 @ 1436 | 36.8 NM | 4 active enemy squadron base(s) in sector; aircraft capability only. |
-| W | MiG-21MF | Q-5II | Mudhen 3 CAP STPT 3 @ 1436 | 60.9 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
-| N | J-6; MiG-21MF | Su-7BMK | INI TGT 3 | 76.8 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
+| Possible source sector | Likely origin bases | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |
+| --- | --- | --- | --- | --- | --- | --- |
+| NE | Hyon-Ni Airbase (15.8 NM) | MiG-19PM; J-6; MiG-21bis | Q-5II | INI GRD | 15.8 NM | 1 active enemy squadron base(s) in sector; home-base location and aircraft capability only. |
+| NW | Koksan Airbase (36.8 NM); Okpyongni Highwaystrip (50.3 NM); Kangdong Airstrip (74.5 NM); Sunchon  (ZKSC) (89.8 NM) | MiG-29A; MiG-21bis; MiG-23ML; J-6 | Il-28 | Mudhen 3 CAP STPT 3 @ 1436 | 36.8 NM | 4 active enemy squadron base(s) in sector; home-base location and aircraft capability only. |
+| W | Sangwon Highwaystrip (60.9 NM) | MiG-21MF | Q-5II | Mudhen 3 CAP STPT 3 @ 1436 | 60.9 NM | 1 active enemy squadron base(s) in sector; home-base location and aircraft capability only. |
+| N | Yonpo Airbase (76.8 NM) | J-6; MiG-21MF | Su-7BMK | INI TGT 3 | 76.8 NM | 1 active enemy squadron base(s) in sector; home-base location and aircraft capability only. |
 
 ### Active Air Contacts At Campaign Time
 These are current-position contacts only. Callsigns and enemy package/tasking IDs are intentionally omitted; the brief only exposes aircraft type, rough sector, range, and the observed reason they matter.

@@ -2347,6 +2347,19 @@ def split_aircraft_summary(summary: str) -> tuple[list[str], list[str]]:
     return fighters, strike
 
 
+def airbase_origin_label(base: dict[str, Any]) -> str:
+    name = str(base.get("name") or base.get("airbase_id") or "Enemy base").strip()
+    distance = base.get("distance_nm")
+    if distance is None:
+        return name
+    return f"{name} ({number_cell(distance, 1)} NM)"
+
+
+def airbase_origin_label_distance(label: str) -> float:
+    match = re.search(r"\(([\d.]+) NM\)", label)
+    return safe_float(match.group(1), 9999.0) if match else 9999.0
+
+
 def enemy_air_threat_axes(package: dict[str, Any]) -> list[dict[str, Any]]:
     enemy = package.get("enemy_situation") or {}
     axes: dict[str, dict[str, Any]] = {}
@@ -2365,10 +2378,14 @@ def enemy_air_threat_axes(package: dict[str, Any]) -> list[dict[str, Any]]:
                 "base_count": 0,
                 "closest_distance_nm": None,
                 "nearest_anchor": None,
+                "origin_bases": [],
                 "basis": [],
             },
         )
         axis["base_count"] += 1
+        origin = airbase_origin_label(base)
+        if origin not in axis["origin_bases"]:
+            axis["origin_bases"].append(origin)
         distance = safe_float(base.get("distance_nm"), 9999.0)
         if axis["closest_distance_nm"] is None or distance < safe_float(axis["closest_distance_nm"], 9999.0):
             axis["closest_distance_nm"] = base.get("distance_nm")
@@ -2380,7 +2397,13 @@ def enemy_air_threat_axes(package: dict[str, Any]) -> list[dict[str, Any]]:
             if aircraft not in axis["strike_types"]:
                 axis["strike_types"].append(aircraft)
     return sorted(
-        axes.values(),
+        (
+            {
+                **axis,
+                "origin_bases": sorted(axis.get("origin_bases") or [], key=airbase_origin_label_distance),
+            }
+            for axis in axes.values()
+        ),
         key=lambda item: (safe_float(item.get("closest_distance_nm"), 9999.0), str(item.get("sector") or "")),
     )
 
@@ -2767,13 +2790,14 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
         lines.append("- No active enemy fighter-capable airbases were resolved within the current airbase threat radius.")
         lines.append("")
     else:
-        lines.append("| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
-        lines.append("| --- | --- | --- | --- | --- | --- |")
+        lines.append("| Possible source sector | Likely origin bases | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
         for axis in axes:
-            basis = f"{axis.get('base_count')} active enemy squadron base(s) in sector; aircraft capability only."
+            basis = f"{axis.get('base_count')} active enemy squadron base(s) in sector; home-base location and aircraft capability only."
             lines.append(
-                "| {sector} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
+                "| {sector} | {origins} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
                     sector=markdown_cell(axis.get("sector")),
+                    origins=markdown_cell("; ".join(axis.get("origin_bases") or []) or "none resolved"),
                     fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none resolved"),
                     strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none resolved"),
                     anchor=markdown_cell(axis.get("nearest_anchor")),
