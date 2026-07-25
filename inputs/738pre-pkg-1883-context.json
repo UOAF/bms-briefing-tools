@@ -1,0 +1,67 @@
+{
+  "package_id": 1883,
+  "source": "User-provided mission interpretation, 2026-07-23",
+  "route_name": "Route Black",
+  "route_note": "Route Black is represented by the pre-planned threat steerpoints in the mission INI.",
+  "sad_contracts": [
+    {
+      "callsign": "Cyborg 3",
+      "contract": "SAD A-B",
+      "intent": "Search and prosecute movers between A and B."
+    },
+    {
+      "callsign": "Warhawk 3",
+      "contract": "SAD B-A",
+      "intent": "Reverse the first search lane, working movers from B back toward A."
+    },
+    {
+      "callsign": "Panther 3",
+      "contract": "SAD B-C-D",
+      "intent": "Extend the search through B, C, and D."
+    }
+  ],
+  "target_opportunities": [
+    {
+      "label": "WCH",
+      "name": "Watchtower",
+      "type": "EWR site",
+      "intent": "Target of opportunity."
+    },
+    {
+      "label": "A-E",
+      "name": "Depot set",
+      "type": "Enemy supply depots",
+      "intent": "A through E include depots supplying enemy maneuver forces."
+    },
+    {
+      "label": "F",
+      "name": "Foxtrot",
+      "type": "Alternate target",
+      "intent": "Use if no movers are found on Route Black."
+    }
+  ],
+  "cap_contracts": [
+    {
+      "callsign": "Mudhen 3",
+      "label": "GRD",
+      "area": "Guardpost",
+      "contract": "CAP Guardpost",
+      "sector": "west CAP area",
+      "intent": "Hold the western BARCAP station."
+    },
+    {
+      "callsign": "Cobra 3",
+      "label": "BAR",
+      "area": "BARRIER",
+      "contract": "CAP BARRIER",
+      "sector": "east CAP area",
+      "intent": "Hold the eastern BARCAP station."
+    }
+  ],
+  "fallback_logic": "If there are no movers on Route Black, shift to Foxtrot as the alternate target.",
+  "briefing_read": "Three INT flights divide SAD responsibilities across A-B, B-A, and B-C-D while Mudhen holds Guardpost in the west and Cobra holds BARRIER in the east. Watchtower/WCH is an EWR target of opportunity; A-E are supply depots feeding maneuver forces; Foxtrot is the alternate target if the route is cold.",
+  "slide_notes": {
+    "commander_context": "INT lanes: Cyborg A-B, Warhawk B-A, Panther B-C-D. Mudhen CAPs Guardpost west; Cobra CAPs BARRIER east.",
+    "targets_and_fallback": "WCH/Watchtower: EWR target of opportunity. A-E: depots supplying maneuver forces. F/Foxtrot: alternate if Route Black is cold."
+  }
+}
