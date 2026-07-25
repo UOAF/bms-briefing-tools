@@ -78,8 +78,11 @@ including flight steerpoints, INI planning marks, nearest-route matches, and
 air-defense and enemy squadron-base coordinates, plus resolved location objects.
 The commander-facing package section is scoped to the requested player/focus
 package. Other packages are only summarized when their decoded tactical
-waypoints are close enough in space and time to affect the target area or
-require deconfliction, and each such row includes the reason it was included.
+waypoints are friendly, close enough in space and time to affect the target
+area or require deconfliction, and each such row includes the reason it was
+included. Enemy air packages are not exposed from decoded ATO knowledge in the
+player-facing brief; the brief instead derives likely enemy fighter axes from
+active enemy squadron bases and airframe capability.
 For exact latitude/longitude conversion, use the `Theater.txt` projection string
 through PROJ/`pyproj`; `scripts\bms_projection.py` contains the local helper and
 keeps the grid transform tied to theater metadata rather than hand-fitted

@@ -55,18 +55,17 @@ Timing is provisional: HHMM values use the inferred `.cmp` clock base `1400` and
 | TANKER | Sentry 3 | 1x KC-135R | 1343 | TANKER STPT 4 1405 grid 451/348; TANKER STPT 5 1415 grid 470/250 | 117Y slot 0 | none |
 
 ## Other Package Factors
-Non-player packages are only listed here when their decoded tactical waypoints are close enough in space and time to interact with the player package, affect the target area, or require deconfliction.
+- No friendly non-player packages met the current target-area proximity and timing filter.
 
-| PKG | Relation | Teams | Missions | Callsigns | Closest point | Player anchor | Dist NM | Time delta | Why it matters |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2059 | enemy | DPRK | BAI x1, TARCAP x2 | Mauler 7, Nightwing 4, Blood 4 | Nightwing 4 CAP STPT 3 | Cyborg 3 SAD STPT 5 | 2.4 | 5 min | Enemy TARCAP element near the player target/CAP area; closest to Cyborg 3 SAD STPT 5. |
-| 1757 | enemy | DPRK | BAI x1, TARCAP x2 | Mack 6, Blade 2, Hopper 2 | Blade 2 CAP STPT 4 | Cyborg 3 SAD STPT 5 | 2.4 | 16 min | Enemy TARCAP element near the player target/CAP area; closest to Cyborg 3 SAD STPT 5. |
-| 2431 | enemy | DPRK | BAI x1, TARCAP x2 | Eyeball 2, Stonecat 2, Jump 2 | Stonecat 2 CAP STPT 4 | Cyborg 3 SAD STPT 5 | 2.4 | 27 min | Enemy TARCAP element near the player target/CAP area; closest to Cyborg 3 SAD STPT 5. |
-| 2071 | enemy | DPRK | CAS x1, TARCAP x1 | Chowder 5, Eyeball 3 | Chowder 5 SAD STPT 4 | Cyborg 3 SAD STPT 5 | 3.8 | 61 min | Enemy CAS element near the player target/CAP area; closest to Cyborg 3 SAD STPT 5. |
-| 1801 | enemy | DPRK | CAS x1, TARCAP x1 | Dipper 1, Satan 4 | Dipper 1 SAD STPT 6 | INI F | 4.2 | 46 min | Enemy CAS element near the player target/CAP area; closest to INI F. |
-| 1795 | enemy | DPRK, USSR | BAI x1, TARCAP x1 | Hog 4, Rafale 4 | Rafale 4 CAP STPT 4 | INI TGT 3 | 5.4 | 48 min | Enemy TARCAP element near the player target/CAP area; closest to INI TGT 3. |
-| 1793 | enemy | DPRK | BARCAP2 x1 | Jaguar 3 | Jaguar 3 CAP STPT 2 | INI F | 6.0 | 37 min | Enemy BARCAP2 element near the player target/CAP area; closest to INI F. |
-| 1453 | enemy | DPRK | BARCAP2 x1 | Buzzsaw 6 | Buzzsaw 6 CAP STPT 2 | INI F | 6.0 | 60 min | Enemy BARCAP2 element near the player target/CAP area; closest to INI F. |
+## Enemy Air Threat Estimate
+This section intentionally avoids decoded enemy ATO/package knowledge. It is based on active enemy squadron bases within the threat radius, known aircraft types, and bearing from those bases to the package/INI target-area anchors. Treat it as likely fighter threat axes, not a prediction of specific launches, callsigns, package IDs, or timings.
+
+| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |
+| --- | --- | --- | --- | --- | --- |
+| NE | MiG-19PM; J-6; MiG-21bis | Q-5II | INI GRD | 15.8 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
+| NW | MiG-29A; MiG-21bis; MiG-23ML; J-6 | Il-28 | Mudhen 3 CAP STPT 3 @ 1436 | 36.8 NM | 4 active enemy squadron base(s) in sector; aircraft capability only. |
+| W | MiG-21MF | Q-5II | Mudhen 3 CAP STPT 3 @ 1436 | 60.9 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
+| N | J-6; MiG-21MF | Su-7BMK | INI TGT 3 | 76.8 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
 
 ## Comm Ladder
 Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` flight numbers do not match the CAM camp IDs/name IDs/VU numbers for package 1883. UHF/VHF preset channels are not decoded from the campaign bundle yet.

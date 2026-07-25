@@ -2086,6 +2086,100 @@ def enemy_anchor_cell(unit: dict[str, Any]) -> str:
     return label
 
 
+def bearing_degrees_from_to(origin: dict[str, Any], point: dict[str, Any]) -> float | None:
+    ox = origin.get("grid_x")
+    oy = origin.get("grid_y")
+    px = point.get("grid_x")
+    py = point.get("grid_y")
+    if ox is None or oy is None or px is None or py is None:
+        return None
+    dx = safe_float(px) - safe_float(ox)
+    dy = safe_float(py) - safe_float(oy)
+    if abs(dx) < 0.000001 and abs(dy) < 0.000001:
+        return None
+    return (math.degrees(math.atan2(dx, dy)) + 360.0) % 360.0
+
+
+def compass_sector(degrees: float | None) -> str:
+    if degrees is None:
+        return "unknown"
+    sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    return sectors[int((degrees + 22.5) // 45) % len(sectors)]
+
+
+FIGHTER_AIRFRAME_TOKENS = (
+    "mig-29",
+    "mig-25",
+    "mig-23",
+    "mig-21",
+    "mig-19",
+    "j-6",
+    "j-7",
+    "su-27",
+    "su-30",
+)
+
+STRIKE_AIRFRAME_TOKENS = (
+    "q-5",
+    "su-7",
+    "su-17",
+    "su-22",
+    "il-28",
+)
+
+
+def split_aircraft_summary(summary: str) -> tuple[list[str], list[str]]:
+    fighters: list[str] = []
+    strike: list[str] = []
+    for aircraft in [item.strip() for item in str(summary or "").split(";") if item.strip()]:
+        lower = aircraft.lower()
+        if any(token in lower for token in FIGHTER_AIRFRAME_TOKENS):
+            if aircraft not in fighters:
+                fighters.append(aircraft)
+        elif any(token in lower for token in STRIKE_AIRFRAME_TOKENS):
+            if aircraft not in strike:
+                strike.append(aircraft)
+    return fighters, strike
+
+
+def enemy_air_threat_axes(package: dict[str, Any]) -> list[dict[str, Any]]:
+    enemy = package.get("enemy_situation") or {}
+    axes: dict[str, dict[str, Any]] = {}
+    for base in enemy.get("airbases") or []:
+        anchor = base.get("nearest_anchor") or {}
+        fighters, strike = split_aircraft_summary(str(base.get("aircraft_summary") or ""))
+        if not fighters and not strike:
+            continue
+        sector = compass_sector(bearing_degrees_from_to(anchor, base))
+        axis = axes.setdefault(
+            sector,
+            {
+                "sector": sector,
+                "fighter_types": [],
+                "strike_types": [],
+                "base_count": 0,
+                "closest_distance_nm": None,
+                "nearest_anchor": None,
+                "basis": [],
+            },
+        )
+        axis["base_count"] += 1
+        distance = safe_float(base.get("distance_nm"), 9999.0)
+        if axis["closest_distance_nm"] is None or distance < safe_float(axis["closest_distance_nm"], 9999.0):
+            axis["closest_distance_nm"] = base.get("distance_nm")
+            axis["nearest_anchor"] = enemy_anchor_cell(base)
+        for aircraft in fighters:
+            if aircraft not in axis["fighter_types"]:
+                axis["fighter_types"].append(aircraft)
+        for aircraft in strike:
+            if aircraft not in axis["strike_types"]:
+                axis["strike_types"].append(aircraft)
+    return sorted(
+        axes.values(),
+        key=lambda item: (safe_float(item.get("closest_distance_nm"), 9999.0), str(item.get("sector") or "")),
+    )
+
+
 def tracking_radar_cell(unit: dict[str, Any]) -> str:
     radar = unit.get("tracking_radar") or {}
     name = str(radar.get("vehicle_name") or "").strip()
@@ -2425,35 +2519,61 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
     package = focus_package(synthesis)
     if not package:
         return
-    factors = other_package_factors(synthesis, package)
-    if not factors:
-        lines.append("## Other Package Factors")
-        lines.append("- No non-player packages met the current target-area proximity and timing filter.")
-        lines.append("")
-        return
+    factors = [factor for factor in other_package_factors(synthesis, package) if factor.get("relation") == "friendly"]
     lines.append("## Other Package Factors")
+    if factors:
+        lines.append(
+            "Friendly non-player packages are only listed here when their decoded tactical waypoints are close enough in "
+            "space and time to require deconfliction or to materially affect the player package."
+        )
+        lines.append("")
+        lines.append("| PKG | Teams | Missions | Callsigns | Closest point | Player anchor | Dist NM | Time delta | Why it matters |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        for factor in factors:
+            delta = factor.get("time_delta_min")
+            delta_text = "" if delta is None else f"{delta} min"
+            lines.append(
+                "| {pkg} | {teams} | {missions} | {callsigns} | {point} | {anchor} | {distance} | {delta} | {why} |".format(
+                    pkg=markdown_cell(factor.get("package_id")),
+                    teams=markdown_cell(factor.get("teams")),
+                    missions=markdown_cell(factor.get("missions")),
+                    callsigns=markdown_cell(factor.get("callsigns")),
+                    point=markdown_cell(factor.get("nearest_package_point")),
+                    anchor=markdown_cell(factor.get("nearest_focus_anchor")),
+                    distance=number_cell(factor.get("distance_nm"), 1),
+                    delta=markdown_cell(delta_text),
+                    why=markdown_cell(factor.get("why")),
+                )
+            )
+        lines.append("")
+    else:
+        lines.append("- No friendly non-player packages met the current target-area proximity and timing filter.")
+        lines.append("")
+
+    axes = enemy_air_threat_axes(package)
+    lines.append("## Enemy Air Threat Estimate")
     lines.append(
-        "Non-player packages are only listed here when their decoded tactical waypoints are close enough in space and time "
-        "to interact with the player package, affect the target area, or require deconfliction."
+        "This section intentionally avoids decoded enemy ATO/package knowledge. It is based on active enemy squadron bases "
+        "within the threat radius, known aircraft types, and bearing from those bases to the package/INI target-area anchors. "
+        "Treat it as likely fighter threat axes, not a prediction of specific launches, callsigns, package IDs, or timings."
     )
     lines.append("")
-    lines.append("| PKG | Relation | Teams | Missions | Callsigns | Closest point | Player anchor | Dist NM | Time delta | Why it matters |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
-    for factor in factors:
-        delta = factor.get("time_delta_min")
-        delta_text = "" if delta is None else f"{delta} min"
+    if not axes:
+        lines.append("- No active enemy fighter-capable airbases were resolved within the current airbase threat radius.")
+        lines.append("")
+        return
+    lines.append("| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for axis in axes:
+        basis = f"{axis.get('base_count')} active enemy squadron base(s) in sector; aircraft capability only."
         lines.append(
-            "| {pkg} | {relation} | {teams} | {missions} | {callsigns} | {point} | {anchor} | {distance} | {delta} | {why} |".format(
-                pkg=markdown_cell(factor.get("package_id")),
-                relation=markdown_cell(factor.get("relation")),
-                teams=markdown_cell(factor.get("teams")),
-                missions=markdown_cell(factor.get("missions")),
-                callsigns=markdown_cell(factor.get("callsigns")),
-                point=markdown_cell(factor.get("nearest_package_point")),
-                anchor=markdown_cell(factor.get("nearest_focus_anchor")),
-                distance=number_cell(factor.get("distance_nm"), 1),
-                delta=markdown_cell(delta_text),
-                why=markdown_cell(factor.get("why")),
+            "| {sector} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
+                sector=markdown_cell(axis.get("sector")),
+                fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none resolved"),
+                strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none resolved"),
+                anchor=markdown_cell(axis.get("nearest_anchor")),
+                distance=number_cell(axis.get("closest_distance_nm"), 1),
+                basis=markdown_cell(basis),
             )
         )
     lines.append("")
