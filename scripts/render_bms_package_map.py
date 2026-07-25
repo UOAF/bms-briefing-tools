@@ -925,20 +925,21 @@ def draw_footer(
 
     x = 18
     y = y0 + 136
-    draw.text((x, y - 21), "Flight plans", font=small_font, fill=MUTED)
-    for flight_index, (flight, _) in enumerate(flights):
-        callsign = str(flight.get("callsign") or "")
-        color = flight_colors[callsign]
-        draw.line((x, y + 8, x + 26, y + 8), fill=(*color, 255), width=4)
-        label = f"{callsign} {flight.get('mission')}"
-        contract = flight.get("contract_summary") or ""
-        if contract:
-            label = f"{label} - {contract.split(':', 1)[0]}"
-        draw.text((x + 34, y), label, font=text_font, fill=TEXT)
-        y += 23
-        if flight_index < len(flights) - 1 and y > image.height - 10:
-            y = y0 + 136
-            x += min(420, max(310, image.width // 2))
+    if flights:
+        draw.text((x, y - 21), "Flight plans", font=small_font, fill=MUTED)
+        for flight_index, (flight, _) in enumerate(flights):
+            callsign = str(flight.get("callsign") or "")
+            color = flight_colors[callsign]
+            draw.line((x, y + 8, x + 26, y + 8), fill=(*color, 255), width=4)
+            label = f"{callsign} {flight.get('mission')}"
+            contract = flight.get("contract_summary") or ""
+            if contract:
+                label = f"{label} - {contract.split(':', 1)[0]}"
+            draw.text((x + 34, y), label, font=text_font, fill=TEXT)
+            y += 23
+            if flight_index < len(flights) - 1 and y > image.height - 10:
+                y = y0 + 136
+                x += min(420, max(310, image.width // 2))
 
     legend_x = max(image.width - 330, 18 + min(420, max(310, image.width // 2)))
     legend_y = y0 + 136
@@ -1017,14 +1018,16 @@ def render_map(args: argparse.Namespace) -> Path:
     tactical = tactical_flights(flights) or flights
     objective_points = objective_ini_points(ini_points, package) or ini_points
     crop_flights = tactical if args.crop_mode in {"target-area", "objective-area"} else flights
+    route_draw_flights = [] if args.crop_mode == "objective-area" else crop_flights
     if args.crop_mode == "objective-area":
         bounds_flights = []
         bounds_ini_points = objective_points
         bounds_ini_line_points = ini_line_points
         bounds_air_defenses: list[dict[str, Any]] = []
         bounds_air_defense_radius_scale = 0.0
-        bounds_min_size = 88
+        bounds_min_size = 66
         crop_airbases: list[dict[str, Any]] = []
+        crop_margin_grid = args.margin_grid * 0.75
     elif args.crop_mode == "target-area":
         bounds_flights = crop_flights
         bounds_ini_points = ini_points
@@ -1033,6 +1036,7 @@ def render_map(args: argparse.Namespace) -> Path:
         bounds_air_defense_radius_scale = 0.0
         bounds_min_size = 150
         crop_airbases = []
+        crop_margin_grid = args.margin_grid
     else:
         bounds_flights = [*crop_flights, *support_flights]
         bounds_ini_points = ini_points
@@ -1041,13 +1045,14 @@ def render_map(args: argparse.Namespace) -> Path:
         bounds_air_defense_radius_scale = 0.15
         bounds_min_size = 180
         crop_airbases = airbases if args.show_airbases else []
+        crop_margin_grid = args.margin_grid
     crop = collect_map_bounds(
         bounds_flights,
         bounds_ini_points,
         bounds_ini_line_points,
         bounds_air_defenses,
         crop_airbases,
-        args.margin_grid,
+        crop_margin_grid,
         bounds_air_defense_radius_scale,
         bounds_min_size,
     )
@@ -1076,13 +1081,14 @@ def render_map(args: argparse.Namespace) -> Path:
     }
 
     draw_air_defenses(overlay, projector, strategic_air_defenses, small_font, draw_labels=False)
-    draw_airbases_on_this_map = args.show_airbases and args.crop_mode == "package"
+    draw_airbases_on_this_map = args.show_airbases
     if draw_airbases_on_this_map:
         draw_airbases(overlay, projector, airbases, small_font)
     draw_ini_points = objective_points if args.crop_mode == "objective-area" else ini_points
     if support_flights:
         draw_support_flights(overlay, projector, support_flights, small_font)
-    draw_flights(overlay, projector, crop_flights, flight_colors, small_font)
+    if route_draw_flights:
+        draw_flights(overlay, projector, route_draw_flights, flight_colors, small_font)
     named_locations = projected_ini_locations(projector, draw_ini_points)
     draw_assignment_lanes(overlay, package, named_locations, flight_colors, small_font)
     draw_ini_geometry(overlay, projector, draw_ini_points, ini_line_points, label_font)
@@ -1096,7 +1102,7 @@ def render_map(args: argparse.Namespace) -> Path:
     draw_footer(
         output,
         package,
-        flights,
+        route_draw_flights,
         support_flights,
         flight_colors,
         crop,

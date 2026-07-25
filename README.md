@@ -193,13 +193,17 @@ python .\scripts\render_bms_package_map.py `
   --crop-mode target-area `
   --margin-grid 14 `
   --scale 8 `
+  --show-airbases `
   --out .\outputs\738pre\package_1883_target_area_zoom_skyvector.png
 ```
 
 For a closer target-file view around the INI objective geometry itself, use
 `--crop-mode objective-area`. This crop keeps the objective labels and
 mission-context CAP anchors, such as Guardpost/GRD and BARRIER/BAR, so the
-BARCAP stations remain visible with the target-area geometry:
+BARCAP stations remain visible with the target-area geometry. It uses a tighter
+default crop than the target-area view and suppresses overlapping decoded flight
+route lines so Route Black, named objectives, ADA WEZs, and enemy airbase
+markers are easier to inspect:
 
 ```powershell
 python .\scripts\render_bms_package_map.py `
@@ -212,6 +216,7 @@ python .\scripts\render_bms_package_map.py `
   --crop-mode objective-area `
   --margin-grid 8 `
   --scale 10 `
+  --show-airbases `
   --out .\outputs\738pre\package_1883_objective_area_zoom_skyvector.png
 ```
 
