@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import struct
 import sys
 from collections import Counter
@@ -88,11 +89,11 @@ def field(record: Any, name: str, default: Any = None) -> Any:
     return default if value is None else value
 
 
-def decode_z_raw(value: Any) -> int:
+def decode_z_raw(value: Any) -> float:
     if not isinstance(value, (bytes, bytearray)) or len(value) != 4:
-        return 0
-    raw = struct.unpack("<i", value)[0]
-    return 0 if raw == -2147483648 else raw
+        return 0.0
+    raw = struct.unpack("<f", value)[0]
+    return raw if math.isfinite(raw) else 0.0
 
 
 def raw_bytes(record: Any, name: str) -> bytes:
@@ -132,6 +133,18 @@ def decode_loaded_cft(raw: bytes) -> list[bool]:
     if len(raw) < FLIGHT_SLOT_COUNT:
         return []
     return [bool(value) for value in raw[:FLIGHT_SLOT_COUNT]]
+
+
+def aircraft_count_from_roster(value: Any) -> int:
+    roster = safe_int(value)
+    return sum((roster >> (2 * index)) & 3 for index in range(16))
+
+
+def decode_waypoint_target(raw: bytes) -> tuple[dict[str, int | str], int]:
+    if len(raw) < 9:
+        return vuid((0, 0)), 255
+    target_num, target_creator = struct.unpack("<II", raw[:8])
+    return vuid((target_num, target_creator)), raw[8]
 
 
 def first_vehicle_name(record: Any, support: Any) -> str:
@@ -213,6 +226,7 @@ def waypoint_item(index: int, waypoint: Any) -> dict[str, Any]:
         action_value = 255
     else:
         action_value = action
+    target_id, target_building = decode_waypoint_target(getattr(waypoint, "target_data", b""))
     return {
         "index": index,
         "grid_x": getattr(waypoint, "x", None),
@@ -225,8 +239,8 @@ def waypoint_item(index: int, waypoint: Any) -> dict[str, Any]:
         "route_action": getattr(waypoint, "route_action", None),
         "speed": 0,
         "flags": getattr(waypoint, "flags", None),
-        "target_id": vuid((0, 0)),
-        "target_building": 255,
+        "target_id": target_id,
+        "target_building": target_building,
     }
 
 
@@ -271,7 +285,7 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
             "mission_id": field(record, "mission_id"),
             "mission_context": field(record, "mission_context"),
             "requester_id": vuid(field(record, "requester_id")),
-            "aircraft_count": next((idx + 1 for idx in range(min(len(plane_stats), 4) - 1, -1, -1) if plane_stats[idx] != 0), 1),
+            "aircraft_count": aircraft_count_from_roster(field(record, "roster")),
             "plane_stats": plane_stats,
             "last_player_slot": field(record, "last_player_slot"),
             "player_slots": list(field(record, "player_slots", ())),
@@ -508,10 +522,9 @@ def decode_cam(cam_path: Path, theater_folder: Path, pyopencam_root: Path) -> di
             "cam_path": str(cam_path),
             "theater_folder": str(theater_folder),
             "container_version": version,
-            "gaps": [
-                "waypoint target IDs/building indexes are not decoded by this provider yet",
-                "current unit Z altitude is not decoded from pyopencam z_raw yet",
-            ],
+            "save_version": version,
+            "class_table_entries": len(support.ct_by_number),
+            "gaps": [],
         },
         "campaign_clock": {
             "campaign_time_ms": field(cmp_record, "current_time"),

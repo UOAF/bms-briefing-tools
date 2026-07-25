@@ -1231,7 +1231,7 @@ def analyze_active_enemy_air_contacts(
                 "sector": sector,
                 "grid_x": flight.get("x"),
                 "grid_y": flight.get("y"),
-                "altitude_ft": abs(safe_int(flight.get("z"))),
+                "altitude_ft": abs(safe_float(flight.get("z"))),
                 "nearest_anchor": anchor,
                 "distance_nm": round(safe_float(distance_nm), 1) if distance_nm is not None else None,
                 "basis": basis,

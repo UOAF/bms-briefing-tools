@@ -88,6 +88,7 @@ def main() -> None:
         "scripts/render_bms_weather_map.py",
         "scripts/pyopencam_adapter.py",
         "scripts/pyopencam_provider.py",
+        "scripts/ab_test_cam_decoders.py",
         "scripts/compare_decoders.py",
         "scripts/export_claude_design_bundle.py",
         "scripts/upload_claude_design_bundle.py",

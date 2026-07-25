@@ -54,16 +54,16 @@
 - Objective deltas: 2630
 - Units: Battalion=312, Brigade=15, Flight=210, Package=159, Squadron=136, TaskForce=11
 - Teams: XX, U.S., ROK, Japan, USSR, PRC, DPRK, NATO
-- Mission counts: BARCAP=26, SCAR=24, QRA=17, TASMO=15, TARCAP=15, HAVCAP=14, PATROL=13, AIRLIFT=12, ESCORT=12, CAS=11, ABORTED=10, BAI=9
+- Mission counts: BARCAP=26, SCAR=24, QRA=17, TARCAP=15, TASMO=15, HAVCAP=14, PATROL=13, AIRLIFT=12, ESCORT=12, CAS=11, ABORTED=10, BAI=9
 - Sample flights:
-  - 1459: Eagle 6 RECONPATROL pkg=1457 wpts=5
-  - 1401: Cheetah 2 ABORT pkg=1397 wpts=12
-  - 1727: Gypsy 2 PATROL pkg=1725 wpts=8
-  - 1939: Satan 3 BARCAP pkg=1937 wpts=6
-  - 1803: Dipper 1 CAS pkg=1801 wpts=11
-  - 2871: Trojan 7 QRA pkg=2869 wpts=3
-  - 1885: Cyborg 3 AI pkg=1883 wpts=11
-  - 1761: Mack 6 BAI pkg=1757 wpts=7
+  - 1247: Dart 5 BAI pkg=1245 wpts=8
+  - 1255: Gunhog 2 SCAR pkg=1253 wpts=9
+  - 1289: Tomcat 4 PATROL pkg=1287 wpts=10
+  - 1293: Cowboy 1 CAS pkg=1291 wpts=8
+  - 1295: Spectre 7 TARCAP pkg=1291 wpts=11
+  - 1333: Buff 6 PATROL pkg=1297 wpts=8
+  - 1349: Snake 1 SCAR pkg=1341 wpts=8
+  - 1373: Snake 7 BARCAP pkg=1355 wpts=7
 
-## Current Gap
-The `.cam` container, teams, objective deltas, units, packages, flights, squadrons, missions, callsigns, TACAN values, and waypoints are now decoded. Remaining work is briefing synthesis: resolve objective names/base objective data, convert BMS campaign times into briefing times, identify the human-relevant packages, and infer tactics/intent.
+## Current Status
+The `.cam` container, teams, objective deltas, units, packages, flights, squadrons, missions, callsigns, package support IDs, flight loadouts, laser codes, TACAN values, waypoint target refs, current-unit altitude, and waypoints are now decoded for briefing synthesis. Remaining non-CAM work is radio/channel sidecar correlation for saves whose Link 16 identifiers do not match CAM flight IDs.

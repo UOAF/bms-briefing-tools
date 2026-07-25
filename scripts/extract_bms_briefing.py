@@ -595,13 +595,13 @@ def build_summary(data: dict[str, Any]) -> str:
             lines.append(f"  - {slide['number']}: {slide['title']}")
 
     lines.append("")
-    lines.append("## Current Gap")
+    lines.append("## Current Status")
     lines.append(
         "The `.cam` container, teams, objective deltas, units, packages, flights, squadrons, "
         "missions, callsigns, package support IDs, flight loadouts, laser codes, TACAN values, "
-        "and waypoints are now decoded. Remaining work is "
-        "briefing synthesis: resolve objective names/base objective data, convert BMS campaign "
-        "times into briefing times, identify the human-relevant packages, and infer tactics/intent."
+        "waypoint target refs, current-unit altitude, and waypoints are now decoded for "
+        "briefing synthesis. Remaining non-CAM work is radio/channel sidecar correlation "
+        "for saves whose Link 16 identifiers do not match CAM flight IDs."
     )
     return "\n".join(lines) + "\n"
 

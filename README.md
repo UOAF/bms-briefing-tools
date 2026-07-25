@@ -319,15 +319,30 @@ python .\scripts\compare_decoders.py `
   --package-id 1883
 ```
 
+For direct-provider A/B testing, compare pyopencam output against the legacy
+BMSUtils decoder without using BMSUtils in the production extraction path:
+
+```powershell
+python .\scripts\ab_test_cam_decoders.py `
+  --cam "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign\738pre.cam" `
+  --theater-folder "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s" `
+  --pyopencam-root "$env:PYOPENCAM_ROOT" `
+  --bms-root "C:\Falcon BMS 4.38" `
+  --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects" `
+  --package-id 1883
+```
+
 The current direct-provider 738 comparison matches BMSUtils unit counts, mission
 counts, package 1883 flight IDs/callsigns/waypoint counts, flight
 loadout/weapon arrays, laser codes, TACAN channels, CFT flags, active strategic
 ADA count, inactive ADA exclusions, enemy airbase threats, active air contacts,
-and enemy airbase airframe labels. Remaining direct-provider gaps are waypoint
-target IDs/building indexes and decoded current-unit altitude.
+enemy airbase airframe labels, waypoint target IDs/building indexes, and
+decoded current-unit altitude. The brief-critical CAM fields are now sourced
+from pyopencam.
 
-Additional pyopencam smoke coverage currently passes stock `715pre`, stock
-`718pre`, UOAF `737pre`, UOAF `738pre`, and UOAF `738pretest`. Stock
-`736post` currently exposes an upstream pyopencam parser coverage gap:
-`unsupported unit kind for CT 2`; do not paper over that with a campaign-specific
-exception.
+Additional pyopencam smoke coverage currently passes stock `714post`,
+`715post`, `715pre`, `717post`, `718pre`, `bear-pre`, `omid-test`, `test`,
+`weathertest`, and `weathertest2`, plus UOAF `736post`, `737post`, `737pre`,
+`738pre`, and `738pretest`. Stock `736post` currently exposes an upstream
+pyopencam parser coverage gap: `unsupported unit kind for CT 2`; do not paper
+over that with a campaign-specific exception.
