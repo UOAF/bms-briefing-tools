@@ -1,7 +1,9 @@
 # Standalone Setup
 
 This repo should run the briefing synthesis and map pipeline from a clean clone
-without cloning `pyopencam` or `falcon-bms-tacview-converter`.
+without `falcon-bms-tacview-converter` as a runtime dependency. Direct CAM
+decode uses a local `pyopencam` checkout/source directory until its licensing
+and packaging story is settled.
 
 Falcon BMS itself is still an external data dependency: the tools need campaign
 save sidecars, theater files, object XML tables, and map rasters from a local BMS
@@ -23,7 +25,8 @@ For a full local BMS install, validate the optional data paths too:
 ```powershell
 python .\scripts\check_standalone.py `
   --bms-root "C:\Falcon BMS 4.38" `
-  --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects"
+  --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects" `
+  --pyopencam-root "$env:PYOPENCAM_ROOT"
 ```
 
 ## What Is Standalone
@@ -34,6 +37,8 @@ python .\scripts\check_standalone.py `
 - Route/threat maps and weather maps.
 - Claude design handoff bundles containing source markdown, source JSON, map
   images, a manifest, and a prompt/template for deck generation.
+- Direct read-only CAM decode through `scripts/pyopencam_provider.py` when a
+  local pyopencam checkout/source directory is supplied.
 - Decoder comparison against existing pyopencam JSON exports.
 
 ## What Is Optional
@@ -42,9 +47,8 @@ python .\scripts\check_standalone.py `
   BMS install with `mc\BMSUtils.dll` and `mc\LzssManaged.dll`. This is
   read-only compatibility support only.
 - `pyopencam` is not vendored yet because the inspected archive has no license
-  file or packaging metadata. The current adapter consumes pyopencam JSON
-  exports, and the migration plan is to build a provider-neutral adapter rather
-  than commit an upstream code dump.
+  file or packaging metadata. Use `--pyopencam-root` or `PYOPENCAM_ROOT` to
+  point at a local checkout/source directory.
 - Direct PPTX deck export through `scripts/build_bms_briefing_deck.mjs` is
   deprecated fallback/debug support. The supported deck workflow is to export a
   Claude design bundle and generate the final briefing from that bundle.
@@ -54,8 +58,9 @@ python .\scripts\check_standalone.py `
 
 ## Upstream Dependency Policy
 
-- Prefer `pyopencam` as the future primary CAM parser once licensing, packaging,
-  and canonical-schema mapping are settled.
+- Prefer `pyopencam` as the primary read-only CAM parser. Keep the provider
+  boundary explicit until licensing, packaging, and canonical-schema coverage
+  are fully settled.
 - Use `falcon-bms-tacview-converter` for projection/theater ideas and tests, not
   as a required runtime dependency.
 - Keep BMSUtils as a read-only fallback and comparison oracle, never as the

@@ -162,13 +162,21 @@ internal quirks of BMSUtils or `pyopencam`.
    - Package 1883 flight IDs/callsigns/waypoint counts must match.
    - Known enemy airbase aircraft labels must match the corrected class-table
      resolution.
-2. Build a `pyopencam` adapter that emits our canonical `cam_decode` shape.
-   - Keep it optional at first.
+2. Direct `pyopencam` provider adapter.
+   - `scripts/pyopencam_provider.py` imports an external pyopencam
+     checkout/source directory and emits the canonical `cam_decode` shape
+     directly from `.cam` files.
+   - `scripts/extract_bms_briefing.py --decode-cam --cam-decoder pyopencam`
+     runs this provider without BMSUtils.
    - Preserve BMSUtils as read-only fallback and cross-check provider.
    - Never rely on BMSUtils for campaign write-back; use pyopencam-style
      container/section serialization if write support becomes a goal.
-   - Current adapter is a comparison bridge over pyopencam JSON, not yet the
-     primary campaign decoder.
+   - Current 738/package 1883 regression matches BMSUtils unit counts, mission
+     counts, package flight identities and waypoint counts, strategic ADA
+     threats, inactive ADA exclusions, enemy airbase threats, active air
+     contacts, and enemy airbase airframe labels.
+   - Remaining canonical-field gaps: flight loadout/weapon arrays, laser codes,
+     TACAN channels, and decoded current-unit altitude.
 3. Move object-table, class-table, and vehicle-table resolution into one shared
    Python module used by both decoders and synthesis.
 4. Replace nonzero squadron roster checks with decoded available-airframe counts.

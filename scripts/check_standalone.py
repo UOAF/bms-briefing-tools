@@ -64,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bms-root", type=Path, help="Optional Falcon BMS install root to validate legacy BMSUtils decode support.")
     parser.add_argument("--object-dir", type=Path, help="Optional Falcon object table directory to validate object lookups.")
     parser.add_argument("--pyopencam-json-dir", type=Path, help="Optional pyopencam JSON export directory to validate adapter input availability.")
+    parser.add_argument("--pyopencam-root", type=Path, help="Optional pyopencam checkout/source directory to validate direct provider support.")
     parser.add_argument("--require-deck", action="store_true", help="Fail if the optional Codex presentation skill deck builder is unavailable.")
     return parser.parse_args()
 
@@ -86,6 +87,7 @@ def main() -> None:
         "scripts/render_bms_package_map.py",
         "scripts/render_bms_weather_map.py",
         "scripts/pyopencam_adapter.py",
+        "scripts/pyopencam_provider.py",
         "scripts/compare_decoders.py",
         "scripts/export_claude_design_bundle.py",
         "scripts/upload_claude_design_bundle.py",
@@ -111,6 +113,10 @@ def main() -> None:
                 "found" if list(args.pyopencam_json_dir.glob("*.uni.json")) else "missing *.uni.json export",
             )
         )
+
+    if args.pyopencam_root:
+        checks.append(check_path(args.pyopencam_root / "cam_to_json.py", "pyopencam provider cam_to_json.py", required=True))
+        checks.append(check_path(args.pyopencam_root / "lib" / "uni_parser.py", "pyopencam provider uni_parser.py", required=True))
 
     skill_dir = Path(os.environ.get("PRESENTATIONS_SKILL_DIR") or default_presentations_skill_dir())
     builder = skill_dir / "scripts" / "build_artifact_deck.mjs"

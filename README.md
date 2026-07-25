@@ -12,15 +12,16 @@ Current prototype:
 
 - Parses campaign sidecars by prefix, for example `718pre.*`.
 - Parses the embedded `.cam` container directory and save version.
-- Optionally decodes `.cam` sections through the legacy read-only Mission
-  Commander/BMSUtils compatibility path:
+- Optionally decodes `.cam` sections through the direct `pyopencam` provider, or
+  through the legacy read-only Mission Commander/BMSUtils compatibility path:
   - `.tea`: teams.
   - `.obd`: objective deltas.
   - `.uni`: units, packages, flights, squadrons, callsigns, mission codes,
     battalions, brigades, task forces, TACAN arrays, and waypoints.
   - Package support IDs for AWACS/JSTAR/ECM/tanker/interceptor links.
-  - Flight aircraft counts, plane stats, loadouts, weapon IDs/counts, laser
-    codes, and TACAN channels.
+  - Flight aircraft counts, plane stats, and waypoints. The legacy path also
+    exposes loadouts, weapon IDs/counts, laser codes, and TACAN channels while
+    those fields are still being mapped in the direct provider.
 - Extracts DTC/planning points from `*.ini`.
   - `target_*`, `ppt_*`, `wpntarget_*`, and drawn `lineSTPT_*` plan geometry.
 - Extracts Link 16 network and flight channel assignments from `*.l16.txtpb`.
@@ -40,17 +41,19 @@ python .\scripts\extract_bms_briefing.py `
   --prefix 718pre `
   --deck-url "https://docs.google.com/presentation/d/1sV9xxCRPyaAeumhVlZdfAq7CFWqq8Ch9Gk0d7h3EnTc/edit" `
   --decode-cam `
-  --bms-root "C:\Falcon BMS 4.38" `
+  --cam-decoder pyopencam `
+  --pyopencam-root "$env:PYOPENCAM_ROOT" `
   --out-dir .\outputs\718pre
 ```
 
 The main output is `briefing_data.json`; `briefing_summary.md` is a human-readable
 sanity check. When `--decode-cam` is used, the full BMS object dump is written to
-`cam_decode.json` beside those files. The helper script auto-runs under 32-bit
-PowerShell because `BMSUtils.dll` is a 32-bit assembly. Treat this path as a
-read-only legacy fallback and cross-check provider only; known Mission
-Commander/BMSUtils write-back bugs make it unsuitable as the foundation for
-future campaign-writing features.
+`cam_decode.json` beside those files. The preferred decoder is
+`--cam-decoder pyopencam`, which imports a local pyopencam checkout/source
+directory and emits the same canonical `cam_decode.json` shape used by
+synthesis. The default `bmsutils` decoder remains a read-only legacy fallback
+and cross-check provider only; known Mission Commander/BMSUtils write-back bugs
+make it unsuitable as the foundation for future campaign-writing features.
 
 Build the synthesis layer:
 
@@ -140,8 +143,9 @@ python .\scripts\extract_bms_briefing.py `
   --campaign-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign" `
   --prefix 738pre `
   --decode-cam `
-  --bms-root "C:\Falcon BMS 4.38" `
-  --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects" `
+  --cam-decoder pyopencam `
+  --pyopencam-root "$env:PYOPENCAM_ROOT" `
+  --theater-folder "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s" `
   --out-dir .\outputs\738pre
 
 python .\scripts\synthesize_bms_briefing.py `
@@ -276,8 +280,9 @@ python .\scripts\render_bms_weather_map.py `
 
 Decoder policy:
 
-- Prefer `pyopencam` as the future primary CAM parser once its adapter emits the
-  full canonical `cam_decode` shape.
+- Prefer `pyopencam` as the primary CAM parser for read-only briefing extraction.
+  `scripts/pyopencam_provider.py` imports an external checkout/source directory
+  and emits the canonical `cam_decode` shape directly from `.cam` files.
 - Keep BMSUtils as a read-only compatibility fallback and regression oracle, not
   a write-back dependency.
 - Use `falcon-bms-tacview-converter` concepts for theater discovery,
@@ -286,7 +291,22 @@ Decoder policy:
 - Do not vendor either upstream project blindly; preserve attribution, check
   licenses, and keep this repo's synthesis schema provider-neutral.
 
-`pyopencam` is not vendored into this repo. When a pyopencam JSON export exists,
+`pyopencam` is not vendored into this repo because the inspected archive has no
+license file or packaging metadata. Point `--pyopencam-root` or
+`PYOPENCAM_ROOT` at a local checkout/source directory:
+
+```powershell
+python .\scripts\extract_bms_briefing.py `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign" `
+  --prefix 738pre `
+  --decode-cam `
+  --cam-decoder pyopencam `
+  --pyopencam-root "$env:PYOPENCAM_ROOT" `
+  --theater-folder "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s" `
+  --out-dir .\outputs\738pre
+```
+
+When a pyopencam JSON export exists, the older comparison adapter can still
 normalize it and compare it against the current BMSUtils decode:
 
 ```powershell
@@ -300,5 +320,9 @@ python .\scripts\compare_decoders.py `
   --package-id 1883
 ```
 
-The current 718/738 comparison passes unit counts. Package 1883 is only present
-in 738, where flight IDs, callsigns, and waypoint counts also match.
+The current direct-provider 738 comparison matches BMSUtils unit counts, mission
+counts, package 1883 flight IDs/callsigns/waypoint counts, active strategic ADA
+count, inactive ADA exclusions, enemy airbase threats, active air contacts, and
+enemy airbase airframe labels. Remaining direct-provider gaps are flight
+loadout/weapon arrays, laser codes, TACAN channels, and decoded current-unit
+altitude.

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import struct
 import subprocess
@@ -329,6 +330,54 @@ def run_cam_decoder(cam_path: Path, bms_root: str, object_dir: str | None, outpu
         raise RuntimeError(f"CAM decoder failed with exit code {result.returncode}: {detail}")
 
 
+def default_theater_folder(campaign_dir: Path) -> Path:
+    if campaign_dir.name.lower() == "campaign":
+        return campaign_dir.parent
+    return campaign_dir
+
+
+def pyopencam_root_arg(value: str | None) -> Path:
+    if value:
+        return Path(value)
+    env_value = os.environ.get("PYOPENCAM_ROOT")
+    if env_value:
+        return Path(env_value)
+    candidate = Path(__file__).resolve().parent.parent / "external" / "pyopencam"
+    if candidate.exists():
+        return candidate
+    raise FileNotFoundError(
+        "pyopencam decoder requested but no pyopencam root was supplied. "
+        "Pass --pyopencam-root or set PYOPENCAM_ROOT to a pyopencam checkout/source directory."
+    )
+
+
+def run_pyopencam_decoder(
+    cam_path: Path,
+    theater_folder: Path,
+    pyopencam_root: Path,
+    output_path: Path,
+) -> None:
+    helper = Path(__file__).with_name("pyopencam_provider.py")
+    if not helper.exists():
+        raise FileNotFoundError(f"Missing pyopencam provider helper: {helper}")
+    command = [
+        sys.executable,
+        str(helper),
+        "--cam",
+        str(cam_path),
+        "--theater-folder",
+        str(theater_folder),
+        "--pyopencam-root",
+        str(pyopencam_root),
+        "--out",
+        str(output_path),
+    ]
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"pyopencam decoder failed with exit code {result.returncode}: {detail}")
+
+
 def summarize_cam_decode(path: Path) -> dict[str, Any]:
     decoded = json.loads(path.read_text(encoding="utf-8-sig"))
     flights = decoded.get("flights", [])
@@ -354,7 +403,7 @@ def summarize_cam_decode(path: Path) -> dict[str, Any]:
 
     return {
         "path": str(path),
-        "source": decoded.get("source", {}),
+        "source": decoded.get("source") or decoded.get("provider", {}),
         "campaign_clock": decoded.get("campaign_clock"),
         "unit_counts": decoded.get("unit_counts", {}),
         "mission_counts": mission_counts,
@@ -600,10 +649,13 @@ def main(argv: list[str]) -> int:
         "--decode-cam",
         action="store_true",
         help=(
-            "Decode embedded .tea/.uni sections through the legacy read-only BMSUtils compatibility path. "
-            "Use for briefing extraction and decoder comparison only, not campaign write-back."
+            "Decode embedded CAM sections. Defaults to the legacy read-only BMSUtils compatibility path unless "
+            "--cam-decoder pyopencam is selected."
         ),
     )
+    parser.add_argument("--cam-decoder", choices=("bmsutils", "pyopencam"), default="bmsutils")
+    parser.add_argument("--pyopencam-root", help="External pyopencam checkout/source directory for --cam-decoder pyopencam.")
+    parser.add_argument("--theater-folder", help="Theater folder containing Campaign and TerrData/Objects. Defaults to campaign dir parent.")
     parser.add_argument("--bms-root", default=r"C:\Falcon BMS 4.38")
     parser.add_argument("--object-dir")
     args = parser.parse_args(argv)
@@ -617,7 +669,11 @@ def main(argv: list[str]) -> int:
         if not cam_path.exists():
             raise FileNotFoundError(f"Cannot decode missing CAM file: {cam_path}")
         cam_decode_path = out_dir / "cam_decode.json"
-        run_cam_decoder(cam_path, args.bms_root, args.object_dir, cam_decode_path)
+        if args.cam_decoder == "pyopencam":
+            theater_folder = Path(args.theater_folder) if args.theater_folder else default_theater_folder(Path(args.campaign_dir))
+            run_pyopencam_decoder(cam_path, theater_folder, pyopencam_root_arg(args.pyopencam_root), cam_decode_path)
+        else:
+            run_cam_decoder(cam_path, args.bms_root, args.object_dir, cam_decode_path)
         data["cam_decode"] = summarize_cam_decode(cam_decode_path)
 
     (out_dir / "briefing_data.json").write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
