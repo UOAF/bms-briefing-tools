@@ -19,9 +19,8 @@ Current prototype:
   - `.uni`: units, packages, flights, squadrons, callsigns, mission codes,
     battalions, brigades, task forces, TACAN arrays, and waypoints.
   - Package support IDs for AWACS/JSTAR/ECM/tanker/interceptor links.
-  - Flight aircraft counts, plane stats, and waypoints. The legacy path also
-    exposes loadouts, weapon IDs/counts, laser codes, and TACAN channels while
-    those fields are still being mapped in the direct provider.
+  - Flight aircraft counts, plane stats, loadouts, weapon IDs/counts, laser
+    codes, TACAN channels, CFT flags, and waypoints.
 - Extracts DTC/planning points from `*.ini`.
   - `target_*`, `ppt_*`, `wpntarget_*`, and drawn `lineSTPT_*` plan geometry.
 - Extracts Link 16 network and flight channel assignments from `*.l16.txtpb`.
@@ -321,11 +320,11 @@ python .\scripts\compare_decoders.py `
 ```
 
 The current direct-provider 738 comparison matches BMSUtils unit counts, mission
-counts, package 1883 flight IDs/callsigns/waypoint counts, active strategic ADA
-count, inactive ADA exclusions, enemy airbase threats, active air contacts, and
-enemy airbase airframe labels. Remaining direct-provider gaps are flight
-loadout/weapon arrays, laser codes, TACAN channels, and decoded current-unit
-altitude.
+counts, package 1883 flight IDs/callsigns/waypoint counts, flight
+loadout/weapon arrays, laser codes, TACAN channels, CFT flags, active strategic
+ADA count, inactive ADA exclusions, enemy airbase threats, active air contacts,
+and enemy airbase airframe labels. Remaining direct-provider gaps are waypoint
+target IDs/building indexes and decoded current-unit altitude.
 
 Additional pyopencam smoke coverage currently passes stock `715pre`, stock
 `718pre`, UOAF `737pre`, UOAF `738pre`, and UOAF `738pretest`. Stock

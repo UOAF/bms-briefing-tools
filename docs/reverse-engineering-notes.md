@@ -288,7 +288,7 @@ synthesized objects:
 - Replace nonzero squadron roster checks with decoded available-airframe counts.
 - Aircraft type and squadron/base.
 - Loadout/stores and role fit.
-- TACAN and radio channel assignments.
+- Radio channel assignments; TACAN is decoded from the CAM flight records.
 - Push, target, and egress timing validation against BMS UI.
 - Target-file details: SAM type, radar names, expected defenses, and target
   building/component status.

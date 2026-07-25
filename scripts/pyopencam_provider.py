@@ -55,6 +55,10 @@ ACTION_NAME_BY_CODE = {
     27: "WP_LAND2",
 }
 
+LOADOUT_STATION_COUNT = 16
+FLIGHT_SLOT_COUNT = 4
+LOADOUT_ENTRY_SIZE = 48
+
 
 def safe_int(value: Any, default: int = 0) -> int:
     try:
@@ -89,6 +93,45 @@ def decode_z_raw(value: Any) -> int:
         return 0
     raw = struct.unpack("<i", value)[0]
     return 0 if raw == -2147483648 else raw
+
+
+def raw_bytes(record: Any, name: str) -> bytes:
+    value = field(record, name, b"")
+    return bytes(value) if isinstance(value, (bytes, bytearray)) else b""
+
+
+def decode_loadouts(raw: bytes, count: Any) -> list[dict[str, list[int]]]:
+    loadout_count = safe_int(count)
+    loadouts: list[dict[str, list[int]]] = []
+    for index in range(loadout_count):
+        start = index * LOADOUT_ENTRY_SIZE
+        chunk = raw[start : start + LOADOUT_ENTRY_SIZE]
+        if len(chunk) < LOADOUT_ENTRY_SIZE:
+            break
+        weapon_ids = list(struct.unpack("<" + ("H" * LOADOUT_STATION_COUNT), chunk[:32]))
+        weapon_counts = list(chunk[32:48])
+        loadouts.append({"weapon_ids": weapon_ids, "weapon_counts": weapon_counts})
+    return loadouts
+
+
+def decode_laser_codes(raw: bytes) -> list[int]:
+    if len(raw) < FLIGHT_SLOT_COUNT * 2:
+        return []
+    return list(struct.unpack("<" + ("H" * FLIGHT_SLOT_COUNT), raw[: FLIGHT_SLOT_COUNT * 2]))
+
+
+def decode_tacan(raw: bytes) -> list[dict[str, int]]:
+    if len(raw) < FLIGHT_SLOT_COUNT * 2:
+        return []
+    channels = list(raw[:FLIGHT_SLOT_COUNT])
+    bands = list(raw[FLIGHT_SLOT_COUNT : FLIGHT_SLOT_COUNT * 2])
+    return [{"slot": index, "channel": channels[index], "band": bands[index]} for index in range(FLIGHT_SLOT_COUNT)]
+
+
+def decode_loaded_cft(raw: bytes) -> list[bool]:
+    if len(raw) < FLIGHT_SLOT_COUNT:
+        return []
+    return [bool(value) for value in raw[:FLIGHT_SLOT_COUNT]]
 
 
 def first_vehicle_name(record: Any, support: Any) -> str:
@@ -212,6 +255,8 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
     callsign_root = support.strings_by_id.get(2000 + callsign_id, "")
     callsign = f"{callsign_root} {callsign_num}".strip() if callsign_root and callsign_num else ""
     plane_stats = list(field(record, "plane_stats", ()))
+    loadout_count = safe_int(field(record, "loadouts"))
+    loadouts = decode_loadouts(raw_bytes(record, "loadout_raw"), loadout_count)
     item.update(
         {
             "mission": mission_code,
@@ -231,12 +276,12 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
             "last_player_slot": field(record, "last_player_slot"),
             "player_slots": list(field(record, "player_slots", ())),
             "use_loadout": 0,
-            "loadout_count": 0,
-            "loadouts": [],
-            "weapon_ids": [],
-            "weapon_counts": [],
-            "laser_codes": [],
-            "loaded_cft": [],
+            "loadout_count": loadout_count,
+            "loadouts": loadouts,
+            "weapon_ids": [0],
+            "weapon_counts": [0],
+            "laser_codes": decode_laser_codes(raw_bytes(record, "laser_code_raw")),
+            "loaded_cft": decode_loaded_cft(raw_bytes(record, "loaded_cft_raw")),
             "callsign_id": callsign_id,
             "callsign_name": callsign_root,
             "callsign_num": callsign_num,
@@ -246,7 +291,7 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
             "squadron_id": squadron_id,
             "squadron_camp_id": field(squadron_record, "camp_id") if squadron_record is not None else None,
             "squadron_name": "",
-            "tacan": [],
+            "tacan": decode_tacan(raw_bytes(record, "tacan_raw")),
             "pilots": list(field(record, "pilots", ())),
             "slots": list(field(record, "slots", ())),
             "waypoints": [waypoint_item(index, waypoint) for index, waypoint in enumerate(field(record, "waypoints", ()))],
@@ -464,9 +509,7 @@ def decode_cam(cam_path: Path, theater_folder: Path, pyopencam_root: Path) -> di
             "theater_folder": str(theater_folder),
             "container_version": version,
             "gaps": [
-                "flight loadout/weapon arrays not decoded by this provider yet",
-                "flight laser codes not decoded by this provider yet",
-                "flight TACAN channels not decoded by this provider yet",
+                "waypoint target IDs/building indexes are not decoded by this provider yet",
                 "current unit Z altitude is not decoded from pyopencam z_raw yet",
             ],
         },
