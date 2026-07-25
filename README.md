@@ -97,7 +97,27 @@ through PROJ/`pyproj`; `scripts\bms_projection.py` contains the local helper and
 keeps the grid transform tied to theater metadata rather than hand-fitted
 offsets.
 
-Build the editable briefing deck:
+Export the supported Claude design handoff bundle:
+
+```powershell
+python .\scripts\export_claude_design_bundle.py `
+  --synthesis .\outputs\718pre\briefing_synthesis.json `
+  --package-id 2515 `
+  --out-dir .\outputs\718pre\claude_design_pkg_2515
+```
+
+That writes `manifest.json`, `claude_design_prompt.md`, source markdown/JSON,
+and briefing images into a single upload-ready directory. Upload the bundle to
+Claude with the included `.claude/skills/bms-briefing-design` instructions, or
+use the optional Files API helper when `ANTHROPIC_API_KEY` is set:
+
+```powershell
+python .\scripts\upload_claude_design_bundle.py `
+  --bundle-dir .\outputs\718pre\claude_design_pkg_2515
+```
+
+The legacy in-repo PPTX generator remains as a fallback/debug path only. It is
+not the supported deck-production flow:
 
 ```powershell
 node `
@@ -107,7 +127,7 @@ node `
   --package-id 2515
 ```
 
-That writes a package-specific deck, for example
+The fallback writes a package-specific deck, for example
 `procedural-bms-718pre-pkg-2515-briefing.pptx`, showing the decode pipeline,
 package snapshot, package coordination table, route/timing read, scored follow-on
 package queue, and remaining decoder gaps.
@@ -134,6 +154,15 @@ python .\scripts\synthesize_bms_briefing.py `
   --mission-context .\inputs\738pre-pkg-1883-context.json `
   --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects"
 
+python .\scripts\export_claude_design_bundle.py `
+  --synthesis .\outputs\738pre\briefing_synthesis.json `
+  --package-id 1883 `
+  --out-dir .\outputs\738pre\claude_design_pkg_1883
+```
+
+Deprecated fallback deck render:
+
+```powershell
 node `
   .\scripts\build_bms_briefing_deck.mjs `
   --synthesis .\outputs\738pre\briefing_synthesis.json `

@@ -23,6 +23,22 @@ function parseArgs(argv) {
   return args;
 }
 
+function printHelp() {
+  console.log(`Usage: node scripts/build_bms_briefing_deck.mjs --synthesis PATH [--out-dir DIR] [--package-id ID]
+
+Deprecated fallback. The supported deck-production path is:
+  python scripts/export_claude_design_bundle.py --synthesis PATH --package-id ID --out-dir DIR
+
+Options:
+  --synthesis PATH   Path to briefing_synthesis.json.
+  --out-dir DIR      Output directory for fallback PPTX.
+  --out PATH         Explicit fallback PPTX output path.
+  --package-id ID    Package ID to render.
+  --workspace DIR    Generated presentation workspace.
+  --skill-dir DIR    Codex presentations skill directory.
+  --help             Show this help and exit.`);
+}
+
 function slug(value) {
   return String(value || "bms-briefing")
     .toLowerCase()
@@ -799,6 +815,14 @@ async function writeNotes(workspace, deckData, synthesisPath) {
 }
 
 async function main() {
+  if (process.argv.includes("--help") || process.argv.includes("-h")) {
+    printHelp();
+    return;
+  }
+  console.warn(
+    "Deprecated fallback: build_bms_briefing_deck.mjs is no longer the supported deck-production path. " +
+      "Use scripts/export_claude_design_bundle.py and the Claude design bundle workflow instead.",
+  );
   const args = parseArgs(process.argv.slice(2));
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(scriptDir, "..");

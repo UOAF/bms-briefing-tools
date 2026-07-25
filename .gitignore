@@ -7,3 +7,5 @@ outputs/**/*.json
 outputs/**/*.png
 outputs/**/*.pptx
 outputs/**/*.ndjson
+outputs/**/claude_design_*/
+outputs/**/presentations/
