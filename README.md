@@ -88,7 +88,7 @@ offsets.
 Build the editable briefing deck:
 
 ```powershell
-& "C:\Users\SPQR\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" `
+node `
   .\scripts\build_bms_briefing_deck.mjs `
   --synthesis .\outputs\718pre\briefing_synthesis.json `
   --out-dir .\outputs\718pre `
@@ -122,7 +122,7 @@ python .\scripts\synthesize_bms_briefing.py `
   --mission-context .\inputs\738pre-pkg-1883-context.json `
   --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects"
 
-& "C:\Users\SPQR\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" `
+node `
   .\scripts\build_bms_briefing_deck.mjs `
   --synthesis .\outputs\738pre\briefing_synthesis.json `
   --out-dir .\outputs\738pre `
