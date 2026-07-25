@@ -5,6 +5,8 @@ structured briefing inputs.
 
 For the scalability plan and upstream parser/tooling assessment, see
 [`docs/scalable-tooling-strategy.md`](docs/scalable-tooling-strategy.md).
+For clean-machine setup and dependency checks, see
+[`docs/standalone-setup.md`](docs/standalone-setup.md).
 
 Current prototype:
 

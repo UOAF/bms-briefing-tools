@@ -1,0 +1,15 @@
+{
+  "name": "bms-briefing-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone briefing and map tooling for Falcon BMS campaign saves.",
+  "scripts": {
+    "check": "python scripts/check_standalone.py",
+    "help:extract": "python scripts/extract_bms_briefing.py --help",
+    "help:synthesize": "python scripts/synthesize_bms_briefing.py --help",
+    "help:map": "python scripts/render_bms_package_map.py --help",
+    "help:weather-map": "python scripts/render_bms_weather_map.py --help"
+  },
+  "dependencies": {}
+}
