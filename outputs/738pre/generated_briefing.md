@@ -138,43 +138,43 @@ Location data is intentionally separated from the commander-facing read. Flight 
 ### PKG 1883 Flight Steerpoints
 | C/S | STPT | Action | Arrive | Grid X | Grid Y | Grid Z | Target/object |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cyborg 3 | 0 | TAKEOFF | 1424 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Cyborg 3 | 0 | TAKEOFF | 1424 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Cyborg 3 | 2 | TIMING | 1431 | 507.0 | 396.0 | 2200.0 |  |
 | Cyborg 3 | 3 | PUSH | 1439 | 514.0 | 413.0 | 2200.0 |  |
 | Cyborg 3 | 4 | SAD | 1445 | 516.0 | 486.0 | 1600.0 |  |
 | Cyborg 3 | 5 | SAD | 1447 | 538.0 | 475.0 | 1600.0 |  |
 | Cyborg 3 | 6 | SPLIT | 1512 | 526.0 | 402.0 | 2100.0 |  |
-| Cyborg 3 | 8 | LAND | 1518 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Cyborg 3 | 8 | LAND | 1518 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Cyborg 3 | 9 | REFUEL | 1334 | 460.0 | 299.0 | 2000.0 |  |
 | Cyborg 3 | 10 | LAND | 1334 | 484.0 | 333.0 | 0.0 | Yecheon AB (RKTY) (objective 928) |
-| Warhawk 3 | 0 | TAKEOFF | 1423 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Warhawk 3 | 0 | TAKEOFF | 1423 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Warhawk 3 | 2 | TIMING | 1431 | 507.0 | 396.0 | 2200.0 |  |
 | Warhawk 3 | 3 | PUSH | 1438 | 514.0 | 413.0 | 2200.0 |  |
 | Warhawk 3 | 4 | SAD | 1444 | 516.0 | 486.0 | 1600.0 |  |
 | Warhawk 3 | 5 | SAD | 1447 | 538.0 | 475.0 | 1600.0 |  |
 | Warhawk 3 | 6 | SPLIT | 1512 | 526.0 | 402.0 | 2100.0 |  |
-| Warhawk 3 | 8 | LAND | 1518 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Warhawk 3 | 8 | LAND | 1518 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Warhawk 3 | 9 | REFUEL | 1518 | 460.0 | 299.0 | 2000.0 |  |
 | Warhawk 3 | 10 | LAND | 1518 | 484.0 | 333.0 | 0.0 | Yecheon AB (RKTY) (objective 928) |
-| Panther 3 | 0 | TAKEOFF | 1422 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Panther 3 | 0 | TAKEOFF | 1422 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Panther 3 | 2 | TIMING | 1430 | 507.0 | 396.0 | 2200.0 |  |
 | Panther 3 | 3 | PUSH | 1437 | 514.0 | 413.0 | 2200.0 |  |
 | Panther 3 | 4 | SAD | 1443 | 516.0 | 486.0 | 1600.0 |  |
 | Panther 3 | 5 | SAD | 1445 | 529.0 | 479.0 | 1600.0 |  |
 | Panther 3 | 6 | SPLIT | 1510 | 526.0 | 402.0 | 2100.0 |  |
-| Panther 3 | 8 | LAND | 1516 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Panther 3 | 8 | LAND | 1516 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Panther 3 | 9 | REFUEL | 1516 | 460.0 | 299.0 | 2000.0 |  |
 | Panther 3 | 10 | LAND | 1516 | 484.0 | 333.0 | 0.0 | Yecheon AB (RKTY) (objective 928) |
-| Mudhen 3 | 0 | TAKEOFF | 1420 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Mudhen 3 | 0 | TAKEOFF | 1420 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Mudhen 3 | 2 | CAP | 1435 | 502.0 | 489.0 | 2100.0 |  |
 | Mudhen 3 | 3 | CAP | 1436 | 493.0 | 499.0 | 2100.0 |  |
-| Mudhen 3 | 5 | LAND | 1508 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Mudhen 3 | 5 | LAND | 1508 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Mudhen 3 | 6 | REFUEL | 1508 | 460.0 | 299.0 | 2000.0 |  |
 | Mudhen 3 | 7 | LAND | 1508 | 484.0 | 333.0 | 0.0 | Yecheon AB (RKTY) (objective 928) |
-| Cobra 3 | 0 | TAKEOFF | 1419 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Cobra 3 | 0 | TAKEOFF | 1419 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Cobra 3 | 2 | CAP | 1434 | 527.0 | 498.0 | 2100.0 |  |
 | Cobra 3 | 3 | CAP | 1436 | 540.0 | 515.0 | 2100.0 |  |
-| Cobra 3 | 5 | LAND | 1510 | 511.0 | 313.0 | 0.0 | Depot #4 (objective 1000) |
+| Cobra 3 | 5 | LAND | 1510 | 511.0 | 313.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | Cobra 3 | 6 | REFUEL | 1510 | 460.0 | 299.0 | 2000.0 |  |
 | Cobra 3 | 7 | LAND | 1510 | 484.0 | 333.0 | 0.0 | Yecheon AB (RKTY) (objective 928) |
 
@@ -186,13 +186,13 @@ Location data is intentionally separated from the commander-facing read. Flight 
 | AWACS | Chalice 1 | 3 | ELINT | 1404 | 698.0 | 357.0 | 2600.0 |  |
 | AWACS | Chalice 1 | 4 | ELINT | 1409 | 659.0 | 327.0 | 2600.0 |  |
 | AWACS | Chalice 1 | 6 | LAND | 1838 | 1023.0 | 105.0 | 2600.0 | Squadron 1549 (squadron 1549) |
-| AWACS | Chalice 1 | 7 | LAND | 1329 | 1009.0 | 75.0 | 0.0 | Rakwon-up Town (objective 2302) |
+| AWACS | Chalice 1 | 7 | LAND | 1329 | 1009.0 | 75.0 | 0.0 | Hiroshima Airport (RJOA) (objective 3300) |
 | TANKER | Sentry 3 | 0 | TAKEOFF | 1319 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 | TANKER | Sentry 3 | 2 | TIMING | 1332 | 450.0 | 290.0 | 2400.0 |  |
 | TANKER | Sentry 3 | 4 | TANKER | 1405 | 451.0 | 348.0 | 2400.0 |  |
 | TANKER | Sentry 3 | 5 | TANKER | 1415 | 470.0 | 250.0 | 2400.0 |  |
 | TANKER | Sentry 3 | 7 | LAND | 1902 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| TANKER | Sentry 3 | 8 | LAND | 1329 | 410.0 | 124.0 | 0.0 | unresolved 2301 |
+| TANKER | Sentry 3 | 8 | LAND | 1329 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
 
 ### Weather Sample Coordinates
 | Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base ft | Contrail |
@@ -268,7 +268,7 @@ Airbase rows are enemy squadron base objectives with active squadron rosters, gr
 | Kind | ID | Name | Source X | Source Y | Source Z |
 | --- | --- | --- | --- | --- | --- |
 | objective | 928 | Yecheon AB (RKTY) | 999560.8 | 1926975.0 | 0.0 |
-| objective | 1000 | Depot #4 | 1570611.8 | 1659453.4 | 0.0 |
+| objective | 997 | Cheongju Intl Airport (RKTU) | 1029703.8 | 1677316.2 | 0.0 |
 
 ## Map Products
 - Full-route chart map: `package_1883_route_threat_map_skyvector.png`

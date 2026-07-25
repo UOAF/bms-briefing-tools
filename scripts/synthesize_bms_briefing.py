@@ -96,6 +96,7 @@ ROUTE_ACTIONS = {
     "WP_REFUEL",
     "WP_LAND",
 }
+AIRBASE_WAYPOINT_ACTIONS = {"WP_TAKEOFF", "WP_LAND"}
 
 
 def mission_key(value: Any) -> str:
@@ -120,6 +121,7 @@ DEFAULT_THEATER_GRID_ROWS = 928.0
 DEFAULT_INI_GRID_OFFSET_X = 0.0
 DEFAULT_INI_GRID_OFFSET_Y = 0.0
 PLAN_MATCH_DISTANCE_GRID = 25.0
+AIRBASE_WAYPOINT_MATCH_DISTANCE_GRID = 5.0
 ENEMY_SITUATION_RADIUS_NM = 35.0
 AIR_DEFENSE_RADIUS_NM = 60.0
 ENEMY_AIRBASE_RADIUS_NM = 100.0
@@ -534,6 +536,7 @@ def waypoint_summary(
     deltas_by_num: dict[int, dict[str, Any]],
     deltas_by_key: dict[str, dict[str, Any]],
     unit_index: dict[str, dict[Any, list[dict[str, Any]]]],
+    airbase_objectives: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     waypoints: list[dict[str, Any]] = []
     for waypoint in flight.get("waypoints", []):
@@ -544,6 +547,12 @@ def waypoint_summary(
         target = resolve_target(target_id, objectives, deltas_by_num, deltas_by_key, unit_index)
         if target and target.get("kind") == "unresolved" and vu_num(target_id) == 0:
             target = None
+        if action in AIRBASE_WAYPOINT_ACTIONS and not target_is_airbase(target, airbase_objectives):
+            airbase = nearest_airbase_objective_for_waypoint(waypoint, airbase_objectives)
+            if airbase:
+                target = dict(airbase)
+                target["original_target"] = target_id
+                target["basis"] = "nearest airbase objective at takeoff/landing waypoint"
         waypoints.append(
             {
                 "index": waypoint.get("index"),
@@ -1441,8 +1450,17 @@ def support_flight_summary(
     teams: dict[Any, Any],
     object_catalog: dict[str, Any],
     l16_by_number: dict[int, dict[str, Any]],
+    airbase_objectives: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    key_waypoints = waypoint_summary(flight, clock, objectives, deltas_by_num, deltas_by_key, unit_index)
+    key_waypoints = waypoint_summary(
+        flight,
+        clock,
+        objectives,
+        deltas_by_num,
+        deltas_by_key,
+        unit_index,
+        airbase_objectives,
+    )
     aircraft_type, aircraft_class = aircraft_label_for_unit(flight, object_catalog)
     weapon_info = weapons_summary(flight, object_catalog)
     if role in {"AWACS", "JSTAR", "TANKER"} and not weapon_info.get("items"):
@@ -1705,6 +1723,78 @@ def is_squadron_base_objective(objective: dict[str, Any], object_catalog: dict[s
     ocd = objective_class(objective, object_catalog)
     text = f"{objective.get('name') or ''} {ocd.get('Name') or ''}".lower()
     return any(keyword in text for keyword in AIRBASE_OBJECTIVE_KEYWORDS)
+
+
+def airbase_objective_rank(objective: dict[str, Any]) -> int:
+    text = f"{objective.get('name') or ''} {objective.get('objective_class') or ''}".lower()
+    if any(token in text for token in ("admn", "scny", "ammo")):
+        return 10
+    if "highway" in text or "airstrip" in text:
+        return 2
+    return 0
+
+
+def build_airbase_objective_refs(
+    objectives: dict[int, dict[str, Any]],
+    object_catalog: dict[str, Any],
+    ini_grid_offset_x: float,
+    ini_grid_offset_y: float,
+) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for objective in objectives.values():
+        if not is_squadron_base_objective(objective, object_catalog):
+            continue
+        ocd = objective_class(objective, object_catalog)
+        grid = objective_grid(objective, ini_grid_offset_x, ini_grid_offset_y)
+        refs.append(
+            {
+                **objective,
+                "kind": "objective",
+                "resolved": True,
+                "grid_x": grid["grid_x"],
+                "grid_y": grid["grid_y"],
+                "objective_class": ocd.get("Name") or "",
+            }
+        )
+    return refs
+
+
+def target_is_airbase(target: dict[str, Any] | None, airbase_objectives: list[dict[str, Any]]) -> bool:
+    if not target:
+        return False
+    camp_id = safe_int(target.get("camp_id"))
+    if camp_id and any(safe_int(airbase.get("camp_id")) == camp_id for airbase in airbase_objectives):
+        return True
+    text = f"{target.get('name') or ''} {target.get('objective_class') or ''}".lower()
+    return any(keyword in text for keyword in AIRBASE_OBJECTIVE_KEYWORDS)
+
+
+def nearest_airbase_objective_for_waypoint(
+    waypoint: dict[str, Any],
+    airbase_objectives: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    grid_x = waypoint.get("grid_x")
+    grid_y = waypoint.get("grid_y")
+    if grid_x is None or grid_y is None:
+        return None
+    candidates = []
+    for airbase in airbase_objectives:
+        distance = math.hypot(
+            safe_float(airbase.get("grid_x")) - safe_float(grid_x),
+            safe_float(airbase.get("grid_y")) - safe_float(grid_y),
+        )
+        if distance <= AIRBASE_WAYPOINT_MATCH_DISTANCE_GRID:
+            candidates.append(
+                (
+                    round(distance, 3),
+                    airbase_objective_rank(airbase),
+                    safe_int(airbase.get("camp_id")),
+                    airbase,
+                )
+            )
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item[:3])[3]
 
 
 def objective_destroyed(delta: dict[str, Any] | None) -> bool:
@@ -2019,6 +2109,12 @@ def synthesize(
     l16_by_number = l16_records_by_flight_number(briefing_data)
     fmap, fmap_path, fmap_error = load_fmap_from_briefing_data(briefing_data)
     context_by_package = mission_context_by_package(mission_context or {})
+    airbase_objectives = build_airbase_objective_refs(
+        objectives,
+        object_catalog or {},
+        ini_grid_offset_x,
+        ini_grid_offset_y,
+    )
     flights_by_package: dict[str, list[dict[str, Any]]] = defaultdict(list)
     flights_by_vu_key: dict[str, dict[str, Any]] = {}
     for flight in cam_decode.get("flights", []):
@@ -2045,7 +2141,15 @@ def synthesize(
         package_planning_points = planning_points if attach_plan else []
         flight_summaries: list[dict[str, Any]] = []
         for flight in flights:
-            key_waypoints = waypoint_summary(flight, clock, objectives, deltas, deltas_by_key, unit_index)
+            key_waypoints = waypoint_summary(
+                flight,
+                clock,
+                objectives,
+                deltas,
+                deltas_by_key,
+                unit_index,
+                airbase_objectives,
+            )
             aircraft_type, aircraft_class = aircraft_label_for_unit(flight, object_catalog or {})
             weapon_info = weapons_summary(flight, object_catalog or {})
             flight_summary = {
@@ -2146,6 +2250,7 @@ def synthesize(
                     teams,
                     object_catalog or {},
                     l16_by_number,
+                    airbase_objectives,
                 )
             )
         weather = package_weather_summary(fmap, fmap_path, fmap_error, flight_summaries, plan_correlation) if attach_plan else {}
