@@ -175,6 +175,11 @@ internal quirks of BMSUtils or `pyopencam`.
      counts, package flight identities and waypoint counts, strategic ADA
      threats, inactive ADA exclusions, enemy airbase threats, active air
      contacts, and enemy airbase airframe labels.
+   - Smoke-tested direct decode coverage passes stock `715pre`, stock `718pre`,
+     UOAF `737pre`, UOAF `738pre`, and UOAF `738pretest`.
+   - Stock `736post` currently fails in pyopencam with
+     `unsupported unit kind for CT 2`. Treat this as an upstream/provider
+     coverage issue to investigate, not a campaign-specific exception.
    - Remaining canonical-field gaps: flight loadout/weapon arrays, laser codes,
      TACAN channels, and decoded current-unit altitude.
 3. Move object-table, class-table, and vehicle-table resolution into one shared

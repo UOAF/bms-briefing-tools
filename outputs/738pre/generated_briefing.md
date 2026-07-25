@@ -24,13 +24,13 @@ Timing is provisional: HHMM values use the inferred `.cmp` clock base `1400` and
 | Landing | 1518 | Day | Fair OVC | 10000 | FL240 | 12.7 | 59.5 | 181/3 kt | 511.0 | 313.0 | Cyborg 3 LAND STPT 8 |
 
 ## Package Coordination Draft
-### PKG 1883 - INT (5 flights, selected by explicit request)
+### PKG 1883 - AI (5 flights, selected by explicit request)
 - Targets: No named tactical target resolved
 - Enemy situation: 10 enemy non-air unit records within 35 NM of Route Black/CAP anchors; dominant nearby classes: Towed Gun x4, Engineer x4, Air Defense x1, Rocket x1. 7 strategic air-defense records with active tracking radars within 60 NM; strategic AD classes: Air Defense x7. 3 strategic ADA candidates filtered for inactive/missing tracking radars. 7 enemy squadron bases within 100 NM hosting 15 active squadrons. 3 active enemy air contact(s) at campaign time within or vectoring into 30 NM of the target area.
 - INI plan correlation: TIMING is bracketed by TGT 1; the drawn line has 10 points nearest SAD
 - Close INI marks: TGT 0 -> TAKEOFF 1424 (0.3 NM); TGT 2 -> CAP 1434 (0.3 NM); TGT 3 -> CAP 1436 (0.3 NM); TGT 5 -> TAKEOFF 1424 (0.3 NM); TGT 6 -> REFUEL 1334 (0.3 NM); TGT 7 -> LAND 1334 (0.3 NM); TGT 1 -> TIMING 1431 (3.5 NM); BAR -> CAP 1436 (0.1 NM); GRD -> CAP 1436 (0.2 NM); A -> SAD 1445 (0.6 NM)
 - Drawn-line read: Drawn INI lineSTPT geometry tracks closest to SAD rather than the CAP/SAD station points.
-- Commander context: Three INT flights divide SAD responsibilities across A-B, B-A, and B-C-D while Mudhen holds Guardpost in the west and Cobra holds BARRIER in the east. Watchtower/WCH is an EWR target of opportunity; A-E are supply depots feeding maneuver forces; Foxtrot is the alternate target if the route is cold.
+- Commander context: Three AI flights divide SAD responsibilities across A-B, B-A, and B-C-D while Mudhen holds Guardpost in the west and Cobra holds BARRIER in the east. Watchtower/WCH is an EWR target of opportunity; A-E are supply depots feeding maneuver forces; Foxtrot is the alternate target if the route is cold.
 - Route context: Route Black is represented by the pre-planned threat steerpoints in the mission INI.
 - Fallback logic: If there are no movers on Route Black, shift to Foxtrot as the alternate target.
 - SAD contracts: Cyborg 3: SAD A-B (Search and prosecute movers between A and B.); Warhawk 3: SAD B-A (Reverse the first search lane, working movers from B back toward A.); Panther 3: SAD B-C-D (Extend the search through B, C, and D.)
@@ -42,11 +42,11 @@ Timing is provisional: HHMM values use the inferred `.cmp` clock base `1400` and
 
 | C/S | Aircraft | Role | Weapons | Laser | TACAN | T/O | TOT | Target/Area | Remarks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cyborg 3 | 4x F-16C-32 ROKAF | INT | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 x6, Tank 370gal x2 | 1688 | not assigned | 1424 | 1445 | SAD A-B | Search and prosecute movers between A and B. |
-| Warhawk 3 | 4x F-16C-32 ROKAF | INT | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 SE x6, Tank 370gal x2 | 1688 | not assigned | 1423 | 1441 | SAD B-A | Reverse the first search lane, working movers from B back toward A. |
-| Panther 3 | 4x F-16C-32 ROKAF | INT | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 SE x6, Tank 370gal x2 | 1688 | not assigned | 1422 | 1441 | SAD B-C-D | Extend the search through B, C, and D. |
-| Mudhen 3 | 4x F-16C-30 | BARCAP2 | 20mm M61 x51, AIM-7M Sparrow x2, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Tank 370gal x2 | 1688 | not assigned | 1420 | 1438 | CAP Guardpost | Hold the western BARCAP station. |
-| Cobra 3 | 4x F-16C-30 | BARCAP2 | 20mm M61 x51, AIM-7M Sparrow x2, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Tank 370gal x2 | 1688 | not assigned | 1419 | 1438 | CAP BARRIER | Hold the eastern BARCAP station. |
+| Cyborg 3 | 4x F-16C-32 ROKAF | AI | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 x6, Tank 370gal x2 | 1688 | not assigned | 1424 | 1445 | SAD A-B | Search and prosecute movers between A and B. |
+| Warhawk 3 | 4x F-16C-32 ROKAF | AI | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 SE x6, Tank 370gal x2 | 1688 | not assigned | 1423 | 1441 | SAD B-A | Reverse the first search lane, working movers from B back toward A. |
+| Panther 3 | 4x F-16C-32 ROKAF | AI | 20mm M61 x51, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Mk-82 SE x6, Tank 370gal x2 | 1688 | not assigned | 1422 | 1441 | SAD B-C-D | Extend the search through B, C, and D. |
+| Mudhen 3 | 4x F-16C-30 | BARCAP | 20mm M61 x51, AIM-7M Sparrow x2, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Tank 370gal x2 | 1688 | not assigned | 1420 | 1438 | CAP Guardpost | Hold the western BARCAP station. |
+| Cobra 3 | 4x F-16C-30 | BARCAP | 20mm M61 x51, AIM-7M Sparrow x2, AIM-9M Sidewinder x4, AN/ALQ-131(v)1 x1, Tank 370gal x2 | 1688 | not assigned | 1419 | 1438 | CAP BARRIER | Hold the eastern BARCAP station. |
 
 ### AWACS / Tanker Tracks
 | Role | C/S | Aircraft | TOT | Station / Track | TACAN | Weapons |
@@ -81,11 +81,11 @@ Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` fli
 
 | Element | Role | TACAN | Laser | Link 16 STN | F2F | Mission | EW | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cyborg 3 | INT | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD A-B: Search and prosecute movers between A and B. |
-| Warhawk 3 | INT | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD B-A: Reverse the first search lane, working movers from B back toward A. |
-| Panther 3 | INT | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD B-C-D: Extend the search through B, C, and D. |
-| Mudhen 3 | BARCAP2 | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | CAP Guardpost: west CAP area - Hold the western BARCAP station. |
-| Cobra 3 | BARCAP2 | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | CAP BARRIER: east CAP area - Hold the eastern BARCAP station. |
+| Cyborg 3 | AI | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD A-B: Search and prosecute movers between A and B. |
+| Warhawk 3 | AI | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD B-A: Reverse the first search lane, working movers from B back toward A. |
+| Panther 3 | AI | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | SAD B-C-D: Extend the search through B, C, and D. |
+| Mudhen 3 | BARCAP | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | CAP Guardpost: west CAP area - Hold the western BARCAP station. |
+| Cobra 3 | BARCAP | not assigned | 1688 | unresolved | unresolved | unresolved | unresolved | CAP BARRIER: east CAP area - Hold the eastern BARCAP station. |
 | Chalice 1 | AWACS | not assigned | n/a | unresolved | unresolved | unresolved | unresolved | ELINT STPT 3 1404 grid 698/357; ELINT STPT 4 1409 grid 659/327 |
 | Sentry 3 | TANKER | 117Y slot 0 | n/a | unresolved | unresolved | unresolved | unresolved | TANKER STPT 4 1405 grid 451/348; TANKER STPT 5 1415 grid 470/250 |
 

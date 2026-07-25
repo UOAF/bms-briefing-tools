@@ -48,12 +48,12 @@ python .\scripts\extract_bms_briefing.py `
 
 The main output is `briefing_data.json`; `briefing_summary.md` is a human-readable
 sanity check. When `--decode-cam` is used, the full BMS object dump is written to
-`cam_decode.json` beside those files. The preferred decoder is
+`cam_decode.json` beside those files. The default decoder is
 `--cam-decoder pyopencam`, which imports a local pyopencam checkout/source
 directory and emits the same canonical `cam_decode.json` shape used by
-synthesis. The default `bmsutils` decoder remains a read-only legacy fallback
-and cross-check provider only; known Mission Commander/BMSUtils write-back bugs
-make it unsuitable as the foundation for future campaign-writing features.
+synthesis. The `bmsutils` decoder remains a read-only legacy fallback and
+cross-check provider only; known Mission Commander/BMSUtils write-back bugs make
+it unsuitable as the foundation for future campaign-writing features.
 
 Build the synthesis layer:
 
@@ -326,3 +326,9 @@ count, inactive ADA exclusions, enemy airbase threats, active air contacts, and
 enemy airbase airframe labels. Remaining direct-provider gaps are flight
 loadout/weapon arrays, laser codes, TACAN channels, and decoded current-unit
 altitude.
+
+Additional pyopencam smoke coverage currently passes stock `715pre`, stock
+`718pre`, UOAF `737pre`, UOAF `738pre`, and UOAF `738pretest`. Stock
+`736post` currently exposes an upstream pyopencam parser coverage gap:
+`unsupported unit kind for CT 2`; do not paper over that with a campaign-specific
+exception.

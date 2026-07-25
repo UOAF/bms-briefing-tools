@@ -17,6 +17,7 @@ from bms_projection import feet_per_campaign_grid, source_feet_to_campaign_grid
 
 
 STRIKE_MISSIONS = {
+    "AI",
     "OCASTRIKE",
     "INTSTRIKE",
     "STRIKE",
@@ -28,13 +29,41 @@ STRIKE_MISSIONS = {
     "CAS",
     "ONCALLCAS",
     "PRPLANCAS",
+    "PREPLANCAS",
     "BAI",
     "SAD",
+    "SCAR",
     "ASHIP",
+    "TASMO",
 }
 
-SUPPORT_MISSIONS = {"ESCORT", "ECM", "AWACS", "JSTAR", "TANKER", "RECON", "BDA"}
-CAP_MISSIONS = {"BARCAP1", "BARCAP2", "HAVCAP", "TARCAP", "SWEEP", "INTERCEPT", "ALERT"}
+SUPPORT_MISSIONS = {
+    "ESCORT",
+    "ECM",
+    "EWSESJ",
+    "AWACS",
+    "AEWABCCC",
+    "JSTAR",
+    "ELINT",
+    "TANKER",
+    "AIRREFUEL",
+    "RECON",
+    "RECCE",
+    "RECCEPATROL",
+    "BDA",
+}
+CAP_MISSIONS = {
+    "BARCAP",
+    "BARCAP1",
+    "BARCAP2",
+    "HAVCAP",
+    "TARCAP",
+    "SWEEP",
+    "INTERCEPT",
+    "INTERCEPTION",
+    "ALERT",
+    "QRA",
+}
 TARGET_ACTIONS = {
     "WP_STRIKE",
     "WP_BOMB",
@@ -67,6 +96,10 @@ ROUTE_ACTIONS = {
     "WP_REFUEL",
     "WP_LAND",
 }
+
+
+def mission_key(value: Any) -> str:
+    return re.sub(r"[^A-Z0-9]+", "", str(value or "").upper())
 
 THREAT_AREA_ACTIONS = {
     "WP_TIMING",
@@ -840,8 +873,8 @@ def correlate_package_plan(
 def package_score(package: dict[str, Any], flights: list[dict[str, Any]], deck_mentions: dict[int, list[dict[str, Any]]]) -> int:
     score = 0
     package_id = int(package.get("camp_id") or 0)
-    mission = (package.get("mission_request") or {}).get("mission_short")
-    flight_missions = {flight.get("mission_short") for flight in flights}
+    mission = mission_key((package.get("mission_request") or {}).get("mission_short"))
+    flight_missions = {mission_key(flight.get("mission_short")) for flight in flights}
     if package_id in deck_mentions:
         score += 100
     if mission in STRIKE_MISSIONS:

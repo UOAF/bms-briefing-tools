@@ -649,11 +649,11 @@ def main(argv: list[str]) -> int:
         "--decode-cam",
         action="store_true",
         help=(
-            "Decode embedded CAM sections. Defaults to the legacy read-only BMSUtils compatibility path unless "
-            "--cam-decoder pyopencam is selected."
+            "Decode embedded CAM sections through the direct pyopencam provider unless "
+            "--cam-decoder bmsutils is selected."
         ),
     )
-    parser.add_argument("--cam-decoder", choices=("bmsutils", "pyopencam"), default="bmsutils")
+    parser.add_argument("--cam-decoder", choices=("pyopencam", "bmsutils"), default="pyopencam")
     parser.add_argument("--pyopencam-root", help="External pyopencam checkout/source directory for --cam-decoder pyopencam.")
     parser.add_argument("--theater-folder", help="Theater folder containing Campaign and TerrData/Objects. Defaults to campaign dir parent.")
     parser.add_argument("--bms-root", default=r"C:\Falcon BMS 4.38")

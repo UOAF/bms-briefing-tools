@@ -45,7 +45,8 @@ python .\scripts\check_standalone.py `
 
 - Legacy CAM decode through Mission Commander/BMSUtils requires a local Falcon
   BMS install with `mc\BMSUtils.dll` and `mc\LzssManaged.dll`. This is
-  read-only compatibility support only.
+  read-only compatibility support only and must be selected explicitly with
+  `--cam-decoder bmsutils`.
 - `pyopencam` is not vendored yet because the inspected archive has no license
   file or packaging metadata. Use `--pyopencam-root` or `PYOPENCAM_ROOT` to
   point at a local checkout/source directory.

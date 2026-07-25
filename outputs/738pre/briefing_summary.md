@@ -54,15 +54,15 @@
 - Objective deltas: 2630
 - Units: Battalion=312, Brigade=15, Flight=210, Package=159, Squadron=136, TaskForce=11
 - Teams: XX, U.S., ROK, Japan, USSR, PRC, DPRK, NATO
-- Mission counts: BARCAP2=26, SAD=24, ALERT=17, ASHIP=15, TARCAP=15, HAVCAP=14, PATROL=13, AIRLIFT=12, ESCORT=12, CAS=11, ABORT=10, BAI=9
+- Mission counts: BARCAP=26, SCAR=24, QRA=17, TASMO=15, TARCAP=15, HAVCAP=14, PATROL=13, AIRLIFT=12, ESCORT=12, CAS=11, ABORTED=10, BAI=9
 - Sample flights:
   - 1459: Eagle 6 RECONPATROL pkg=1457 wpts=5
   - 1401: Cheetah 2 ABORT pkg=1397 wpts=12
   - 1727: Gypsy 2 PATROL pkg=1725 wpts=8
-  - 1939: Satan 3 BARCAP2 pkg=1937 wpts=6
+  - 1939: Satan 3 BARCAP pkg=1937 wpts=6
   - 1803: Dipper 1 CAS pkg=1801 wpts=11
-  - 2871: Trojan 7 ALERT pkg=2869 wpts=3
-  - 1885: Cyborg 3 INT pkg=1883 wpts=11
+  - 2871: Trojan 7 QRA pkg=2869 wpts=3
+  - 1885: Cyborg 3 AI pkg=1883 wpts=11
   - 1761: Mack 6 BAI pkg=1757 wpts=7
 
 ## Current Gap

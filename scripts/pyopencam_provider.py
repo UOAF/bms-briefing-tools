@@ -23,31 +23,6 @@ DEFAULT_TEAM_NAMES = {
     7: "NATO",
 }
 
-MISSION_SHORT_BY_CODE = {
-    2: "BARCAP2",
-    3: "HAVCAP",
-    4: "TARCAP",
-    8: "ALERT",
-    9: "INTERCEPT",
-    10: "ESCORT",
-    15: "STRIKE",
-    21: "PRPLANCAS",
-    22: "CAS",
-    23: "SAD",
-    24: "INT",
-    25: "BAI",
-    26: "AWACS",
-    27: "JSTAR",
-    28: "TANKER",
-    31: "ECM",
-    33: "AIRLIFT",
-    36: "ASHIP",
-    37: "PATROL",
-    38: "RECONPATROL",
-    39: "ABORT",
-    40: "TRAINING",
-}
-
 ACTION_NAME_BY_CODE = {
     255: "WP_PRECISION",
     0: "WP_NOTHING",
@@ -212,16 +187,22 @@ def waypoint_item(index: int, waypoint: Any) -> dict[str, Any]:
     }
 
 
-def mission_short(code: Any, raw_name: Any = None) -> str:
-    if safe_int(code) in MISSION_SHORT_BY_CODE:
-        return MISSION_SHORT_BY_CODE[safe_int(code)]
-    return str(raw_name or code or "").replace(" ", "").replace("/", "")
+def mission_name(code: Any, support: Any, raw_name: Any = None) -> str:
+    mission_code = safe_int(code)
+    value = raw_name or support.strings_by_id.get(300 + mission_code)
+    return str(value or f"MISSION_{mission_code}").strip()
+
+
+def mission_short(code: Any, support: Any, raw_name: Any = None) -> str:
+    return mission_name(code, support, raw_name)
 
 
 def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support: Any) -> dict[str, Any]:
     item = common_unit(record, support)
     mission_code = safe_int(field(record, "mission"))
     old_mission_code = safe_int(field(record, "old_mission"))
+    current_mission_name = mission_name(mission_code, support)
+    old_mission_name = mission_name(old_mission_code, support)
     package_id = vuid(field(record, "package_id"))
     squadron_id = vuid(field(record, "squadron_id"))
     package_record = records_by_id.get((safe_int(package_id["num"]), safe_int(package_id["creator"])))
@@ -234,11 +215,11 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
     item.update(
         {
             "mission": mission_code,
-            "mission_name": f"AMIS_{mission_short(mission_code)}",
-            "mission_short": mission_short(mission_code, support.strings_by_id.get(300 + mission_code)),
-            "pyopencam_mission_name": support.strings_by_id.get(300 + mission_code),
+            "mission_name": current_mission_name,
+            "mission_short": mission_short(mission_code, support, current_mission_name),
+            "pyopencam_mission_name": current_mission_name,
             "old_mission": old_mission_code,
-            "old_mission_name": f"AMIS_{mission_short(old_mission_code)}",
+            "old_mission_name": old_mission_name,
             "time_on_target": field(record, "time_on_target"),
             "mission_over_time": field(record, "mission_over_time"),
             "mission_target": field(record, "mission_id"),
@@ -290,6 +271,7 @@ def package_item(record: Any, support: Any) -> dict[str, Any]:
     except Exception:
         mission_code = None
     mission_code = safe_int(mission_code, 0)
+    request_mission_name = mission_name(mission_code, support, None if tasking is None else tasking.mission_name)
     item.update(
         {
             "elements": field(record, "elements"),
@@ -311,8 +293,8 @@ def package_item(record: Any, support: Any) -> dict[str, Any]:
             "egress_waypoints": None,
             "mission_request": {
                 "mission": mission_code,
-                "mission_name": f"AMIS_{mission_short(mission_code)}",
-                "mission_short": mission_short(mission_code),
+                "mission_name": request_mission_name,
+                "mission_short": mission_short(mission_code, support, request_mission_name),
                 "aircraft": 0 if tasking is None else tasking.aircraft_code,
                 "context": 0 if tasking is None else tasking.context_code,
                 "tot": 0 if tasking is None else tasking.time_on_target_ms,
