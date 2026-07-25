@@ -596,7 +596,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--prefix", required=True)
     parser.add_argument("--deck-url")
     parser.add_argument("--out-dir", required=True)
-    parser.add_argument("--decode-cam", action="store_true", help="Decode embedded .tea/.uni sections through BMSUtils.")
+    parser.add_argument(
+        "--decode-cam",
+        action="store_true",
+        help=(
+            "Decode embedded .tea/.uni sections through the legacy read-only BMSUtils compatibility path. "
+            "Use for briefing extraction and decoder comparison only, not campaign write-back."
+        ),
+    )
     parser.add_argument("--bms-root", default=r"C:\Falcon BMS 4.38")
     parser.add_argument("--object-dir")
     args = parser.parse_args(argv)

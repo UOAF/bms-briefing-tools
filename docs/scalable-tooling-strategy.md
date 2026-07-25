@@ -32,7 +32,8 @@ Instead, make this repo own three interfaces:
 
 Outside projects can then back those interfaces:
 
-- Current `extract_bms_cam.ps1` / BMSUtils path remains a legacy decoder.
+- Current `extract_bms_cam.ps1` / BMSUtils path remains a legacy read-only
+  decoder and regression comparator. Do not build campaign write-back on it.
 - `pyopencam` becomes the preferred Python decoder candidate after an adapter
   and regression tests.
 - Tacview converter logic informs `TheaterProvider`, especially theater
@@ -89,6 +90,9 @@ Example advantage for package-1883 threat analysis:
 
 Risks and unknowns:
 
+- Mission Commander/BMSUtils has known write-back bugs. Some are not obvious
+  when using it for read-only extraction, so it should not become our canonical
+  data model or serialization path.
 - No license file was present in the inspected `pyopencam` checkout.
 - JSON schema differs from our current `cam_decode.json`; direct replacement
   would break synthesis.
@@ -160,7 +164,9 @@ internal quirks of BMSUtils or `pyopencam`.
      resolution.
 2. Build a `pyopencam` adapter that emits our canonical `cam_decode` shape.
    - Keep it optional at first.
-   - Preserve BMSUtils as fallback and cross-check provider.
+   - Preserve BMSUtils as read-only fallback and cross-check provider.
+   - Never rely on BMSUtils for campaign write-back; use pyopencam-style
+     container/section serialization if write support becomes a goal.
    - Current adapter is a comparison bridge over pyopencam JSON, not yet the
      primary campaign decoder.
 3. Move object-table, class-table, and vehicle-table resolution into one shared

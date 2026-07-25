@@ -10,7 +10,8 @@ Current prototype:
 
 - Parses campaign sidecars by prefix, for example `718pre.*`.
 - Parses the embedded `.cam` container directory and save version.
-- Optionally decodes `.cam` sections through Mission Commander/BMSUtils:
+- Optionally decodes `.cam` sections through the legacy read-only Mission
+  Commander/BMSUtils compatibility path:
   - `.tea`: teams.
   - `.obd`: objective deltas.
   - `.uni`: units, packages, flights, squadrons, callsigns, mission codes,
@@ -44,7 +45,10 @@ python .\scripts\extract_bms_briefing.py `
 The main output is `briefing_data.json`; `briefing_summary.md` is a human-readable
 sanity check. When `--decode-cam` is used, the full BMS object dump is written to
 `cam_decode.json` beside those files. The helper script auto-runs under 32-bit
-PowerShell because `BMSUtils.dll` is a 32-bit assembly.
+PowerShell because `BMSUtils.dll` is a 32-bit assembly. Treat this path as a
+read-only legacy fallback and cross-check provider only; known Mission
+Commander/BMSUtils write-back bugs make it unsuitable as the foundation for
+future campaign-writing features.
 
 Build the synthesis layer:
 
@@ -237,6 +241,18 @@ python .\scripts\render_bms_weather_map.py `
 ```
 
 ## Decoder Comparison
+
+Decoder policy:
+
+- Prefer `pyopencam` as the future primary CAM parser once its adapter emits the
+  full canonical `cam_decode` shape.
+- Keep BMSUtils as a read-only compatibility fallback and regression oracle, not
+  a write-back dependency.
+- Use `falcon-bms-tacview-converter` concepts for theater discovery,
+  projection, heightmaps, and airbase/runway metadata rather than importing its
+  Tacview-specific CLI shape.
+- Do not vendor either upstream project blindly; preserve attribution, check
+  licenses, and keep this repo's synthesis schema provider-neutral.
 
 `pyopencam` is not vendored into this repo. When a pyopencam JSON export exists,
 normalize it and compare it against the current BMSUtils decode:

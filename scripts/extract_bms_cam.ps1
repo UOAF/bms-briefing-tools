@@ -11,6 +11,10 @@ param(
     [string]$OutputPath = ""
 )
 
+# Legacy read-only compatibility decoder. BMSUtils is useful for extraction and
+# regression comparison, but known write-back bugs make it unsuitable as a
+# future campaign serialization path.
+
 if ([Environment]::Is64BitProcess) {
     $ps32 = Join-Path $env:WINDIR "SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
     if (Test-Path $ps32) {
