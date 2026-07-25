@@ -26,7 +26,7 @@ Timing is provisional: HHMM values use the inferred `.cmp` clock base `1400` and
 ## Package Coordination Draft
 ### PKG 1883 - INT (5 flights, selected by explicit request)
 - Targets: No named tactical target resolved
-- Enemy situation: 10 enemy non-air unit records within 35 NM of Route Black/CAP anchors; dominant nearby classes: Towed Gun x4, Engineer x4, Air Defense x1, Rocket x1. 7 strategic air-defense records with active tracking radars within 60 NM; strategic AD classes: Air Defense x7. 3 strategic ADA candidates filtered for inactive/missing tracking radars. 7 enemy squadron bases within 100 NM hosting 15 active squadrons.
+- Enemy situation: 10 enemy non-air unit records within 35 NM of Route Black/CAP anchors; dominant nearby classes: Towed Gun x4, Engineer x4, Air Defense x1, Rocket x1. 7 strategic air-defense records with active tracking radars within 60 NM; strategic AD classes: Air Defense x7. 3 strategic ADA candidates filtered for inactive/missing tracking radars. 7 enemy squadron bases within 100 NM hosting 15 active squadrons. 3 active enemy air contact(s) at campaign time within or vectoring into 30 NM of the target area.
 - INI plan correlation: TIMING is bracketed by TGT 1; the drawn line has 10 points nearest SAD
 - Close INI marks: TGT 0 -> TAKEOFF 1424 (0.3 NM); TGT 2 -> CAP 1434 (0.3 NM); TGT 3 -> CAP 1436 (0.3 NM); TGT 5 -> TAKEOFF 1424 (0.3 NM); TGT 6 -> REFUEL 1334 (0.3 NM); TGT 7 -> LAND 1334 (0.3 NM); TGT 1 -> TIMING 1431 (3.5 NM); BAR -> CAP 1436 (0.1 NM); GRD -> CAP 1436 (0.2 NM); A -> SAD 1445 (0.6 NM)
 - Drawn-line read: Drawn INI lineSTPT geometry tracks closest to SAD rather than the CAP/SAD station points.
@@ -67,6 +67,15 @@ This section intentionally avoids decoded enemy ATO/package knowledge. It is bas
 | W | MiG-21MF | Q-5II | Mudhen 3 CAP STPT 3 @ 1436 | 60.9 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
 | N | J-6; MiG-21MF | Su-7BMK | INI TGT 3 | 76.8 NM | 1 active enemy squadron base(s) in sector; aircraft capability only. |
 
+### Active Air Contacts At Campaign Time
+These are current-position contacts only. Callsigns and enemy package/tasking IDs are intentionally omitted; the brief only exposes aircraft type, rough sector, range, and the observed reason they matter.
+
+| Sector from AO | Aircraft | Capability | Count | Nearest area | Range | Basis |
+| --- | --- | --- | --- | --- | --- | --- |
+| SW | Mi-8 | air contact | 2 | Mudhen 3 CAP STPT 2 @ 1435 | 14.0 NM | airborne now within 30 NM of target-area anchor |
+| N | MiG-25 | fighter-capable | 2 | INI TGT 3 | 23.0 NM | airborne now within 30 NM of target-area anchor |
+| E | Q-5II | strike-capable | 2 | INI TGT 3 | 23.1 NM | airborne now within 30 NM of target-area anchor |
+
 ## Comm Ladder
 Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` flight numbers do not match the CAM camp IDs/name IDs/VU numbers for package 1883. UHF/VHF preset channels are not decoded from the campaign bundle yet.
 
@@ -84,7 +93,7 @@ Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` fli
 This is a campaign-data estimate: enemy battalion/unit positions are measured against the decoded Route Black, CAP, SAD, and correlated INI anchors. The air-defense section is strategic-only: fixed Air Defense classes or units with at least 15 campaign-grid cells of air/low-air range, and each listed site has a nonzero decoded roster slot for its tracking radar. Class names and equipment come from Falcon object tables.
 - Enemy teams considered: DPRK, PRC, USSR
 - Basis: Distances are from enemy battalion grid positions to decoded package route/CAP/SAD anchors and correlated INI marks. Strategic ADA requires an active decoded tracking-radar roster slot. Anchor count: 45.
-- Summary: 10 enemy non-air unit records within 35 NM of Route Black/CAP anchors; dominant nearby classes: Towed Gun x4, Engineer x4, Air Defense x1, Rocket x1. 7 strategic air-defense records with active tracking radars within 60 NM; strategic AD classes: Air Defense x7. 3 strategic ADA candidates filtered for inactive/missing tracking radars. 7 enemy squadron bases within 100 NM hosting 15 active squadrons.
+- Summary: 10 enemy non-air unit records within 35 NM of Route Black/CAP anchors; dominant nearby classes: Towed Gun x4, Engineer x4, Air Defense x1, Rocket x1. 7 strategic air-defense records with active tracking radars within 60 NM; strategic AD classes: Air Defense x7. 3 strategic ADA candidates filtered for inactive/missing tracking radars. 7 enemy squadron bases within 100 NM hosting 15 active squadrons. 3 active enemy air contact(s) at campaign time within or vectoring into 30 NM of the target area.
 - Airbase threat: Closest squadron bases: Hyon-Ni Airbase (4 sqn: Q-5II; MiG-19PM; J-6; MiG-21bis), Koksan Airbase (2 sqn: Il-28; MiG-29A), Okpyongni Highwaystrip (1 sqn: MiG-21bis), Sangwon Highwaystrip (2 sqn: Q-5II; MiG-21MF).
 
 ### Strategic Air Defense Units Near Route Black
@@ -234,6 +243,14 @@ Air-defense rows use saved campaign battalion/unit grid coordinates and exclude 
 | 1759 | DPRK | Air Defense | SA-2 (S-75); Fan Song F; ZSU-23-4; ZIL-131; KrAz T 255B | Fan Song F (slot 3, 1/1) | 401.0 | 507.0 | Mudhen 3 CAP STPT 3 @ 1436 | 49.9 | 30 | 25 |
 | 2951 | DPRK | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 397.0 | 505.0 | Mudhen 3 CAP STPT 3 @ 1436 | 51.9 | 18 | 15 |
 | 1751 | DPRK | Air Defense | SA-2 (S-75); Fan Song F; ZSU-23-4; ZIL-131; KrAz T 255B | Fan Song F (slot 3, 1/1) | 399.0 | 556.0 | Mudhen 3 CAP STPT 3 @ 1436 | 59.4 | 30 | 25 |
+
+### Active Enemy Air Contact Coordinates
+Rows use current decoded flight positions at campaign time. Enemy callsigns/package IDs are omitted from the briefing output.
+| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Alt ft | Nearest package/INI anchor | Dist NM | Basis |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| SW | Mi-8 | air contact | 2 | 479.0 | 477.0 | 3311 | Mudhen 3 CAP STPT 2 @ 1435 | 14.0 | airborne now within 30 NM of target-area anchor |
+| N | MiG-25 | fighter-capable | 2 | 541.0 | 558.0 | 21000 | INI TGT 3 | 23.0 | airborne now within 30 NM of target-area anchor |
+| E | Q-5II | strike-capable | 2 | 581.0 | 529.0 | 15000 | INI TGT 3 | 23.1 | airborne now within 30 NM of target-area anchor |
 
 ### Enemy Airbase Coordinates
 Airbase rows are enemy squadron base objectives with active squadron rosters, greater than 0 percent decoded operational state, and within 100 NM of package/INI anchors.

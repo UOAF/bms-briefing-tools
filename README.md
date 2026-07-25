@@ -82,7 +82,10 @@ waypoints are friendly, close enough in space and time to affect the target
 area or require deconfliction, and each such row includes the reason it was
 included. Enemy air packages are not exposed from decoded ATO knowledge in the
 player-facing brief; the brief instead derives likely enemy fighter axes from
-active enemy squadron bases and airframe capability.
+active enemy squadron bases and airframe capability. It can also list sanitized
+active enemy air contacts at campaign time when decoded current positions are
+within, or immediately vectoring into, 30 NM of the target-area anchors; those
+rows omit enemy callsigns, package IDs, and tasking IDs.
 For exact latitude/longitude conversion, use the `Theater.txt` projection string
 through PROJ/`pyproj`; `scripts\bms_projection.py` contains the local helper and
 keeps the grid transform tied to theater metadata rather than hand-fitted

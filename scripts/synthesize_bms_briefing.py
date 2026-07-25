@@ -90,6 +90,9 @@ PLAN_MATCH_DISTANCE_GRID = 25.0
 ENEMY_SITUATION_RADIUS_NM = 35.0
 AIR_DEFENSE_RADIUS_NM = 60.0
 ENEMY_AIRBASE_RADIUS_NM = 100.0
+ACTIVE_AIR_CONTACT_RADIUS_NM = 30.0
+ACTIVE_AIR_CONTACT_VECTOR_LOOKAHEAD_MIN = 20
+ACTIVE_AIR_CONTACT_VECTOR_SOURCE_RADIUS_NM = 45.0
 OTHER_PACKAGE_FRIENDLY_RADIUS_NM = 35.0
 OTHER_PACKAGE_ENEMY_RADIUS_NM = 65.0
 OTHER_PACKAGE_TIME_WINDOW_MIN = 90
@@ -1007,6 +1010,204 @@ def nearest_anchor(unit: dict[str, Any], anchors: list[dict[str, Any]]) -> dict[
     }
 
 
+def campaign_time_ms(clock: dict[str, Any] | None) -> int | None:
+    if not clock:
+        return None
+    value = clock.get("campaign_time_ms")
+    if value is None:
+        return None
+    return safe_int(value)
+
+
+def raw_time_delta_minutes(a: Any, b: Any) -> int | None:
+    if a is None or b is None:
+        return None
+    delta_ms = abs(safe_int(a) - safe_int(b))
+    return int(round(delta_ms / 60000.0))
+
+
+def flight_takeoff_land_times(flight: dict[str, Any]) -> tuple[int | None, int | None]:
+    takeoffs = [
+        safe_int(waypoint.get("arrive"))
+        for waypoint in flight.get("waypoints", [])
+        if waypoint.get("action_name") == "WP_TAKEOFF" and waypoint.get("arrive") is not None
+    ]
+    lands = [
+        safe_int(waypoint.get("arrive"))
+        for waypoint in flight.get("waypoints", [])
+        if waypoint.get("action_name") == "WP_LAND" and waypoint.get("arrive") is not None
+    ]
+    return (min(takeoffs) if takeoffs else None, max(lands) if lands else None)
+
+
+def flight_is_airborne_at_campaign_time(flight: dict[str, Any], clock: dict[str, Any] | None) -> bool:
+    now = campaign_time_ms(clock)
+    if now is None:
+        return False
+    takeoff, land = flight_takeoff_land_times(flight)
+    if takeoff is None or land is None or not (takeoff <= now <= land):
+        return False
+    # BMS stores airborne altitude as negative Z in decoded CAM records. Keep
+    # the route-time gate as primary, and use altitude/current_wp to reject
+    # dormant records that still carry old or home-base coordinates.
+    return abs(safe_float(flight.get("z"))) > 100.0 or safe_int(flight.get("current_wp")) > 1
+
+
+def upcoming_waypoint_for_contact(
+    flight: dict[str, Any],
+    clock: dict[str, Any] | None,
+    lookahead_min: int = ACTIVE_AIR_CONTACT_VECTOR_LOOKAHEAD_MIN,
+) -> dict[str, Any] | None:
+    now = campaign_time_ms(clock)
+    if now is None:
+        return None
+    current_wp = safe_int(flight.get("current_wp"), -1)
+    candidates = []
+    for waypoint in flight.get("waypoints", []):
+        arrive = waypoint.get("arrive")
+        if arrive is None:
+            continue
+        arrive_int = safe_int(arrive)
+        if arrive_int < now:
+            continue
+        index = safe_int(waypoint.get("index"), -1)
+        if current_wp >= 0 and index < current_wp:
+            continue
+        delta = raw_time_delta_minutes(arrive_int, now)
+        if delta is not None and delta <= lookahead_min:
+            candidates.append((arrive_int, waypoint))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item[0])[1]
+
+
+def point_segment_distance_grid(
+    point: dict[str, Any],
+    start: dict[str, Any],
+    end: dict[str, Any],
+) -> float | None:
+    px, py = point.get("grid_x"), point.get("grid_y")
+    sx, sy = start.get("grid_x"), start.get("grid_y")
+    ex, ey = end.get("grid_x"), end.get("grid_y")
+    if None in {px, py, sx, sy, ex, ey}:
+        return None
+    px_f, py_f = safe_float(px), safe_float(py)
+    sx_f, sy_f = safe_float(sx), safe_float(sy)
+    ex_f, ey_f = safe_float(ex), safe_float(ey)
+    dx = ex_f - sx_f
+    dy = ey_f - sy_f
+    length_sq = dx * dx + dy * dy
+    if length_sq <= 0.000001:
+        return math.hypot(px_f - sx_f, py_f - sy_f)
+    t = max(0.0, min(1.0, ((px_f - sx_f) * dx + (py_f - sy_f) * dy) / length_sq))
+    closest_x = sx_f + t * dx
+    closest_y = sy_f + t * dy
+    return math.hypot(px_f - closest_x, py_f - closest_y)
+
+
+def contact_vector_intercept(
+    flight: dict[str, Any],
+    anchors: list[dict[str, Any]],
+    clock: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    waypoint = upcoming_waypoint_for_contact(flight, clock)
+    if not waypoint:
+        return None
+    start = {"grid_x": flight.get("x"), "grid_y": flight.get("y")}
+    end = {"grid_x": waypoint.get("grid_x"), "grid_y": waypoint.get("grid_y")}
+    candidates: list[dict[str, Any]] = []
+    for anchor in anchors:
+        segment_distance = point_segment_distance_grid(anchor, start, end)
+        if segment_distance is None:
+            continue
+        current_distance = math.hypot(
+            safe_float(flight.get("x")) - safe_float(anchor.get("grid_x")),
+            safe_float(flight.get("y")) - safe_float(anchor.get("grid_y")),
+        )
+        end_distance = math.hypot(
+            safe_float(waypoint.get("grid_x")) - safe_float(anchor.get("grid_x")),
+            safe_float(waypoint.get("grid_y")) - safe_float(anchor.get("grid_y")),
+        )
+        if end_distance >= current_distance:
+            continue
+        candidates.append(
+            {
+                "anchor": anchor,
+                "distance_grid": round(segment_distance, 1),
+                "distance_nm": round(grid_distance_nm(segment_distance), 1),
+                "waypoint": waypoint,
+                "waypoint_hhmm": format_clock(waypoint.get("arrive"), clock),
+            }
+        )
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item["distance_nm"])
+
+
+def air_contact_capability(aircraft_label: str) -> str:
+    fighters, strike = split_aircraft_summary(aircraft_label)
+    if fighters:
+        return "fighter-capable"
+    if strike:
+        return "strike-capable"
+    return "air contact"
+
+
+def analyze_active_enemy_air_contacts(
+    cam_decode: dict[str, Any],
+    object_catalog: dict[str, Any],
+    teams_by_id: dict[int, dict[str, Any]],
+    enemies: set[int],
+    anchors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    clock = cam_decode.get("campaign_clock")
+    contacts: list[dict[str, Any]] = []
+    for flight in cam_decode.get("flights", []):
+        owner = safe_int(flight.get("owner"), -1)
+        if owner not in enemies or not flight_is_airborne_at_campaign_time(flight, clock):
+            continue
+        nearest = nearest_anchor(flight, anchors)
+        vector = contact_vector_intercept(flight, anchors, clock)
+        qualifies_by_position = bool(nearest and nearest["distance_nm"] <= ACTIVE_AIR_CONTACT_RADIUS_NM)
+        qualifies_by_vector = bool(
+            vector
+            and vector["distance_nm"] <= ACTIVE_AIR_CONTACT_RADIUS_NM
+            and nearest
+            and nearest["distance_nm"] <= ACTIVE_AIR_CONTACT_VECTOR_SOURCE_RADIUS_NM
+        )
+        if not qualifies_by_position and not qualifies_by_vector:
+            continue
+        basis = "airborne now within 30 NM of target-area anchor"
+        contact_anchor = nearest
+        distance_nm = nearest["distance_nm"] if nearest else None
+        if qualifies_by_vector and (not qualifies_by_position or safe_float(vector.get("distance_nm")) < safe_float(distance_nm, 9999.0)):
+            basis = f"airborne now; next leg vectors inside 30 NM by {vector.get('waypoint_hhmm') or 'next steerpoint'}"
+            contact_anchor = {"anchor": vector["anchor"], "distance_nm": vector["distance_nm"]}
+            distance_nm = vector["distance_nm"]
+        aircraft_type, aircraft_class = aircraft_label_for_unit(flight, object_catalog)
+        aircraft = aircraft_type or aircraft_class or "unresolved aircraft"
+        anchor = (contact_anchor or {}).get("anchor") or {}
+        sector = compass_sector(bearing_degrees_from_to(anchor, {"grid_x": flight.get("x"), "grid_y": flight.get("y")}))
+        contacts.append(
+            {
+                "team": teams_by_id.get(owner, {}).get("name") or str(owner),
+                "aircraft_count": flight.get("aircraft_count") or aircraft_count_from_roster(flight.get("roster")),
+                "aircraft_type": aircraft,
+                "aircraft_class": aircraft_class,
+                "capability": air_contact_capability(aircraft),
+                "sector": sector,
+                "grid_x": flight.get("x"),
+                "grid_y": flight.get("y"),
+                "altitude_ft": abs(safe_int(flight.get("z"))),
+                "nearest_anchor": anchor,
+                "distance_nm": round(safe_float(distance_nm), 1) if distance_nm is not None else None,
+                "basis": basis,
+            }
+        )
+    contacts.sort(key=lambda item: (safe_float(item.get("distance_nm"), 9999.0), str(item.get("aircraft_type") or "")))
+    return contacts
+
+
 def enemy_owner_ids(package: dict[str, Any], teams_by_id: dict[int, dict[str, Any]]) -> set[int]:
     friendly_owners = {safe_int(flight.get("owner"), -1) for flight in package.get("flights", [])}
     friendly_cteams = {
@@ -1725,6 +1926,7 @@ def analyze_enemy_situation(
         ini_grid_offset_x,
         ini_grid_offset_y,
     )
+    active_air_contacts = analyze_active_enemy_air_contacts(cam_decode, object_catalog, teams_by_id, enemies, anchors)
     enemy_team_names = sorted({teams_by_id.get(owner, {}).get("name") or str(owner) for owner in enemies})
     airbase_squadron_count = sum(safe_int(base.get("squadron_count")) for base in airbases)
     summary = (
@@ -1733,7 +1935,8 @@ def analyze_enemy_situation(
         f"{len(air_defenses)} strategic air-defense records with active tracking radars within {AIR_DEFENSE_RADIUS_NM:.0f} NM; "
         f"strategic AD classes: {summarize_unit_classes(air_defenses)}. "
         f"{len(inactive_air_defenses)} strategic ADA candidates filtered for inactive/missing tracking radars. "
-        f"{len(airbases)} enemy squadron bases within {ENEMY_AIRBASE_RADIUS_NM:.0f} NM hosting {airbase_squadron_count} active squadrons."
+        f"{len(airbases)} enemy squadron bases within {ENEMY_AIRBASE_RADIUS_NM:.0f} NM hosting {airbase_squadron_count} active squadrons. "
+        f"{len(active_air_contacts)} active enemy air contact(s) at campaign time within or vectoring into {ACTIVE_AIR_CONTACT_RADIUS_NM:.0f} NM of the target area."
     )
     return {
         "basis": "Distances are from enemy battalion grid positions to decoded package route/CAP/SAD anchors and correlated INI marks. Strategic ADA requires an active decoded tracking-radar roster slot.",
@@ -1742,6 +1945,7 @@ def analyze_enemy_situation(
         "unit_radius_nm": ENEMY_SITUATION_RADIUS_NM,
         "air_defense_radius_nm": AIR_DEFENSE_RADIUS_NM,
         "airbase_radius_nm": ENEMY_AIRBASE_RADIUS_NM,
+        "active_air_contact_radius_nm": ACTIVE_AIR_CONTACT_RADIUS_NM,
         "summary": summary,
         "airbase_summary": f"Closest squadron bases: {summarize_airbase_threats(airbases)}.",
         "counts_by_class": dict(Counter(unit.get("class_name") for unit in threat_units if unit.get("class_name"))),
@@ -1755,6 +1959,7 @@ def analyze_enemy_situation(
         "inactive_air_defense_locations": inactive_air_defenses[:64],
         "airbases": airbases[:24],
         "airbase_locations": airbases[:64],
+        "active_air_contacts": active_air_contacts[:16],
     }
 
 
@@ -2561,19 +2766,49 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
     if not axes:
         lines.append("- No active enemy fighter-capable airbases were resolved within the current airbase threat radius.")
         lines.append("")
-        return
-    lines.append("| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
-    lines.append("| --- | --- | --- | --- | --- | --- |")
-    for axis in axes:
-        basis = f"{axis.get('base_count')} active enemy squadron base(s) in sector; aircraft capability only."
+    else:
+        lines.append("| Possible source sector | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
+        lines.append("| --- | --- | --- | --- | --- | --- |")
+        for axis in axes:
+            basis = f"{axis.get('base_count')} active enemy squadron base(s) in sector; aircraft capability only."
+            lines.append(
+                "| {sector} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
+                    sector=markdown_cell(axis.get("sector")),
+                    fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none resolved"),
+                    strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none resolved"),
+                    anchor=markdown_cell(axis.get("nearest_anchor")),
+                    distance=number_cell(axis.get("closest_distance_nm"), 1),
+                    basis=markdown_cell(basis),
+                )
+            )
+        lines.append("")
+
+    enemy = package.get("enemy_situation") or {}
+    contacts = enemy.get("active_air_contacts") or []
+    lines.append(f"### Active Air Contacts At Campaign Time")
+    if not contacts:
         lines.append(
-            "| {sector} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
-                sector=markdown_cell(axis.get("sector")),
-                fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none resolved"),
-                strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none resolved"),
-                anchor=markdown_cell(axis.get("nearest_anchor")),
-                distance=number_cell(axis.get("closest_distance_nm"), 1),
-                basis=markdown_cell(basis),
+            f"- No airborne enemy contacts were resolved within or clearly vectoring into {number_cell(enemy.get('active_air_contact_radius_nm'), 0)} NM of the target-area anchors at campaign time."
+        )
+        lines.append("")
+        return
+    lines.append(
+        "These are current-position contacts only. Callsigns and enemy package/tasking IDs are intentionally omitted; "
+        "the brief only exposes aircraft type, rough sector, range, and the observed reason they matter."
+    )
+    lines.append("")
+    lines.append("| Sector from AO | Aircraft | Capability | Count | Nearest area | Range | Basis |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+    for contact in contacts:
+        lines.append(
+            "| {sector} | {aircraft} | {capability} | {count} | {anchor} | {distance} NM | {basis} |".format(
+                sector=markdown_cell(contact.get("sector")),
+                aircraft=markdown_cell(contact.get("aircraft_type")),
+                capability=markdown_cell(contact.get("capability")),
+                count=markdown_cell(contact.get("aircraft_count")),
+                anchor=markdown_cell(enemy_anchor_cell(contact)),
+                distance=number_cell(contact.get("distance_nm"), 1),
+                basis=markdown_cell(contact.get("basis")),
             )
         )
     lines.append("")
@@ -2865,6 +3100,31 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                     distance=number_cell(unit.get("distance_nm"), 1),
                     air_range=markdown_cell(unit.get("air_range")),
                     low_air_range=markdown_cell(unit.get("low_air_range")),
+                )
+            )
+        lines.append("")
+
+    active_air_contacts = enemy.get("active_air_contacts") or []
+    if active_air_contacts:
+        lines.append("### Active Enemy Air Contact Coordinates")
+        lines.append(
+            "Rows use current decoded flight positions at campaign time. Enemy callsigns/package IDs are omitted from the briefing output."
+        )
+        lines.append("| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Alt ft | Nearest package/INI anchor | Dist NM | Basis |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        for contact in active_air_contacts:
+            lines.append(
+                "| {sector} | {aircraft} | {capability} | {count} | {grid_x} | {grid_y} | {altitude} | {anchor} | {distance} | {basis} |".format(
+                    sector=markdown_cell(contact.get("sector")),
+                    aircraft=markdown_cell(contact.get("aircraft_type")),
+                    capability=markdown_cell(contact.get("capability")),
+                    count=markdown_cell(contact.get("aircraft_count")),
+                    grid_x=number_cell(contact.get("grid_x"), 1),
+                    grid_y=number_cell(contact.get("grid_y"), 1),
+                    altitude=number_cell(contact.get("altitude_ft"), 0),
+                    anchor=markdown_cell(enemy_anchor_cell(contact)),
+                    distance=number_cell(contact.get("distance_nm"), 1),
+                    basis=markdown_cell(contact.get("basis")),
                 )
             )
         lines.append("")
