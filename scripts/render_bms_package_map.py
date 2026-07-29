@@ -374,6 +374,46 @@ def collect_map_bounds(
     return left, top, right, bottom
 
 
+def parse_aspect_ratio(value: str | None) -> float | None:
+    if not value:
+        return None
+    text = value.strip().lower()
+    if not text:
+        return None
+    if ":" in text:
+        left, right = text.split(":", 1)
+        numerator = safe_float(left)
+        denominator = safe_float(right)
+        if numerator > 0 and denominator > 0:
+            return numerator / denominator
+    ratio = safe_float(text)
+    return ratio if ratio > 0 else None
+
+
+def clamp_span_to_map(start: float, end: float) -> tuple[int, int]:
+    span = min(float(MAP_GRID_SIZE), max(1.0, end - start))
+    start = max(0.0, min(float(MAP_GRID_SIZE) - span, start))
+    end = start + span
+    return int(math.floor(start)), int(math.ceil(end))
+
+
+def expand_crop_to_aspect(crop: tuple[int, int, int, int], aspect_ratio: float | None) -> tuple[int, int, int, int]:
+    if not aspect_ratio:
+        return crop
+    left, top, right, bottom = crop
+    width = max(1, right - left)
+    height = max(1, bottom - top)
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+    if width / height < aspect_ratio:
+        new_width = height * aspect_ratio
+        left, right = clamp_span_to_map(center_x - new_width / 2, center_x + new_width / 2)
+    else:
+        new_height = width / aspect_ratio
+        top, bottom = clamp_span_to_map(center_y - new_height / 2, center_y + new_height / 2)
+    return left, top, right, bottom
+
+
 def tactical_flights(
     flights: list[tuple[dict[str, Any], list[dict[str, Any]]]],
 ) -> list[tuple[dict[str, Any], list[dict[str, Any]]]]:
@@ -1038,7 +1078,7 @@ def render_map(args: argparse.Namespace) -> Path:
         crop_airbases = []
         crop_margin_grid = args.margin_grid
     else:
-        bounds_flights = [*crop_flights, *support_flights]
+        bounds_flights = [*crop_flights, *support_flights] if args.include_support_in_bounds else crop_flights
         bounds_ini_points = ini_points
         bounds_ini_line_points = ini_line_points
         bounds_air_defenses = strategic_air_defenses
@@ -1056,6 +1096,7 @@ def render_map(args: argparse.Namespace) -> Path:
         bounds_air_defense_radius_scale,
         bounds_min_size,
     )
+    crop = expand_crop_to_aspect(crop, parse_aspect_ratio(args.aspect_ratio))
     source_crop = (
         max(0, math.floor(crop[0] * source_scale_x)),
         max(0, math.floor(crop[1] * source_scale_y)),
@@ -1095,23 +1136,24 @@ def render_map(args: argparse.Namespace) -> Path:
     draw_air_defenses(overlay, projector, strategic_air_defenses, small_font, draw_rings=False)
     draw_scale_and_north(overlay, crop, scale, label_font)
 
-    footer_height = 245
+    footer_height = 245 if args.show_footer else 0
     output = Image.new("RGBA", (map_width, map_height + footer_height), (9, 13, 15, 255))
     output.alpha_composite(map_image, (0, 0))
     output.alpha_composite(overlay, (0, 0))
-    draw_footer(
-        output,
-        package,
-        route_draw_flights,
-        support_flights,
-        flight_colors,
-        crop,
-        map_source,
-        (source_scale_x, source_scale_y),
-        args.crop_mode,
-        footer_height,
-        draw_airbases_on_this_map,
-    )
+    if args.show_footer:
+        draw_footer(
+            output,
+            package,
+            route_draw_flights,
+            support_flights,
+            flight_colors,
+            crop,
+            map_source,
+            (source_scale_x, source_scale_y),
+            args.crop_mode,
+            footer_height,
+            draw_airbases_on_this_map,
+        )
     output.convert("RGB").save(args.out)
     return args.out
 
@@ -1162,6 +1204,23 @@ def parse_args() -> argparse.Namespace:
         help="Use package for the full route, target-area for tactical waypoints, or objective-area for INI target geometry.",
     )
     parser.add_argument("--scale", type=int, default=4, help="Output scale multiplier for the cropped map.")
+    parser.add_argument(
+        "--aspect-ratio",
+        default=None,
+        help="Expand the crop to this map-area aspect ratio, for example 16:9, without clipping plotted content.",
+    )
+    parser.add_argument(
+        "--show-footer",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Include the map legend/footer. Use --no-show-footer for slide-native map-only images.",
+    )
+    parser.add_argument(
+        "--include-support-in-bounds",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Let AWACS/tanker/support tracks expand package crop bounds. Disable for tighter slide overviews.",
+    )
     parser.add_argument(
         "--show-airbases",
         action=argparse.BooleanOptionalAction,

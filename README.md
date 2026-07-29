@@ -201,6 +201,25 @@ Overlay readability can be tuned with `--route-opacity`, `--marker-opacity`,
 defaults are deliberately semi-transparent so dense target areas remain readable
 against the chart base.
 
+For deck work, prefer the slide-ready map-set renderer. It writes the standard
+overview, target-area, and objective-area PNGs at high resolution, expands each
+crop to a 16:9 map area, suppresses the footer so the map fills the slide, and
+keeps support tracks from forcing the package overview to zoom too far out:
+
+```powershell
+python .\scripts\render_bms_map_set.py `
+  --synthesis .\outputs\738pre\briefing_synthesis.json `
+  --cam-decode .\outputs\738pre\cam_decode.json `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --package-id 1883 `
+  --feet-per-grid 3280.84 `
+  --out-dir .\outputs\738pre
+```
+
+Use the low-level renderer below when you need a custom crop, a footer for QA, or
+a one-off diagnostic map.
+
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 
 ```powershell
@@ -232,6 +251,8 @@ python .\scripts\render_bms_package_map.py `
   --crop-mode target-area `
   --margin-grid 14 `
   --scale 8 `
+  --aspect-ratio 16:9 `
+  --no-show-footer `
   --show-airbases `
   --out .\outputs\738pre\package_1883_target_area_zoom_skyvector.png
 ```
@@ -255,6 +276,8 @@ python .\scripts\render_bms_package_map.py `
   --crop-mode objective-area `
   --margin-grid 8 `
   --scale 10 `
+  --aspect-ratio 16:9 `
+  --no-show-footer `
   --show-airbases `
   --out .\outputs\738pre\package_1883_objective_area_zoom_skyvector.png
 ```
@@ -272,6 +295,7 @@ python .\scripts\render_bms_weather_map.py `
   --feet-per-grid 3280.84 `
   --margin-grid 24 `
   --scale 5 `
+  --aspect-ratio 16:9 `
   --out .\outputs\738pre\package_1883_weather_map_skyvector.png
 ```
 

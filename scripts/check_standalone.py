@@ -85,6 +85,7 @@ def main() -> None:
         "scripts/extract_bms_briefing.py",
         "scripts/synthesize_bms_briefing.py",
         "scripts/render_bms_package_map.py",
+        "scripts/render_bms_map_set.py",
         "scripts/render_bms_weather_map.py",
         "scripts/pyopencam_adapter.py",
         "scripts/pyopencam_provider.py",

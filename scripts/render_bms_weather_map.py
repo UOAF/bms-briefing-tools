@@ -25,12 +25,14 @@ from render_bms_package_map import (
     draw_support_flights,
     find_package,
     flight_waypoints,
+    expand_crop_to_aspect,
     iter_ini_line_points,
     iter_named_ini_points,
     load_font,
     load_json,
     open_base_map,
     package_raw_flights,
+    parse_aspect_ratio,
     raw_flights_by_callsign,
     support_waypoints,
 )
@@ -202,6 +204,7 @@ def render_weather_map(args: argparse.Namespace) -> Path:
         air_defense_radius_scale=0.0,
         min_size=180,
     )
+    crop = expand_crop_to_aspect(crop, parse_aspect_ratio(args.aspect_ratio))
 
     map_source = args.map_source or (args.campaign_dir / "Korea.tm")
     base, source_scale_x, source_scale_y, _ = open_base_map(map_source)
@@ -237,12 +240,13 @@ def render_weather_map(args: argparse.Namespace) -> Path:
     draw_weather_samples(route_overlay, projector, weather.get("samples") or [], small_font)
     draw_scale_and_north(route_overlay, crop, scale, label_font)
 
-    footer_height = 220
+    footer_height = 220 if args.show_footer else 0
     output = Image.new("RGBA", (map_width, map_height + footer_height), (9, 13, 15, 255))
     output.alpha_composite(map_image, (0, 0))
     output.alpha_composite(weather_overlay, (0, 0))
     output.alpha_composite(route_overlay, (0, 0))
-    draw_footer(output, package, fmap, crop, map_source, (source_scale_x, source_scale_y), footer_height)
+    if args.show_footer:
+        draw_footer(output, package, fmap, crop, map_source, (source_scale_x, source_scale_y), footer_height)
     output.convert("RGB").save(args.out)
     return args.out
 
@@ -282,6 +286,17 @@ def parse_args() -> argparse.Namespace:
         help="Opacity for label background boxes. Label text remains fully readable. Range 0.0-1.0.",
     )
     parser.add_argument("--scale", type=int, default=5, help="Output scale multiplier for the cropped map.")
+    parser.add_argument(
+        "--aspect-ratio",
+        default=None,
+        help="Expand the crop to this map-area aspect ratio, for example 16:9, without clipping plotted content.",
+    )
+    parser.add_argument(
+        "--show-footer",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Include the map legend/footer. Use --no-show-footer for slide-native map-only images.",
+    )
     parser.add_argument("--weather-alpha", type=int, default=68, help="Weather cell overlay alpha 0-255.")
     return parser.parse_args()
 
