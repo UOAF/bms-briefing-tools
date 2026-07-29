@@ -30,17 +30,7 @@ TARGET_AREA_ACTIONS = {
     "WP_NAVSTRIKE",
     "WP_SPLIT",
 }
-OBJECTIVE_AREA_BASE_LABELS = {
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "WCH",
-    "WATCHTOWER",
-    "FOXTROT",
-}
+OBJECTIVE_AREA_BASE_LABELS: set[str] = set()
 
 FLIGHT_COLORS = [
     (0, 210, 255),
@@ -719,6 +709,7 @@ def draw_ini_geometry(
     ini_points: list[dict[str, Any]],
     ini_line_points: list[dict[str, Any]],
     font: ImageFont.ImageFont,
+    route_name: str = "INI route",
 ) -> dict[str, tuple[float, float]]:
     draw = ImageDraw.Draw(overlay, "RGBA")
     named_locations: dict[str, tuple[float, float]] = {}
@@ -741,7 +732,7 @@ def draw_ini_geometry(
         draw_text_box(
             draw,
             (leftmost[0] - 12, leftmost[1] - 16),
-            "Route Black",
+            route_name,
             font,
             fill=(255, 255, 255),
             anchor="ra",
@@ -985,7 +976,7 @@ def draw_footer(
     legend_y = y0 + 136
     draw.text((legend_x, legend_y - 21), "Map overlays", font=small_font, fill=MUTED)
     legend_items = [
-        (INI_LINE, "Route Black"),
+        (INI_LINE, route_name),
         (PPT_FILL, "Named INI PPT"),
         (AD_OUTER_WEZ, "ADA WEZ"),
     ]
@@ -1132,7 +1123,8 @@ def render_map(args: argparse.Namespace) -> Path:
         draw_flights(overlay, projector, route_draw_flights, flight_colors, small_font)
     named_locations = projected_ini_locations(projector, draw_ini_points)
     draw_assignment_lanes(overlay, package, named_locations, flight_colors, small_font)
-    draw_ini_geometry(overlay, projector, draw_ini_points, ini_line_points, label_font)
+    route_name = (package.get("human_context") or {}).get("route_name") or "INI route"
+    draw_ini_geometry(overlay, projector, draw_ini_points, ini_line_points, label_font, route_name=route_name)
     draw_air_defenses(overlay, projector, strategic_air_defenses, small_font, draw_rings=False)
     draw_scale_and_north(overlay, crop, scale, label_font)
 

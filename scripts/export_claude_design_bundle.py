@@ -134,7 +134,7 @@ Create a polished, squadron-ready mission briefing deck from the uploaded BMS so
 - Build the final briefing, not a process explainer.
 - Use the generated markdown as authoritative, but rewrite for a human tactical briefing voice.
 - Preserve operational facts: package composition, weather, comm ladder, mission plan, enemy situation, strategic ADA, active air contacts, enemy airbase threat axes, and coordinates only where helpful.
-- Use the maps as first-class briefing visuals. The package overview should explain the route and support picture; the target/objective-area map should explain what is happening around Route Black and A/B/C/D/E/WCH/GRD/BAR.
+- Use the maps as first-class briefing visuals. The package overview should explain the route and support picture; the target/objective-area map should explain what is happening around the current mission's tactical route, named INI/PPT marks, CAP anchors, objectives, and threat geometry.
 - Do not expose decoded enemy callsigns, package IDs, or specific future enemy ATO tasking.
 - Do not show friendly air defenses.
 - Treat the old repo PPTX generator as deprecated fallback context only.

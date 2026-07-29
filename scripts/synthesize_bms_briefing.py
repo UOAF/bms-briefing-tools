@@ -1531,15 +1531,12 @@ def main_landing_waypoint(flight_summaries: list[dict[str, Any]]) -> dict[str, A
 
 
 def target_area_point(plan_correlation: dict[str, Any], flight_summaries: list[dict[str, Any]]) -> dict[str, Any] | None:
-    objective_labels = {"A", "B", "C", "D", "E", "F", "WCH", "WATCHTOWER", "FOXTROT"}
     excluded_labels = {"GRD", "GUARDPOST", "GUARD POST", "BAR", "BARRIER"}
     grids: list[tuple[float, float]] = []
     labels: list[str] = []
     for match in plan_correlation.get("point_matches", []):
         label = str(match.get("display") or match.get("label") or "").strip().upper()
-        if not label or label in excluded_labels:
-            continue
-        if objective_labels and label not in objective_labels:
+        if not label or label in excluded_labels or label == "NOT SET":
             continue
         grid = match.get("campaign_grid") or {}
         if grid.get("grid_x") is None or grid.get("grid_y") is None:
@@ -2052,7 +2049,7 @@ def analyze_enemy_situation(
     enemy_team_names = sorted({teams_by_id.get(owner, {}).get("name") or str(owner) for owner in enemies})
     airbase_squadron_count = sum(safe_int(base.get("squadron_count")) for base in airbases)
     summary = (
-        f"{len(threat_units)} enemy non-air unit records within {ENEMY_SITUATION_RADIUS_NM:.0f} NM of Route Black/CAP anchors; "
+        f"{len(threat_units)} enemy non-air unit records within {ENEMY_SITUATION_RADIUS_NM:.0f} NM of package/INI tactical anchors; "
         f"dominant nearby classes: {summarize_unit_classes(threat_units)}. "
         f"{len(air_defenses)} strategic air-defense records with active tracking radars within {AIR_DEFENSE_RADIUS_NM:.0f} NM; "
         f"strategic AD classes: {summarize_unit_classes(air_defenses)}. "
@@ -3052,7 +3049,7 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
 
     lines.append("## Enemy Situation And Air Defense Estimate")
     lines.append(
-        "This is a campaign-data estimate: enemy battalion/unit positions are measured against the decoded Route Black, CAP, SAD, "
+        "This is a campaign-data estimate: enemy battalion/unit positions are measured against the decoded package route, CAP, SAD, "
         "and correlated INI anchors. The air-defense section is strategic-only: Air Defense class systems, and each listed site "
         "has a nonzero decoded roster slot for its tracking radar. "
         "Class names and equipment come from Falcon object tables."
@@ -3066,7 +3063,7 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
 
     air_defenses = enemy.get("air_defenses") or []
     if air_defenses:
-        lines.append("### Strategic Air Defense Units Near Route Black")
+        lines.append("### Strategic Air Defense Units Near Package Route")
         lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest anchor | Dist NM | UCD air rng | UCD low rng | Strength air/low |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for unit in air_defenses:
@@ -3368,7 +3365,7 @@ def append_map_products(lines: list[str], synthesis: dict[str, Any]) -> None:
             lines.append(
                 "- Close-up map note: objective-area charts preserve CAP anchors "
                 + ", ".join(cap_labels)
-                + " alongside the target and Route Black geometry."
+                + " alongside the target and INI route geometry."
             )
     lines.append("")
     lines.append(f"![PKG {focus_id} objective-area zoom](package_{focus_id}_objective_area_zoom_skyvector.png)")

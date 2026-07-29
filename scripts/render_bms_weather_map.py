@@ -236,7 +236,8 @@ def render_weather_map(args: argparse.Namespace) -> Path:
     if support_flights:
         draw_support_flights(route_overlay, projector, support_flights, small_font)
     draw_flights(route_overlay, projector, flights, flight_colors, small_font)
-    draw_ini_geometry(route_overlay, projector, ini_points, ini_line_points, label_font)
+    route_name = (package.get("human_context") or {}).get("route_name") or "INI route"
+    draw_ini_geometry(route_overlay, projector, ini_points, ini_line_points, label_font, route_name=route_name)
     draw_weather_samples(route_overlay, projector, weather.get("samples") or [], small_font)
     draw_scale_and_north(route_overlay, crop, scale, label_font)
 
