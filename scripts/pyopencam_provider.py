@@ -462,6 +462,21 @@ def objective_delta_item(delta: Any) -> dict[str, Any]:
     }
 
 
+def bullseye_item(cmp_record: Any) -> dict[str, Any] | None:
+    x = field(cmp_record, "bullseye_x")
+    y = field(cmp_record, "bullseye_y")
+    if x is None or y is None:
+        return None
+    return {
+        "name": field(cmp_record, "bullseye_name"),
+        "x": safe_int(x),
+        "y": safe_int(y),
+        "grid_x": safe_int(x),
+        "grid_y": safe_int(y),
+        "source": ".cmp bullseye",
+    }
+
+
 def team_item(team: Any) -> dict[str, Any]:
     who = safe_int(getattr(team, "who", 0))
     stances = list(getattr(team, "stance", ()))
@@ -515,6 +530,7 @@ def decode_cam(cam_path: Path, theater_folder: Path, pyopencam_root: Path) -> di
 
     unit_counts = Counter(record.kind for record in uni_records)
     mission_counts = Counter(flight.get("mission_short") for flight in flights if flight.get("mission_short"))
+    bullseye = bullseye_item(cmp_record)
     return {
         "provider": {
             "name": "pyopencam",
@@ -532,6 +548,7 @@ def decode_cam(cam_path: Path, theater_folder: Path, pyopencam_root: Path) -> di
             "clock_base_hhmm": "1400",
             "current_time_z": None,
         },
+        "bullseye": bullseye,
         "unit_counts": {
             "Battalion": unit_counts.get("battalion", 0),
             "Brigade": unit_counts.get("brigade", 0),

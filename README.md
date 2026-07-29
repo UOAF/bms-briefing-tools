@@ -79,8 +79,8 @@ That writes three briefing artifacts:
 - `briefing_synthesis.json`: structured source of truth for follow-on tooling.
 - `briefing_workup.md`: transitional analysis with provenance, gaps, and
   correlation notes for human/Codex iteration.
-- `generated_briefing.md`: player-facing mission brief with development notes
-  and missing-data chatter removed.
+- `generated_briefing.md`: clean player-facing mission brief that omits
+  development notes and missing-data chatter.
 
 The synthesizer resolves tactical waypoint targets to objectives, flights, packages,
 squadrons, and ground/naval units when the CAM exposes matching VU IDs. It also

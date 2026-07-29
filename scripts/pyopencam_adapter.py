@@ -24,6 +24,13 @@ def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
+def safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def find_export_file(json_dir: Path, suffix: str) -> Path | None:
     matches = sorted(json_dir.glob(f"*.{suffix}.json"))
     if not matches:
@@ -216,6 +223,19 @@ def normalize_pyopencam_export(json_dir: Path) -> dict[str, Any]:
     for items in by_kind.values():
         items.sort(key=lambda item: int(item.get("camp_id") or 0))
 
+    campaign_clock = load_json(cmp_path) if cmp_path else {}
+    bullseye = campaign_clock.get("bullseye") if isinstance(campaign_clock.get("bullseye"), dict) else None
+    normalized_bullseye = None
+    if bullseye and bullseye.get("x") is not None and bullseye.get("y") is not None:
+        normalized_bullseye = {
+            "name": bullseye.get("name"),
+            "x": safe_int(bullseye.get("x")),
+            "y": safe_int(bullseye.get("y")),
+            "grid_x": safe_int(bullseye.get("x")),
+            "grid_y": safe_int(bullseye.get("y")),
+            "source": ".cmp bullseye",
+        }
+
     return {
         "provider": "pyopencam-json",
         "source": {
@@ -225,7 +245,8 @@ def normalize_pyopencam_export(json_dir: Path) -> dict[str, Any]:
             "tea": str(tea_path) if tea_path else None,
             "obd": str(obd_path) if obd_path else None,
         },
-        "campaign_clock": load_json(cmp_path) if cmp_path else {},
+        "campaign_clock": campaign_clock,
+        "bullseye": normalized_bullseye,
         "teams": (load_json(tea_path).get("teams") if tea_path else []),
         "objective_delta_count": len(load_json(obd_path)) if obd_path else 0,
         "unit_counts": {

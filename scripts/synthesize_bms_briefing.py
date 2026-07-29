@@ -616,6 +616,26 @@ def grid_distance_nm(distance_grid: float) -> float:
     return distance_grid * FEET_PER_GRID / FEET_PER_NM
 
 
+def normalize_bullseye(cam_decode: dict[str, Any]) -> dict[str, Any] | None:
+    raw = cam_decode.get("bullseye")
+    if not isinstance(raw, dict):
+        raw = (cam_decode.get("campaign_clock") or {}).get("bullseye")
+    if not isinstance(raw, dict):
+        return None
+    grid_x = raw.get("grid_x", raw.get("x"))
+    grid_y = raw.get("grid_y", raw.get("y"))
+    if grid_x is None or grid_y is None:
+        return None
+    return {
+        "name": raw.get("name"),
+        "grid_x": safe_float(grid_x),
+        "grid_y": safe_float(grid_y),
+        "x": safe_float(raw.get("x", grid_x)),
+        "y": safe_float(raw.get("y", grid_y)),
+        "source": raw.get("source") or ".cmp bullseye",
+    }
+
+
 def ini_grid_transform_basis(ini_grid_offset_x: float, ini_grid_offset_y: float) -> str:
     def offset_text(value: float) -> str:
         if abs(value) < 0.000001:
@@ -2098,6 +2118,7 @@ def synthesize(
     unit_index = build_unit_index(cam_decode)
     mentions = deck_package_mentions(briefing_data)
     clock = cam_decode.get("campaign_clock")
+    bullseye = normalize_bullseye(cam_decode)
     teams = {team.get("who"): team.get("name") for team in cam_decode.get("teams", [])}
     teams_by_id = {safe_int(team.get("who"), -1): team for team in cam_decode.get("teams", [])}
     ini = briefing_data.get("ini") or {}
@@ -2298,6 +2319,7 @@ def synthesize(
         "prefix": briefing_data.get("prefix"),
         "focus_package_id": focus_package_id,
         "campaign_clock": clock,
+        "bullseye": bullseye,
         "objective_source": {
             "count": len(objectives),
             "matched_deltas": sum(1 for objective_id in deltas if objective_id in objectives),
@@ -2477,6 +2499,44 @@ def compass_sector(degrees: float | None) -> str:
         return "unknown"
     sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     return sectors[int((degrees + 22.5) // 45) % len(sectors)]
+
+
+def bullseye_reference(synthesis: dict[str, Any], point: dict[str, Any] | None) -> str:
+    bullseye = synthesis.get("bullseye") or {}
+    if not bullseye or not point:
+        return ""
+    if point.get("grid_x") is None or point.get("grid_y") is None:
+        return ""
+    bearing = bearing_degrees_from_to(bullseye, point)
+    if bearing is None:
+        return "BE 000/0"
+    distance_grid = math.hypot(
+        safe_float(point.get("grid_x")) - safe_float(bullseye.get("grid_x")),
+        safe_float(point.get("grid_y")) - safe_float(bullseye.get("grid_y")),
+    )
+    return f"BE {int(round(bearing)) % 360:03d}/{int(round(grid_distance_nm(distance_grid)))}"
+
+
+def bullseye_brief_refs(synthesis: dict[str, Any], package: dict[str, Any], limit: int = 10) -> list[str]:
+    refs: list[str] = []
+    seen: set[str] = set()
+    for match in (package.get("plan_correlation") or {}).get("point_matches") or []:
+        label = str(match.get("display") or match.get("label") or "").strip()
+        grid = match.get("campaign_grid") or {}
+        if not label or label.lower() in {"not set", "ini not set"} or grid.get("grid_x") is None or grid.get("grid_y") is None:
+            continue
+        if label.upper().startswith("TGT "):
+            continue
+        key = label.upper()
+        if key in seen:
+            continue
+        seen.add(key)
+        ref = bullseye_reference(synthesis, grid)
+        if ref:
+            refs.append(f"{label} {ref}")
+        if len(refs) >= limit:
+            break
+    return refs
 
 
 FIGHTER_AIRFRAME_TOKENS = (
@@ -2838,6 +2898,20 @@ def append_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
     lines.append("")
 
 
+def append_bullseye(lines: list[str], synthesis: dict[str, Any]) -> None:
+    bullseye = synthesis.get("bullseye") or {}
+    if bullseye.get("grid_x") is None or bullseye.get("grid_y") is None:
+        return
+    lines.append("## Bullseye")
+    lines.append(f"- Bullseye: grid {number_cell(bullseye.get('grid_x'), 1)} / {number_cell(bullseye.get('grid_y'), 1)}")
+    package = focus_package(synthesis)
+    if package:
+        refs = bullseye_brief_refs(synthesis, package)
+        if refs:
+            lines.append("- Named references: " + "; ".join(refs))
+    lines.append("")
+
+
 def package_support_summary(package: dict[str, Any]) -> str:
     support = package.get("support_flights") or []
     if not support:
@@ -3177,20 +3251,24 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     lines.append(
         "Location data is separated here so the main brief stays readable."
     )
+    bullseye = synthesis.get("bullseye") or {}
+    if bullseye.get("grid_x") is not None and bullseye.get("grid_y") is not None:
+        lines.append(f"- Bullseye: grid {number_cell(bullseye.get('grid_x'), 1)} / {number_cell(bullseye.get('grid_y'), 1)}")
     lines.append("")
     lines.append(f"### PKG {focus_id} Flight Steerpoints")
-    lines.append("| C/S | STPT | Action | Arrive | Grid X | Grid Y | Grid Z | Target/object |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    lines.append("| C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for flight in package.get("flights", []):
         for waypoint in flight.get("key_waypoints", []):
             lines.append(
-                "| {callsign} | {stpt} | {action} | {arrive} | {grid_x} | {grid_y} | {grid_z} | {target} |".format(
+                "| {callsign} | {stpt} | {action} | {arrive} | {grid_x} | {grid_y} | {bullseye} | {grid_z} | {target} |".format(
                     callsign=markdown_cell(flight.get("callsign") or f"Flight {flight.get('camp_id')}"),
                     stpt=markdown_cell(waypoint.get("index")),
                     action=markdown_cell(action_label(waypoint.get("action"))),
                     arrive=markdown_cell(waypoint.get("arrive_hhmm")),
                     grid_x=number_cell(waypoint.get("grid_x"), 1),
                     grid_y=number_cell(waypoint.get("grid_y"), 1),
+                    bullseye=markdown_cell(bullseye_reference(synthesis, waypoint)),
                     grid_z=number_cell(waypoint.get("grid_z"), 1),
                     target=markdown_cell(target_ref_cell(waypoint.get("target"))),
                 )
@@ -3200,12 +3278,12 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     support_flights = package.get("support_flights") or []
     if support_flights:
         lines.append("### Linked Support Flight Coordinates")
-        lines.append("| Role | C/S | STPT | Action | Arrive | Grid X | Grid Y | Grid Z | Target/object |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Role | C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for support in support_flights:
             for waypoint in support.get("key_waypoints", []):
                 lines.append(
-                    "| {role} | {callsign} | {stpt} | {action} | {arrive} | {grid_x} | {grid_y} | {grid_z} | {target} |".format(
+                    "| {role} | {callsign} | {stpt} | {action} | {arrive} | {grid_x} | {grid_y} | {bullseye} | {grid_z} | {target} |".format(
                         role=markdown_cell(support.get("role")),
                         callsign=markdown_cell(support.get("callsign")),
                         stpt=markdown_cell(waypoint.get("index")),
@@ -3213,6 +3291,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                         arrive=markdown_cell(waypoint.get("arrive_hhmm")),
                         grid_x=number_cell(waypoint.get("grid_x"), 1),
                         grid_y=number_cell(waypoint.get("grid_y"), 1),
+                        bullseye=markdown_cell(bullseye_reference(synthesis, waypoint)),
                         grid_z=number_cell(waypoint.get("grid_z"), 1),
                         target=markdown_cell(target_ref_cell(waypoint.get("target"))),
                     )
@@ -3247,8 +3326,8 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     if transformed_points:
         lookup = match_lookup(package)
         lines.append("### INI Planning Steerpoints")
-        lines.append("| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Nearest package route point |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Bullseye | Nearest package route point |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for point in sorted(
             transformed_points,
             key=lambda item: (planning_kind_rank(item.get("kind")), item.get("index") or 0),
@@ -3256,7 +3335,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
             key = (str(point.get("kind") or ""), point.get("index"), str(point.get("display") or ""))
             grid = point.get("campaign_grid") or {}
             lines.append(
-                "| {kind} | {label} | {code} | {ini_x} | {ini_y} | {grid_x} | {grid_y} | {nearest} |".format(
+                "| {kind} | {label} | {code} | {ini_x} | {ini_y} | {grid_x} | {grid_y} | {bullseye} | {nearest} |".format(
                     kind=markdown_cell(point.get("kind")),
                     label=markdown_cell(point.get("display") or point.get("label")),
                     code=markdown_cell(point.get("code")),
@@ -3264,6 +3343,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                     ini_y=number_cell(point.get("y"), 1),
                     grid_x=number_cell(grid.get("grid_x"), 1),
                     grid_y=number_cell(grid.get("grid_y"), 1),
+                    bullseye=markdown_cell(bullseye_reference(synthesis, grid)),
                     nearest=markdown_cell(nearest_route_cell(lookup.get(key))),
                 )
             )
@@ -3277,11 +3357,11 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
             "Air-defense rows use saved campaign battalion/unit grid coordinates and exclude embedded short-range point/base defenses. "
             "They are enemy strategic sites with active tracking radars."
         )
-        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Bullseye | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for unit in air_defense_locations:
             lines.append(
-                "| {camp_id} | {team} | {class_name} | {equipment} | {tracking_radar} | {grid_x} | {grid_y} | {anchor} | {distance} | {air_range} | {low_air_range} |".format(
+                "| {camp_id} | {team} | {class_name} | {equipment} | {tracking_radar} | {grid_x} | {grid_y} | {bullseye} | {anchor} | {distance} | {air_range} | {low_air_range} |".format(
                     camp_id=markdown_cell(unit.get("camp_id")),
                     team=markdown_cell(unit.get("team")),
                     class_name=markdown_cell(unit.get("class_name")),
@@ -3289,6 +3369,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                     tracking_radar=markdown_cell(tracking_radar_cell(unit)),
                     grid_x=number_cell(unit.get("grid_x"), 1),
                     grid_y=number_cell(unit.get("grid_y"), 1),
+                    bullseye=markdown_cell(bullseye_reference(synthesis, unit)),
                     anchor=markdown_cell(enemy_anchor_cell(unit)),
                     distance=number_cell(unit.get("distance_nm"), 1),
                     air_range=markdown_cell(unit.get("air_range")),
@@ -3303,17 +3384,18 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
         lines.append(
             "Rows use current campaign-time positions. Enemy callsigns and package IDs are omitted."
         )
-        lines.append("| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Alt ft | Nearest package/INI anchor | Dist NM | Basis |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Bullseye | Alt ft | Nearest package/INI anchor | Dist NM | Basis |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for contact in active_air_contacts:
             lines.append(
-                "| {sector} | {aircraft} | {capability} | {count} | {grid_x} | {grid_y} | {altitude} | {anchor} | {distance} | {basis} |".format(
+                "| {sector} | {aircraft} | {capability} | {count} | {grid_x} | {grid_y} | {bullseye} | {altitude} | {anchor} | {distance} | {basis} |".format(
                     sector=markdown_cell(contact.get("sector")),
                     aircraft=markdown_cell(contact.get("aircraft_type")),
                     capability=markdown_cell(contact.get("capability")),
                     count=markdown_cell(contact.get("aircraft_count")),
                     grid_x=number_cell(contact.get("grid_x"), 1),
                     grid_y=number_cell(contact.get("grid_y"), 1),
+                    bullseye=markdown_cell(bullseye_reference(synthesis, contact)),
                     altitude=number_cell(contact.get("altitude_ft"), 0),
                     anchor=markdown_cell(enemy_anchor_cell(contact)),
                     distance=number_cell(contact.get("distance_nm"), 1),
@@ -3329,11 +3411,11 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
             "Airbase rows are enemy squadron base objectives with active squadron rosters, greater than 0 percent operational state, "
             f"and within {number_cell(enemy.get('airbase_radius_nm'), 0)} NM of package/INI anchors."
         )
-        lines.append("| Airbase ID | Name | Objective class | Team | Active sqns | Aircraft | Operational | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Status |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Airbase ID | Name | Objective class | Team | Active sqns | Aircraft | Operational | Grid X | Grid Y | Bullseye | Nearest package/INI anchor | Dist NM | Status |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for base in airbase_locations:
             lines.append(
-                "| {airbase_id} | {name} | {objective_class} | {team} | {squadron_count} | {aircraft} | {operational} | {grid_x} | {grid_y} | {anchor} | {distance} | {status} |".format(
+                "| {airbase_id} | {name} | {objective_class} | {team} | {squadron_count} | {aircraft} | {operational} | {grid_x} | {grid_y} | {bullseye} | {anchor} | {distance} | {status} |".format(
                     airbase_id=markdown_cell(base.get("airbase_id")),
                     name=markdown_cell(base.get("name")),
                     objective_class=markdown_cell(base.get("objective_class")),
@@ -3343,6 +3425,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                     operational=markdown_cell(operational_cell(base)),
                     grid_x=number_cell(base.get("grid_x"), 1),
                     grid_y=number_cell(base.get("grid_y"), 1),
+                    bullseye=markdown_cell(bullseye_reference(synthesis, base)),
                     anchor=markdown_cell(enemy_anchor_cell(base)),
                     distance=number_cell(base.get("distance_nm"), 1),
                     status=markdown_cell(base.get("status")),
@@ -3410,6 +3493,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
     lines.append("")
 
     append_meteorology(lines, synthesis)
+    append_bullseye(lines, synthesis)
 
     lines.append("## Package Coordination")
     primary_package = focus_package(synthesis)
@@ -3586,6 +3670,7 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
     lines.append("")
 
     append_workup_meteorology(lines, synthesis)
+    append_bullseye(lines, synthesis)
 
     lines.append("## Package Correlation Workup")
     primary_package = focus_package(synthesis)
