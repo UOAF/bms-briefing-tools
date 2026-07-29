@@ -2327,6 +2327,11 @@ def synthesize(
             "correlation_basis": "Matched by CAM camp_id/name_id/VU num when possible.",
         },
         "mission_counts": cam_decode.get("mission_counts", {}),
+        "mission_context": {
+            key: value
+            for key, value in (mission_context or {}).items()
+            if key not in {"packages"}
+        },
         "deck_package_mentions": mentions,
         "deck_package_status": {
             "mentioned": mentioned_ids,
@@ -2414,6 +2419,17 @@ def nearest_route_cell(match: dict[str, Any] | None) -> str:
     if match.get("distance_nm") is not None:
         bits.append(f"{match['distance_nm']} NM")
     return " ".join(bits)
+
+
+def planning_point_by_label(synthesis: dict[str, Any], label: str) -> dict[str, Any] | None:
+    wanted = str(label or "").strip().upper()
+    if not wanted:
+        return None
+    for point in synthesis.get("planning", {}).get("transformed_points", []):
+        point_label = str(point.get("display") or point.get("label") or "").strip().upper()
+        if point_label == wanted:
+            return point
+    return None
 
 
 def enemy_anchor_cell(unit: dict[str, Any]) -> str:
@@ -2972,6 +2988,29 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
     lines.append("")
 
 
+def append_friendly_surface_defense(lines: list[str], synthesis: dict[str, Any]) -> None:
+    friendly_surface = (synthesis.get("mission_context") or {}).get("friendly_surface_defense") or {}
+    if not friendly_surface:
+        return
+    label = str(friendly_surface.get("label") or "").strip()
+    point = planning_point_by_label(synthesis, label)
+    grid = (point or {}).get("campaign_grid") or {}
+    name = friendly_surface.get("name") or "Friendly surface fallback"
+
+    lines.append("## Friendly Surface Fallback")
+    anchor = f"- Anchor: {markdown_cell(name)}"
+    if label:
+        anchor += f" (`{markdown_cell(label)}`)"
+    lines.append(anchor)
+    if grid.get("grid_x") is not None and grid.get("grid_y") is not None:
+        lines.append(f"- Coordinates: grid {number_cell(grid.get('grid_x'), 1)} / {number_cell(grid.get('grid_y'), 1)}")
+    if friendly_surface.get("description"):
+        lines.append(f"- Description: {markdown_cell(friendly_surface.get('description'))}")
+    if friendly_surface.get("intent"):
+        lines.append(f"- Use: {markdown_cell(friendly_surface.get('intent'))}")
+    lines.append("")
+
+
 def l16_cell(record: dict[str, Any], key: str) -> str:
     if record.get("match_basis") == "unresolved":
         return "unresolved"
@@ -3515,6 +3554,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
                 )
             lines.append("")
 
+    append_friendly_surface_defense(lines, synthesis)
     append_other_package_factors(lines, synthesis)
     append_comm_ladder(lines, synthesis)
     append_enemy_situation(lines, synthesis)

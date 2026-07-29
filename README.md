@@ -86,6 +86,10 @@ For BMS 4.38 the default is real-life feet, `3280.84` ft per grid cell; use
 conversion behavior. A mission-context JSON can add human
 interpretation such as SAD contracts, CAP assignments, target opportunities, and
 fallback logic.
+Top-level mission context can also define a `friendly_surface_defense` anchor
+with a named INI/PPT label, allowing the generated brief to show a friendly
+surface fallback point without including friendly air defenses in the threat
+estimate.
 An optional `--object-dir` lets the synthesizer resolve unit classes and vehicles
 from `Falcon4_UCD.xml`, `Falcon4_CT.xml`, and `Falcon4_VCD.xml` so it can add a
 local enemy-situation, air-defense estimate, and enemy squadron-base threat
