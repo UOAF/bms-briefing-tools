@@ -273,6 +273,18 @@ Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
 without ADA WEZ rings.
 
+To review the complete image set without hunting through package work folders,
+collect the mission images into one flat folder:
+
+```powershell
+python .\scripts\collect_bms_image_pack.py .\outputs\739pre
+```
+
+That writes the player-facing map/weather products into
+`.\outputs\739pre\image_pack`. Claude bundle asset folders and diagnostic
+variants are skipped by default; add `--include-variants` when you want those
+copied too.
+
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 
 ```powershell
