@@ -245,7 +245,12 @@ a one-off diagnostic map.
 For enemy air-threat slides, render a map of likely origin axes instead of a
 text-heavy table. This uses active enemy fighter/strike squadron home positions
 and aircraft capability, then draws red arrows from those bases toward the
-player tactical AO. Repeat `--synthesis` for combined player-package decks:
+player tactical AO. The default crop is AO-focused: labels for origins outside
+the crop are pinned to the map edge, which keeps the slide readable while still
+showing threat direction. Airbase origins use the campaign objective name when
+`CampObjData.XML` is available. Repeat `--synthesis` for combined
+player-package decks, and add `--flow-out` when you also want a high-level
+package flow map:
 
 ```powershell
 python .\scripts\render_bms_enemy_air_threat_map.py `
@@ -256,8 +261,11 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
   --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
   --radius-nm 100 `
-  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png
+  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
+  --flow-out .\outputs\739pre\package_flow_overview_skyvector.png
 ```
+
+Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 
