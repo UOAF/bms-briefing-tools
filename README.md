@@ -250,8 +250,9 @@ the crop are pinned to the map edge, which keeps the slide readable while still
 showing threat direction. Airbase origins use the campaign objective name when
 `CampObjData.XML` is available. Repeat `--synthesis` for combined
 player-package decks. Add `--combined-out` for the deck-facing map that layers
-package flow from friendly origins, named positions, low-opacity strategic ADA
-rings, and enemy air axes into one image. `--flow-out` is still available when
+package flow from friendly origins, named positions, strategic ADA rings with
+solid WEZ outlines and light interior fill, and enemy air axes into one image.
+`--flow-out` is still available when
 you want to inspect the package-flow layer by itself:
 
 ```powershell
@@ -292,28 +293,6 @@ Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
 without ADA WEZ rings.
 
-Render the close objective-area image from the same combined content stack as
-the target-area map, but frame it around the named tactical/objective positions:
-
-```powershell
-python .\scripts\render_bms_enemy_air_threat_map.py `
-  --synthesis .\outputs\739pre\pkg3465\briefing_synthesis.json `
-  --synthesis .\outputs\739pre\pkg3494\briefing_synthesis.json `
-  --cam-decode .\outputs\739pre\cam_decode.json `
-  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
-  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
-  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
-  --radius-nm 100 `
-  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
-  --combined-out .\outputs\739pre\objective_area_map_skyvector.png `
-  --combined-title "Objective Area Map" `
-  --combined-crop-mode objective-area `
-  --combined-objective-margin-grid 3 `
-  --combined-objective-crop-top-fraction 0.25 `
-  --combined-threat-opacity 0.26 `
-  --scale 18
-```
-
 To review the useful slide images without hunting through package work folders,
 collect the mission images into one flat folder:
 
@@ -330,9 +309,9 @@ That writes the standard slide-facing image set into
   slide.
 - `02_target_area_map.png`: target-area flow map using the combined package
   flow, enemy air axes, named positions, and low-opacity threat rings.
-- `03_objective_area_map.png`: close objective-area map using the same combined
-  package-flow, enemy-air-axis, named-position, and threat-ring content as the
-  target-area map, cropped tighter for target prosecution detail.
+- `03_objective_area_map.png`: close objective-area map from the package-map
+  renderer. This is the most zoomed-in prosecution view and should avoid
+  package ingress/egress flow clutter.
 - `04_weather_map.png`: optional weather map when a weather render exists.
 
 It also writes `manifest.json`, which records the source image each numbered
@@ -378,13 +357,11 @@ python .\scripts\render_bms_package_map.py `
   --out .\outputs\738pre\package_1883_target_area_zoom_skyvector.png
 ```
 
-For a closer target-file view around the INI objective geometry itself, use
-`--crop-mode objective-area`. This crop keeps the objective labels and
-mission-context CAP anchors so BARCAP stations remain visible with the
-target-area geometry. It uses a tighter default crop than the target-area view
-and suppresses overlapping decoded flight route lines so the current mission's
-INI route, named objectives, ADA WEZs, and enemy airbase markers are easier to
-inspect:
+For the close objective-area view, use the package-map renderer with
+`--crop-mode objective-area`. This should be the most zoomed-in prosecution map:
+it suppresses decoded flight route lines and frames around local target/INI
+geometry, named objective points, ADA WEZs, and enemy airbase markers instead of
+the full package ingress flow:
 
 ```powershell
 python .\scripts\render_bms_package_map.py `
@@ -395,8 +372,9 @@ python .\scripts\render_bms_package_map.py `
   --package-id 1883 `
   --feet-per-grid 3280.84 `
   --crop-mode objective-area `
-  --margin-grid 8 `
-  --scale 10 `
+  --no-objective-include-ini-lines-in-bounds `
+  --margin-grid 12 `
+  --scale 18 `
   --aspect-ratio 16:9 `
   --no-show-footer `
   --show-airbases `

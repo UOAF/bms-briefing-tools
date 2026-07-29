@@ -497,9 +497,10 @@ def draw_low_opacity_air_defense_rings(
     opacity: float,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
-    alpha = max(0, min(255, int(255 * opacity)))
-    fill_alpha = max(0, min(80, int(alpha * 0.28)))
-    label_alpha = max(145, min(225, int(alpha * 1.45)))
+    opacity = max(0.0, min(1.0, opacity))
+    outline_alpha = max(218, min(255, int(255 * max(opacity, 0.86))))
+    fill_alpha = max(8, min(28, int(32 * max(opacity, 0.35))))
+    label_alpha = max(205, min(232, int(255 * max(opacity, 0.82))))
     for air_defense in air_defenses:
         center = projector.grid(air_defense.get("grid_x"), air_defense.get("grid_y"))
         radius_grid = max(safe_float(air_defense.get("air_range")), safe_float(air_defense.get("low_air_range")))
@@ -508,7 +509,7 @@ def draw_low_opacity_air_defense_rings(
         radius = projector.radius(radius_grid)
         box = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
         draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
-        draw.ellipse(box, outline=THREAT_RING + (alpha,), width=max(3, projector.scale // 2))
+        draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=max(4, projector.scale // 2 + 1))
         if point_inside_image(center, overlay.width, overlay.height, 16):
             label = air_defense_threat_label(air_defense)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
