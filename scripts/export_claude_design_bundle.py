@@ -156,11 +156,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image", action="append", type=Path, default=[], help="Image to include. May be repeated.")
     parser.add_argument("--template", type=Path, help="Optional markdown design-template instructions for Claude.")
     parser.add_argument("--out-dir", type=Path, help="Output bundle directory.")
+    parser.add_argument(
+        "--ready-for-claude",
+        action="store_true",
+        help="Required final-step acknowledgement. Export only after briefing text and map products have been reviewed.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if not args.ready_for_claude:
+        raise SystemExit(
+            "Claude design bundle export is a final opt-in step. Iterate on the briefing/maps first, then rerun with "
+            "--ready-for-claude when the package is ready for deck production."
+        )
     synthesis_path = args.synthesis.resolve()
     synthesis = load_json(synthesis_path)
     package = find_package(synthesis, args.package_id)
@@ -213,7 +223,8 @@ def main() -> None:
         "package": package_summary(package),
         "assets": [*source_assets, *assets],
         "notes": [
-            "Upload all files in this directory to Claude or use scripts/upload_claude_design_bundle.py with ANTHROPIC_API_KEY.",
+            "This bundle is a final deck-production handoff after briefing text and map products have been reviewed.",
+            "Upload all files in this directory to Claude or use scripts/upload_claude_design_bundle.py with ANTHROPIC_API_KEY only when ready to generate the final deck.",
             "Images should be placed before text in API message content where possible.",
         ],
     }

@@ -32,6 +32,15 @@ Current prototype:
   briefing-source slides such as coordination, friendly OOB, meteorology, and
   operating-area slides.
 
+Default workflow:
+
+1. Decode the campaign save.
+2. Generate and review the briefing markdown.
+3. Render and review briefing maps.
+4. Iterate on mission context, briefing text, threat logic, and maps.
+5. Export a Claude design handoff bundle only when explicitly requested for
+   final deck production.
+
 Example:
 
 ```powershell
@@ -100,12 +109,14 @@ through PROJ/`pyproj`; `scripts\bms_projection.py` contains the local helper and
 keeps the grid transform tied to theater metadata rather than hand-fitted
 offsets.
 
-Export the supported Claude design handoff bundle:
+When the briefing text and maps are reviewed and ready for deck production,
+export the supported Claude design handoff bundle as an explicit final step:
 
 ```powershell
 python .\scripts\export_claude_design_bundle.py `
   --synthesis .\outputs\718pre\briefing_synthesis.json `
   --package-id 2515 `
+  --ready-for-claude `
   --out-dir .\outputs\718pre\claude_design_pkg_2515
 ```
 
@@ -157,12 +168,11 @@ python .\scripts\synthesize_bms_briefing.py `
   --feet-per-grid 3280.84 `
   --mission-context .\inputs\738pre-pkg-1883-context.json `
   --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects"
-
-python .\scripts\export_claude_design_bundle.py `
-  --synthesis .\outputs\738pre\briefing_synthesis.json `
-  --package-id 1883 `
-  --out-dir .\outputs\738pre\claude_design_pkg_1883
 ```
+
+Stop here for briefing iteration. Render/review maps, adjust mission context, and
+rerun synthesis as needed. Do not export a Claude bundle until final deck
+production is explicitly requested.
 
 Deprecated fallback deck render:
 

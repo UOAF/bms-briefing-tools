@@ -35,8 +35,8 @@ python .\scripts\check_standalone.py `
 - Briefing synthesis from `briefing_data.json`, `cam_decode.json`, mission
   context, object tables, and weather maps.
 - Route/threat maps and weather maps.
-- Claude design handoff bundles containing source markdown, source JSON, map
-  images, a manifest, and a prompt/template for deck generation.
+- Final-step Claude design handoff bundles containing source markdown, source
+  JSON, map images, a manifest, and a prompt/template for deck generation.
 - Direct read-only CAM decode through `scripts/pyopencam_provider.py` when a
   local pyopencam checkout/source directory is supplied.
 - Decoder comparison against existing pyopencam JSON exports.
@@ -51,8 +51,11 @@ python .\scripts\check_standalone.py `
   file or packaging metadata. Use `--pyopencam-root` or `PYOPENCAM_ROOT` to
   point at a local checkout/source directory.
 - Direct PPTX deck export through `scripts/build_bms_briefing_deck.mjs` is
-  deprecated fallback/debug support. The supported deck workflow is to export a
-  Claude design bundle and generate the final briefing from that bundle.
+  deprecated fallback/debug support.
+- Claude bundle export is a final opt-in step, not part of the default
+  briefing/map iteration loop. Run `scripts/export_claude_design_bundle.py` only
+  after the briefing text and map products have been reviewed, and pass
+  `--ready-for-claude` to acknowledge that handoff.
 - Optional upload through `scripts/upload_claude_design_bundle.py` requires an
   `ANTHROPIC_API_KEY` and Anthropic Files API access. Manual upload of the bundle
   to Claude works without API credentials.
