@@ -250,8 +250,9 @@ the crop are pinned to the map edge, which keeps the slide readable while still
 showing threat direction. Airbase origins use the campaign objective name when
 `CampObjData.XML` is available. Repeat `--synthesis` for combined
 player-package decks. Add `--combined-out` for the deck-facing map that layers
-package flow, named positions, and enemy air axes into one image. `--flow-out`
-is still available when you want to inspect the package-flow layer by itself:
+package flow, named positions, low-opacity strategic ADA rings, and enemy air
+axes into one image. `--flow-out` is still available when you want to inspect
+the package-flow layer by itself:
 
 ```powershell
 python .\scripts\render_bms_enemy_air_threat_map.py `
@@ -264,10 +265,13 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --radius-nm 100 `
   --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
   --combined-out .\outputs\739pre\package_flow_enemy_air_axes_skyvector.png `
+  --combined-threat-opacity 0.18 `
   --flow-out .\outputs\739pre\package_flow_overview_skyvector.png
 ```
 
 Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
+Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
+without ADA WEZ rings.
 
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 

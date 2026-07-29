@@ -16,11 +16,14 @@ from render_bms_package_map import (
     MAP_GRID_SIZE,
     TEXT,
     Projector,
+    air_defense_threat_label,
     draw_arrowhead,
     draw_scale_and_north,
     draw_text_box,
     expand_crop_to_aspect,
     grid_to_map_px,
+    has_active_tracking_radar,
+    is_strategic_air_defense,
     load_font,
     open_base_map,
     parse_aspect_ratio,
@@ -95,6 +98,9 @@ FLOW_BLUE = (58, 176, 255)
 FLOW_BLUE_SOFT = (58, 176, 255, 190)
 GREEN = (67, 238, 91)
 LABEL_BG = (10, 12, 13, 218)
+THREAT_RING = (255, 0, 0)
+THREAT_FILL = (190, 0, 0)
+THREAT_LABEL_BG = (72, 0, 0, 150)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -405,6 +411,54 @@ def edge_label_position(point: tuple[float, float], width: int, height: int) -> 
     return (x + 8, y + (24 if y < height / 2 else -14)), "la"
 
 
+def collect_strategic_air_defenses(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: dict[tuple[str, float, float], dict[str, Any]] = {}
+    for package in packages:
+        enemy = package.get("enemy_situation") or {}
+        for air_defense in enemy.get("air_defense_locations") or []:
+            if air_defense.get("grid_x") is None or air_defense.get("grid_y") is None:
+                continue
+            if not is_strategic_air_defense(air_defense) or not has_active_tracking_radar(air_defense):
+                continue
+            label = air_defense_threat_label(air_defense)
+            key = (
+                label,
+                round(safe_float(air_defense.get("grid_x")), 1),
+                round(safe_float(air_defense.get("grid_y")), 1),
+            )
+            deduped[key] = air_defense
+    return sorted(
+        deduped.values(),
+        key=lambda item: max(safe_float(item.get("air_range")), safe_float(item.get("low_air_range"))),
+        reverse=True,
+    )
+
+
+def draw_low_opacity_air_defense_rings(
+    overlay: Image.Image,
+    projector: Projector,
+    air_defenses: list[dict[str, Any]],
+    font: ImageFont.ImageFont,
+    opacity: float,
+) -> None:
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    alpha = max(0, min(255, int(255 * opacity)))
+    fill_alpha = max(0, min(60, int(alpha * 0.22)))
+    label_alpha = max(80, min(180, int(alpha * 1.15)))
+    for air_defense in air_defenses:
+        center = projector.grid(air_defense.get("grid_x"), air_defense.get("grid_y"))
+        radius_grid = max(safe_float(air_defense.get("air_range")), safe_float(air_defense.get("low_air_range")))
+        if radius_grid <= 0:
+            continue
+        radius = projector.radius(radius_grid)
+        box = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
+        draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
+        draw.ellipse(box, outline=THREAT_RING + (alpha,), width=max(3, projector.scale // 2))
+        if point_inside_image(center, overlay.width, overlay.height, 16):
+            label = air_defense_threat_label(air_defense)
+            draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
+
+
 def objective_path(args: argparse.Namespace) -> Path | None:
     if args.camp_obj_data:
         return args.camp_obj_data
@@ -458,6 +512,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
     flow_groups = package_flow_groups(packages) if include_flow else []
     named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
+    air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
 
     crop = crop_for_air_threat_map(origins, anchors, args)
     base, source_scale_x, source_scale_y, _ = open_base_map(args.map_source or (args.campaign_dir / "Korea.tm"))
@@ -480,6 +535,9 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     title_font = load_font(max(20, int(args.scale * 2.4)), bold=True)
     label_font = load_font(max(15, int(args.scale * 1.45)), bold=True)
     small_font = load_font(max(13, int(args.scale * 1.15)))
+
+    if air_defenses:
+        draw_low_opacity_air_defense_rings(overlay, projector, air_defenses, small_font, args.combined_threat_opacity)
 
     anchor_points = [projector.grid(anchor.get("grid_x"), anchor.get("grid_y")) for anchor in anchors]
     ax = [point[0] for point in anchor_points]
@@ -795,6 +853,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--margin-grid", type=float, default=24.0, help="Extra grid-cell margin when --crop-mode all includes origins and player AO.")
     parser.add_argument("--ao-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around the player AO for the default enemy-air crop.")
     parser.add_argument("--flow-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around package-flow diagram points.")
+    parser.add_argument("--combined-threat-opacity", type=float, default=0.18, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
+    parser.add_argument("--no-combined-threat-rings", dest="combined_threat_rings", action="store_false", help="Disable strategic ADA rings on --combined-out.")
+    parser.set_defaults(combined_threat_rings=True)
     parser.add_argument("--scale", type=int, default=10, help="Output scale multiplier for the cropped map.")
     parser.add_argument("--aspect-ratio", default="16:9", help="Slide map-area aspect ratio. Defaults to 16:9.")
     parser.add_argument("--title", default="Enemy Air Threat Axes", help="Map title.")
