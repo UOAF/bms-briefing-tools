@@ -396,6 +396,25 @@ def draw_flow_arrow(
     draw_arrowhead(draw, points[-2], points[-1], color + (235,), size=24)
 
 
+def point_along_polyline(points: list[tuple[float, float]], fraction: float) -> tuple[float, float]:
+    if not points:
+        return (0.0, 0.0)
+    if len(points) == 1:
+        return points[0]
+    segments = [(start, end, math.hypot(end[0] - start[0], end[1] - start[1])) for start, end in zip(points, points[1:])]
+    total = sum(segment[2] for segment in segments)
+    if total <= 0:
+        return points[0]
+    target = max(0.0, min(1.0, fraction)) * total
+    traversed = 0.0
+    for start, end, length in segments:
+        if traversed + length >= target:
+            t = 0.0 if length <= 0 else (target - traversed) / length
+            return (start[0] + (end[0] - start[0]) * t, start[1] + (end[1] - start[1]) * t)
+        traversed += length
+    return points[-1]
+
+
 def label_text(origin: dict[str, Any]) -> str:
     aircraft = ", ".join(origin.get("aircraft") or [])
     if len(aircraft) > 42:
@@ -493,8 +512,18 @@ def draw_flow_groups(
     map_height: int,
 ) -> None:
     labeled_origins: set[str] = set()
+    origin_labels: list[tuple[tuple[float, float], str, str]] = []
+    flow_labels: list[tuple[tuple[float, float], tuple[float, float], str, tuple[int, int, int]]] = []
+    flow_label_specs = {
+        "SEAD / DEAD Flow": (0.58, (-145, 42)),
+        "Escort / BARCAP Flow": (0.53, (34, -50)),
+        "East Fighter Screen": (0.66, (34, 34)),
+    }
     for group in flow_groups:
         points = [projector.grid(point.get("grid_x"), point.get("grid_y")) for point in group.get("points") or []]
+        if len(points) < 2:
+            continue
+        color = group.get("color") or FLOW_BLUE
         if len(points) >= 2 and not point_inside_image(points[0], map_width, map_height, 18):
             clipped_origin = clip_segment_to_rect(points[0], points[1], map_width, map_height, pad=18)
             points = [clipped_origin, *points[1:]]
@@ -503,16 +532,26 @@ def draw_flow_groups(
                 label_xy, anchor = edge_label_position(clipped_origin, map_width, map_height)
                 if label_xy[0] < 580 and label_xy[1] < 104:
                     label_xy = (label_xy[0], 104)
-                draw_text_box(draw, label_xy, origin_label, label_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+                origin_labels.append((label_xy, origin_label, anchor))
                 labeled_origins.add(origin_label)
-        draw_flow_arrow(draw, points, group.get("color") or FLOW_BLUE, width=max(8, scale))
-        mid = points[min(len(points) - 1, max(0, len(points) // 2))]
-        label_offset = {
-            "SEAD / DEAD Flow": (14, -34),
-            "Escort / BARCAP Flow": (14, 24),
-            "East Fighter Screen": (14, -24),
-        }.get(str(group.get("label")), (14, -24))
-        draw_text_box(draw, (mid[0] + label_offset[0], mid[1] + label_offset[1]), str(group.get("label")), label_font, fill=TEXT, bg=LABEL_BG)
+        draw_flow_arrow(draw, points, color, width=max(8, scale))
+        label = str(group.get("label"))
+        fraction, label_offset = flow_label_specs.get(label, (0.55, (14, -24)))
+        route_point = point_along_polyline(points, fraction)
+        label_xy = (route_point[0] + label_offset[0], route_point[1] + label_offset[1])
+        flow_labels.append((label_xy, route_point, label, color))
+    for xy, route_point, _label, color in flow_labels:
+        draw.line((route_point[0], route_point[1], xy[0], xy[1]), fill=color + (190,), width=max(2, scale // 3))
+        dot_radius = max(4, scale // 2)
+        draw.ellipse(
+            (route_point[0] - dot_radius, route_point[1] - dot_radius, route_point[0] + dot_radius, route_point[1] + dot_radius),
+            fill=color + (220,),
+            outline=(8, 18, 22, 230),
+        )
+    for xy, _route_point, label, color in flow_labels:
+        draw_text_box(draw, xy, label, label_font, fill=color, bg=LABEL_BG)
+    for xy, label, anchor in origin_labels:
+        draw_text_box(draw, xy, label, label_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
 
 
 def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False, output_path: Path | None = None) -> Path:
