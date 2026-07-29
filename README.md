@@ -250,9 +250,9 @@ the crop are pinned to the map edge, which keeps the slide readable while still
 showing threat direction. Airbase origins use the campaign objective name when
 `CampObjData.XML` is available. Repeat `--synthesis` for combined
 player-package decks. Add `--combined-out` for the deck-facing map that layers
-package flow, named positions, low-opacity strategic ADA rings, and enemy air
-axes into one image. `--flow-out` is still available when you want to inspect
-the package-flow layer by itself:
+package flow from friendly origins, named positions, low-opacity strategic ADA
+rings, and enemy air axes into one image. `--flow-out` is still available when
+you want to inspect the package-flow layer by itself:
 
 ```powershell
 python .\scripts\render_bms_enemy_air_threat_map.py `

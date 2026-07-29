@@ -311,6 +311,16 @@ def crop_for_air_threat_map(origins: list[dict[str, Any]], anchors: list[dict[st
     return crop_for_points(anchors, args.ao_margin_grid, args.aspect_ratio)
 
 
+def crop_for_combined_map(
+    anchors: list[dict[str, Any]],
+    flow_groups: list[dict[str, Any]],
+    named_positions: list[dict[str, Any]],
+    args: argparse.Namespace,
+) -> tuple[int, int, int, int]:
+    flow_points = [point for group in flow_groups for point in (group.get("points") or [])[1:]]
+    return crop_for_points([*anchors, *flow_points, *named_positions], args.combined_margin_grid, args.aspect_ratio)
+
+
 def point_inside_image(point: tuple[float, float], width: int, height: int, pad: float = 0.0) -> bool:
     return pad <= point[0] <= width - pad and pad <= point[1] <= height - pad
 
@@ -479,9 +489,22 @@ def draw_flow_groups(
     flow_groups: list[dict[str, Any]],
     label_font: ImageFont.ImageFont,
     scale: int,
+    map_width: int,
+    map_height: int,
 ) -> None:
+    labeled_origins: set[str] = set()
     for group in flow_groups:
         points = [projector.grid(point.get("grid_x"), point.get("grid_y")) for point in group.get("points") or []]
+        if len(points) >= 2 and not point_inside_image(points[0], map_width, map_height, 18):
+            clipped_origin = clip_segment_to_rect(points[0], points[1], map_width, map_height, pad=18)
+            points = [clipped_origin, *points[1:]]
+            origin_label = str(group.get("origin_label") or "").strip()
+            if origin_label and origin_label not in labeled_origins:
+                label_xy, anchor = edge_label_position(clipped_origin, map_width, map_height)
+                if label_xy[0] < 580 and label_xy[1] < 104:
+                    label_xy = (label_xy[0], 104)
+                draw_text_box(draw, label_xy, origin_label, label_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+                labeled_origins.add(origin_label)
         draw_flow_arrow(draw, points, group.get("color") or FLOW_BLUE, width=max(8, scale))
         mid = points[min(len(points) - 1, max(0, len(points) // 2))]
         label_offset = {
@@ -514,7 +537,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
 
-    crop = crop_for_air_threat_map(origins, anchors, args)
+    crop = crop_for_combined_map(anchors, flow_groups, named_positions, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
     base, source_scale_x, source_scale_y, _ = open_base_map(args.map_source or (args.campaign_dir / "Korea.tm"))
     source_crop = (
         max(0, math.floor(crop[0] * source_scale_x)),
@@ -555,7 +578,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         draw_arrow(draw, start, end, width=max(5, args.scale // 2))
 
     if include_flow:
-        draw_flow_groups(draw, projector, flow_groups, label_font, args.scale)
+        draw_flow_groups(draw, projector, flow_groups, label_font, args.scale, map_width, map_height)
         draw_named_positions(draw, projector, named_positions, label_font)
 
     label_offsets = [(16, -34), (16, 16), (-16, -34), (-16, 16), (24, -4), (-24, -4)]
@@ -644,6 +667,37 @@ def flow_stage_occurrence(flights: list[dict[str, Any]], action: str, occurrence
     return {"grid_x": center[0], "grid_y": center[1]}
 
 
+def short_origin_label(name: str) -> str:
+    cleaned = name.replace(" International", " Intl").replace(" Airport", "").replace(" Airbase", " AB")
+    return cleaned[:34].rstrip()
+
+
+def flow_origin_point(flights: list[dict[str, Any]]) -> dict[str, Any] | None:
+    points: list[dict[str, Any]] = []
+    names: list[str] = []
+    for flight in flights:
+        waypoint = next(
+            (
+                item
+                for item in flight.get("key_waypoints") or []
+                if item.get("action") == "WP_TAKEOFF" and item.get("grid_x") is not None and item.get("grid_y") is not None
+            ),
+            None,
+        )
+        if not waypoint:
+            continue
+        points.append(waypoint)
+        target = waypoint.get("target") or {}
+        name = str(target.get("name") or "").strip()
+        if name and name not in names:
+            names.append(name)
+    center = centroid(points)
+    if not center:
+        return None
+    label = short_origin_label(names[0]) if len(names) == 1 else "Mixed Origins"
+    return {"grid_x": center[0], "grid_y": center[1], "origin_label": label}
+
+
 def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     flights = [flight for package in packages for flight in package.get("flights") or []]
     groups: list[dict[str, Any]] = []
@@ -660,20 +714,23 @@ def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for label, group_flights, color, mode in specs:
         if not group_flights:
             continue
+        origin = flow_origin_point(group_flights)
         if mode == "sead":
             push = flow_stage_point(group_flights, {"WP_PUSH"}) or flow_stage_point(group_flights, {"WP_TIMING"})
             stages = [
+                origin,
                 push,
                 flow_stage_point(group_flights, {"WP_SEAD", "WP_SAD", "WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"}),
             ]
         else:
             stages = [
+                origin,
                 flow_stage_occurrence(group_flights, "WP_CAP", 0),
                 flow_stage_occurrence(group_flights, "WP_CAP", 1),
             ]
         path = [point for point in stages if point]
         if len(path) >= 2:
-            groups.append({"label": label, "points": path, "color": color})
+            groups.append({"label": label, "points": path, "color": color, "origin_label": (origin or {}).get("origin_label")})
     return groups
 
 
@@ -817,7 +874,7 @@ def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
     label_font = load_font(max(15, int(args.scale * 1.45)), bold=True)
     small_font = load_font(max(13, int(args.scale * 1.15)))
 
-    draw_flow_groups(draw, projector, flow_groups, label_font, args.scale)
+    draw_flow_groups(draw, projector, flow_groups, label_font, args.scale, map_width, map_height)
     draw_named_positions(draw, projector, named_positions, label_font)
     draw_scale_and_north(overlay, crop, args.scale, small_font)
     draw_text_box(draw, (26, 26), args.flow_title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
@@ -853,6 +910,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--margin-grid", type=float, default=24.0, help="Extra grid-cell margin when --crop-mode all includes origins and player AO.")
     parser.add_argument("--ao-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around the player AO for the default enemy-air crop.")
     parser.add_argument("--flow-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around package-flow diagram points.")
+    parser.add_argument("--combined-margin-grid", type=float, default=18.0, help="Extra grid-cell margin around combined map flow, named positions, and AO anchors.")
     parser.add_argument("--combined-threat-opacity", type=float, default=0.18, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
     parser.add_argument("--no-combined-threat-rings", dest="combined_threat_rings", action="store_false", help="Disable strategic ADA rings on --combined-out.")
     parser.set_defaults(combined_threat_rings=True)
