@@ -988,8 +988,7 @@ def is_air_defense_class(unit_class: dict[str, Any]) -> bool:
 
 def is_strategic_air_defense_unit(unit: dict[str, Any]) -> bool:
     class_name = str(unit.get("class_name") or "").strip().lower()
-    radius_grid = max(safe_float(unit.get("air_range")), safe_float(unit.get("low_air_range")))
-    return class_name == "air defense" or radius_grid >= 15.0
+    return class_name == "air defense"
 
 
 def enemy_category(unit_class: dict[str, Any]) -> str:
@@ -2328,7 +2327,7 @@ def synthesize(
         },
         "l16_source": {
             "flight_count": len(l16_by_number),
-            "correlation_basis": "Matched by CAM camp_id/name_id/VU num when possible; package 1883 currently has no matching .l16 flight_number rows.",
+            "correlation_basis": "Matched by CAM camp_id/name_id/VU num when possible.",
         },
         "mission_counts": cam_decode.get("mission_counts", {}),
         "deck_package_mentions": mentions,
@@ -2990,9 +2989,10 @@ def append_comm_ladder(lines: list[str], synthesis: dict[str, Any]) -> None:
     if not package:
         return
     lines.append("## Comm Ladder")
+    package_id = package.get("package_id") or synthesis.get("focus_package_id") or "selected"
     lines.append(
         "Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` flight numbers do not match the CAM "
-        "camp IDs/name IDs/VU numbers for package 1883. UHF/VHF preset channels are not decoded from the campaign bundle yet."
+        f"camp IDs/name IDs/VU numbers for package {package_id}. UHF/VHF preset channels are not decoded from the campaign bundle yet."
     )
     lines.append("")
     lines.append("| Element | Role | TACAN | Laser | Link 16 STN | F2F | Mission | EW | Notes |")
@@ -3053,8 +3053,8 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
     lines.append("## Enemy Situation And Air Defense Estimate")
     lines.append(
         "This is a campaign-data estimate: enemy battalion/unit positions are measured against the decoded Route Black, CAP, SAD, "
-        "and correlated INI anchors. The air-defense section is strategic-only: fixed Air Defense classes or units with at least "
-        "15 campaign-grid cells of air/low-air range, and each listed site has a nonzero decoded roster slot for its tracking radar. "
+        "and correlated INI anchors. The air-defense section is strategic-only: Air Defense class systems, and each listed site "
+        "has a nonzero decoded roster slot for its tracking radar. "
         "Class names and equipment come from Falcon object tables."
     )
     lines.append(f"- Enemy teams considered: {', '.join(enemy.get('enemy_teams') or []) or 'none'}")
@@ -3243,7 +3243,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     if air_defense_locations:
         lines.append("### Strategic Air Defense Coordinates")
         lines.append(
-            "Air-defense rows use saved campaign battalion/unit grid coordinates and exclude short-range point/base defenses. "
+            "Air-defense rows use saved campaign battalion/unit grid coordinates and exclude embedded short-range point/base defenses. "
             "They are enemy strategic sites with active decoded tracking-radar roster slots."
         )
         lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | UCD air rng | UCD low rng |")
