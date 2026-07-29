@@ -12,6 +12,7 @@
     "help:claude-upload": "python scripts/upload_claude_design_bundle.py --help",
     "help:map": "python scripts/render_bms_package_map.py --help",
     "help:map-set": "python scripts/render_bms_map_set.py --help",
+    "help:air-threat-map": "python scripts/render_bms_enemy_air_threat_map.py --help",
     "help:weather-map": "python scripts/render_bms_weather_map.py --help"
   },
   "dependencies": {}

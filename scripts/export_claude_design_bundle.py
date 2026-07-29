@@ -13,6 +13,7 @@ from typing import Any
 
 
 IMAGE_ROLE_HINTS = (
+    ("enemy_air_threat", "enemy air-threat axis map"),
     ("objective_area", "objective-area close map"),
     ("target_area", "target-area tactical map"),
     ("route_threat", "package overview route/threat map"),
@@ -56,6 +57,7 @@ def default_image_paths(base_dir: Path, package_id: int) -> list[Path]:
         base_dir / f"package_{package_id}_route_threat_map_skyvector.png",
         base_dir / f"package_{package_id}_target_area_zoom_skyvector.png",
         base_dir / f"package_{package_id}_objective_area_zoom_skyvector.png",
+        base_dir / f"package_{package_id}_enemy_air_threat_axes_skyvector.png",
         base_dir / f"package_{package_id}_weather_map_skyvector.png",
     ]
     return [path for path in preferred if path.exists()]

@@ -220,6 +220,23 @@ python .\scripts\render_bms_map_set.py `
 Use the low-level renderer below when you need a custom crop, a footer for QA, or
 a one-off diagnostic map.
 
+For enemy air-threat slides, render a map of likely origin axes instead of a
+text-heavy table. This uses active enemy fighter/strike squadron home positions
+and aircraft capability, then draws red arrows from those bases toward the
+player tactical AO. Repeat `--synthesis` for combined player-package decks:
+
+```powershell
+python .\scripts\render_bms_enemy_air_threat_map.py `
+  --synthesis .\outputs\739pre\pkg3465\briefing_synthesis.json `
+  --synthesis .\outputs\739pre\pkg3494\briefing_synthesis.json `
+  --cam-decode .\outputs\739pre\cam_decode.json `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
+  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --radius-nm 100 `
+  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png
+```
+
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 
 ```powershell
