@@ -42,6 +42,7 @@ MAP_PRODUCTS = (
         "marker_opacity": 0.88,
         "label_opacity": 0.72,
         "threat_opacity": 0.32,
+        "objective_include_ini_lines_in_bounds": False,
     },
 )
 
@@ -144,6 +145,8 @@ def main() -> None:
             command.append("--no-show-footer")
         if key == "overview" and not args.include_support_in_overview_bounds:
             command.append("--no-include-support-in-bounds")
+        if key == "objective" and not product.get("objective_include_ini_lines_in_bounds", True):
+            command.append("--no-objective-include-ini-lines-in-bounds")
         subprocess.run(command, check=True)
 
 

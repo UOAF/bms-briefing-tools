@@ -269,21 +269,52 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --flow-out .\outputs\739pre\package_flow_overview_skyvector.png
 ```
 
+Render a full origin-to-target route/threat overview for the first map slot by
+using the same combined renderer with friendly flow origins included in the crop:
+
+```powershell
+python .\scripts\render_bms_enemy_air_threat_map.py `
+  --synthesis .\outputs\739pre\pkg3465\briefing_synthesis.json `
+  --synthesis .\outputs\739pre\pkg3494\briefing_synthesis.json `
+  --cam-decode .\outputs\739pre\cam_decode.json `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
+  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --radius-nm 100 `
+  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
+  --combined-out .\outputs\739pre\route_threat_map_skyvector.png `
+  --combined-title "Route & Threat Map" `
+  --combined-include-flow-origins-in-bounds `
+  --combined-threat-opacity 0.18
+```
+
 Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
 without ADA WEZ rings.
 
-To review the complete image set without hunting through package work folders,
+To review the useful slide images without hunting through package work folders,
 collect the mission images into one flat folder:
 
 ```powershell
 python .\scripts\collect_bms_image_pack.py .\outputs\739pre
 ```
 
-That writes the player-facing map/weather products into
-`.\outputs\739pre\image_pack`. Claude bundle asset folders and diagnostic
-variants are skipped by default; add `--include-variants` when you want those
-copied too.
+That writes the standard slide-facing image set into
+`.\outputs\739pre\briefing_images`:
+
+- `01_route_threat_map.png`: high-level route/threat overview from origin
+  airbases to the target area.
+- `02_target_area_map.png`: target-area flow map using the combined package
+  flow, enemy air axes, named positions, and low-opacity threat rings.
+- `03_objective_area_map.png`: close objective-area map for target prosecution
+  detail.
+- `04_weather_map.png`: optional weather map when a weather render exists.
+
+It also writes `manifest.json`, which records the source image each numbered
+file came from. Use `--mode all` when you want the older broad collection of
+all canonical map/weather products. Claude bundle asset folders and diagnostic
+variants are skipped by default; add `--include-variants` with `--mode all`
+when you want those copied too.
 
 For a chart-style base layer, point `--map-source` at the 16k Skyvector map:
 

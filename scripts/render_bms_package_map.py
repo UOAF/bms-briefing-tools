@@ -1053,7 +1053,7 @@ def render_map(args: argparse.Namespace) -> Path:
     if args.crop_mode == "objective-area":
         bounds_flights = []
         bounds_ini_points = objective_points
-        bounds_ini_line_points = ini_line_points
+        bounds_ini_line_points = ini_line_points if args.objective_include_ini_lines_in_bounds else []
         bounds_air_defenses: list[dict[str, Any]] = []
         bounds_air_defense_radius_scale = 0.0
         bounds_min_size = 66
@@ -1218,6 +1218,12 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Show active, non-destroyed enemy squadron airbases from the synthesis threat estimate.",
+    )
+    parser.add_argument(
+        "--objective-include-ini-lines-in-bounds",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Let INI route/line geometry expand objective-area crop bounds. Disable for tighter slide close-ups while still drawing clipped INI lines.",
     )
     return parser.parse_args()
 

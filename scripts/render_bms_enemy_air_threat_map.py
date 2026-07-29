@@ -317,7 +317,15 @@ def crop_for_combined_map(
     named_positions: list[dict[str, Any]],
     args: argparse.Namespace,
 ) -> tuple[int, int, int, int]:
-    flow_points = [point for group in flow_groups for point in (group.get("points") or [])[1:]]
+    flow_points = [
+        point
+        for group in flow_groups
+        for point in (
+            group.get("points") or []
+            if args.combined_include_flow_origins_in_bounds
+            else (group.get("points") or [])[1:]
+        )
+    ]
     return crop_for_points([*anchors, *flow_points, *named_positions], args.combined_margin_grid, args.aspect_ratio)
 
 
@@ -950,6 +958,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ao-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around the player AO for the default enemy-air crop.")
     parser.add_argument("--flow-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around package-flow diagram points.")
     parser.add_argument("--combined-margin-grid", type=float, default=18.0, help="Extra grid-cell margin around combined map flow, named positions, and AO anchors.")
+    parser.add_argument(
+        "--combined-include-flow-origins-in-bounds",
+        action="store_true",
+        help="Include friendly package origin airbases in the combined-map crop. Use this for a full route/threat overview.",
+    )
     parser.add_argument("--combined-threat-opacity", type=float, default=0.18, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
     parser.add_argument("--no-combined-threat-rings", dest="combined_threat_rings", action="store_false", help="Disable strategic ADA rings on --combined-out.")
     parser.set_defaults(combined_threat_rings=True)
