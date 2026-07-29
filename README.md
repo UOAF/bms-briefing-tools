@@ -285,12 +285,34 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --combined-out .\outputs\739pre\route_threat_map_skyvector.png `
   --combined-title "Route & Threat Map" `
   --combined-include-flow-origins-in-bounds `
-  --combined-threat-opacity 0.34
+  --combined-threat-opacity 0.18
 ```
 
 Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
 without ADA WEZ rings.
+
+Render the close objective-area image from the same combined content stack as
+the target-area map, but frame it around the named tactical/objective positions:
+
+```powershell
+python .\scripts\render_bms_enemy_air_threat_map.py `
+  --synthesis .\outputs\739pre\pkg3465\briefing_synthesis.json `
+  --synthesis .\outputs\739pre\pkg3494\briefing_synthesis.json `
+  --cam-decode .\outputs\739pre\cam_decode.json `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
+  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --radius-nm 100 `
+  --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
+  --combined-out .\outputs\739pre\objective_area_map_skyvector.png `
+  --combined-title "Objective Area Map" `
+  --combined-crop-mode objective-area `
+  --combined-objective-margin-grid 3 `
+  --combined-objective-crop-top-fraction 0.25 `
+  --combined-threat-opacity 0.26 `
+  --scale 18
+```
 
 To review the useful slide images without hunting through package work folders,
 collect the mission images into one flat folder:
@@ -308,8 +330,9 @@ That writes the standard slide-facing image set into
   slide.
 - `02_target_area_map.png`: target-area flow map using the combined package
   flow, enemy air axes, named positions, and low-opacity threat rings.
-- `03_objective_area_map.png`: close objective-area map for target prosecution
-  detail.
+- `03_objective_area_map.png`: close objective-area map using the same combined
+  package-flow, enemy-air-axis, named-position, and threat-ring content as the
+  target-area map, cropped tighter for target prosecution detail.
 - `04_weather_map.png`: optional weather map when a weather render exists.
 
 It also writes `manifest.json`, which records the source image each numbered

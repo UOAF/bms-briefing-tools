@@ -311,12 +311,30 @@ def crop_for_air_threat_map(origins: list[dict[str, Any]], anchors: list[dict[st
     return crop_for_points(anchors, args.ao_margin_grid, args.aspect_ratio)
 
 
+def crop_top_fraction(crop: tuple[int, int, int, int], fraction: float) -> tuple[int, int, int, int]:
+    fraction = max(0.0, min(0.9, fraction))
+    if fraction <= 0:
+        return crop
+    left, top, right, bottom = crop
+    height = bottom - top
+    if height <= 1:
+        return crop
+    top = min(bottom - 1, top + math.floor(height * fraction))
+    return left, top, right, bottom
+
+
 def crop_for_combined_map(
     anchors: list[dict[str, Any]],
     flow_groups: list[dict[str, Any]],
     named_positions: list[dict[str, Any]],
+    objective_positions: list[dict[str, Any]],
     args: argparse.Namespace,
 ) -> tuple[int, int, int, int]:
+    if args.combined_crop_mode == "objective-area":
+        objective_points = objective_positions or named_positions or anchors
+        crop = crop_for_points(objective_points, args.combined_objective_margin_grid, args.aspect_ratio)
+        return crop_top_fraction(crop, args.combined_objective_crop_top_fraction)
+
     flow_points = [
         point
         for group in flow_groups
@@ -585,9 +603,10 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
     flow_groups = package_flow_groups(packages) if include_flow else []
     named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
+    objective_positions = objective_crop_points(packages, named_positions) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
 
-    crop = crop_for_combined_map(anchors, flow_groups, named_positions, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
+    crop = crop_for_combined_map(anchors, flow_groups, named_positions, objective_positions, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
     base, source_scale_x, source_scale_y, _ = open_base_map(args.map_source or (args.campaign_dir / "Korea.tm"))
     source_crop = (
         max(0, math.floor(crop[0] * source_scale_x)),
@@ -806,6 +825,37 @@ def named_position_points(packages: list[dict[str, Any]]) -> list[dict[str, Any]
     return points
 
 
+def objective_crop_points(packages: list[dict[str, Any]], named_positions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple[str, float, float]] = set()
+    points: list[dict[str, Any]] = []
+
+    def add(label: str, grid_x: Any, grid_y: Any) -> None:
+        if grid_x is None or grid_y is None:
+            return
+        key = (label.upper(), round(safe_float(grid_x), 1), round(safe_float(grid_y), 1))
+        if key in seen:
+            return
+        seen.add(key)
+        points.append({"label": label, "grid_x": grid_x, "grid_y": grid_y})
+
+    for package in packages:
+        for match in package.get("plan_correlation", {}).get("point_matches") or []:
+            label = str(match.get("display") or match.get("label") or "").strip()
+            kind = str(match.get("kind") or "").strip().lower()
+            if kind != "target" and not label.upper().startswith("TGT "):
+                continue
+            grid = match.get("campaign_grid") or {}
+            add(label, grid.get("grid_x"), grid.get("grid_y"))
+
+    for position in named_positions:
+        label = str(position.get("label") or "").strip()
+        upper = label.upper()
+        if upper.startswith("SA-") or upper.startswith("SA") or upper in {"SA6", "SA10"}:
+            add(label, position.get("grid_x"), position.get("grid_y"))
+
+    return points
+
+
 def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
     context_names = {
         str(item.get("label") or item.get("name") or "").upper(): str(item.get("name") or item.get("label") or "")
@@ -966,6 +1016,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ao-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around the player AO for the default enemy-air crop.")
     parser.add_argument("--flow-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around package-flow diagram points.")
     parser.add_argument("--combined-margin-grid", type=float, default=18.0, help="Extra grid-cell margin around combined map flow, named positions, and AO anchors.")
+    parser.add_argument(
+        "--combined-crop-mode",
+        choices=("target-area", "objective-area"),
+        default="target-area",
+        help="Frame --combined-out as a target-area overview or a tighter objective-area crop.",
+    )
+    parser.add_argument(
+        "--combined-objective-margin-grid",
+        type=float,
+        default=7.0,
+        help="Extra grid-cell margin around named objective positions when --combined-crop-mode objective-area is used.",
+    )
+    parser.add_argument(
+        "--combined-objective-crop-top-fraction",
+        type=float,
+        default=0.0,
+        help="Trim this fraction from the north/top of an objective-area combined crop after framing. Use 0.25 to remove the top quarter.",
+    )
     parser.add_argument(
         "--combined-include-flow-origins-in-bounds",
         action="store_true",
