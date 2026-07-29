@@ -480,8 +480,8 @@ def draw_low_opacity_air_defense_rings(
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     alpha = max(0, min(255, int(255 * opacity)))
-    fill_alpha = max(0, min(60, int(alpha * 0.22)))
-    label_alpha = max(80, min(180, int(alpha * 1.15)))
+    fill_alpha = max(0, min(80, int(alpha * 0.28)))
+    label_alpha = max(145, min(225, int(alpha * 1.45)))
     for air_defense in air_defenses:
         center = projector.grid(air_defense.get("grid_x"), air_defense.get("grid_y"))
         radius_grid = max(safe_float(air_defense.get("air_range")), safe_float(air_defense.get("low_air_range")))
@@ -544,7 +544,10 @@ def draw_flow_groups(
                 labeled_origins.add(origin_label)
         draw_flow_arrow(draw, points, color, width=max(8, scale))
         label = str(group.get("label"))
-        fraction, label_offset = flow_label_specs.get(label, (0.55, (14, -24)))
+        fraction, label_offset = next(
+            (spec for prefix, spec in flow_label_specs.items() if label.startswith(prefix)),
+            (0.55, (14, -24)),
+        )
         route_point = point_along_polyline(points, fraction)
         label_xy = (route_point[0] + label_offset[0], route_point[1] + label_offset[1])
         flow_labels.append((label_xy, route_point, label, color))
@@ -761,6 +764,11 @@ def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for label, group_flights, color, mode in specs:
         if not group_flights:
             continue
+        flight_names = ", ".join(
+            str(flight.get("callsign") or f"Flight {flight.get('camp_id')}")
+            for flight in group_flights
+        )
+        display_label = f"{label} ({flight_names})" if flight_names else label
         origin = flow_origin_point(group_flights)
         if mode == "sead":
             push = flow_stage_point(group_flights, {"WP_PUSH"}) or flow_stage_point(group_flights, {"WP_TIMING"})
@@ -777,7 +785,7 @@ def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
             ]
         path = [point for point in stages if point]
         if len(path) >= 2:
-            groups.append({"label": label, "points": path, "color": color, "origin_label": (origin or {}).get("origin_label")})
+            groups.append({"label": display_label, "points": path, "color": color, "origin_label": (origin or {}).get("origin_label")})
     return groups
 
 
@@ -963,7 +971,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Include friendly package origin airbases in the combined-map crop. Use this for a full route/threat overview.",
     )
-    parser.add_argument("--combined-threat-opacity", type=float, default=0.18, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
+    parser.add_argument("--combined-threat-opacity", type=float, default=0.26, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
     parser.add_argument("--no-combined-threat-rings", dest="combined_threat_rings", action="store_false", help="Disable strategic ADA rings on --combined-out.")
     parser.set_defaults(combined_threat_rings=True)
     parser.add_argument("--scale", type=int, default=10, help="Output scale multiplier for the cropped map.")

@@ -19,7 +19,7 @@ MAP_PRODUCTS = (
         "route_opacity": 0.62,
         "marker_opacity": 0.84,
         "label_opacity": 0.72,
-        "threat_opacity": 0.36,
+        "threat_opacity": 0.52,
     },
     {
         "key": "target",
@@ -30,7 +30,7 @@ MAP_PRODUCTS = (
         "route_opacity": 0.56,
         "marker_opacity": 0.86,
         "label_opacity": 0.72,
-        "threat_opacity": 0.34,
+        "threat_opacity": 0.44,
     },
     {
         "key": "objective",
@@ -41,7 +41,7 @@ MAP_PRODUCTS = (
         "route_opacity": 0.50,
         "marker_opacity": 0.88,
         "label_opacity": 0.72,
-        "threat_opacity": 0.32,
+        "threat_opacity": 0.40,
         "objective_include_ini_lines_in_bounds": False,
     },
 )

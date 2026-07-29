@@ -265,7 +265,7 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --radius-nm 100 `
   --out .\outputs\739pre\enemy_air_threat_axes_skyvector.png `
   --combined-out .\outputs\739pre\package_flow_enemy_air_axes_skyvector.png `
-  --combined-threat-opacity 0.18 `
+  --combined-threat-opacity 0.26 `
   --flow-out .\outputs\739pre\package_flow_overview_skyvector.png
 ```
 
@@ -285,7 +285,7 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
   --combined-out .\outputs\739pre\route_threat_map_skyvector.png `
   --combined-title "Route & Threat Map" `
   --combined-include-flow-origins-in-bounds `
-  --combined-threat-opacity 0.18
+  --combined-threat-opacity 0.34
 ```
 
 Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
@@ -303,7 +303,9 @@ That writes the standard slide-facing image set into
 `.\outputs\739pre\briefing_images`:
 
 - `01_route_threat_map.png`: high-level route/threat overview from origin
-  airbases to the target area.
+  airbases to the target area. Aggregated route arrows include the represented
+  flight callsigns in parentheses when discrete flight plans would clutter the
+  slide.
 - `02_target_area_map.png`: target-area flow map using the combined package
   flow, enemy air axes, named positions, and low-opacity threat rings.
 - `03_objective_area_map.png`: close objective-area map for target prosecution
