@@ -23,8 +23,11 @@ from render_bms_package_map import (
     expand_crop_to_aspect,
     grid_to_map_px,
     has_active_tracking_radar,
+    iter_named_ini_points,
     is_strategic_air_defense,
     load_font,
+    nm_to_grid,
+    objective_ini_points,
     open_base_map,
     parse_aspect_ratio,
 )
@@ -323,6 +326,56 @@ def crop_top_fraction(crop: tuple[int, int, int, int], fraction: float) -> tuple
     return left, top, right, bottom
 
 
+def normalized_marker_label(value: Any) -> str:
+    return "".join(char for char in str(value or "").upper() if char.isalnum())
+
+
+def crop_with_top_preserving_aspect(
+    crop: tuple[int, int, int, int],
+    top: int,
+    aspect_ratio: str,
+) -> tuple[int, int, int, int]:
+    left, _old_top, right, bottom = crop
+    top = max(0, min(top, bottom - 1))
+    height = bottom - top
+    if height <= 1:
+        return crop
+    aspect = parse_aspect_ratio(aspect_ratio)
+    width = max(1, math.ceil(height * aspect))
+    center_x = (left + right) / 2
+    new_left = math.floor(center_x - width / 2)
+    new_right = new_left + width
+    if new_left < 0:
+        new_right -= new_left
+        new_left = 0
+    if new_right > MAP_GRID_SIZE:
+        new_left -= new_right - MAP_GRID_SIZE
+        new_right = MAP_GRID_SIZE
+    new_left = max(0, new_left)
+    return new_left, top, new_right, bottom
+
+
+def apply_north_bound_from_marker(
+    crop: tuple[int, int, int, int],
+    markers: list[dict[str, Any]],
+    label: str | None,
+    padding_nm: float,
+    aspect_ratio: str,
+) -> tuple[int, int, int, int]:
+    wanted = normalized_marker_label(label)
+    if not wanted or padding_nm <= 0:
+        return crop
+    for marker in markers:
+        marker_label = normalized_marker_label(marker.get("label"))
+        if marker_label != wanted or marker.get("grid_y") is None:
+            continue
+        north_grid_y = safe_float(marker.get("grid_y")) + nm_to_grid(padding_nm)
+        north_map_y = MAP_GRID_SIZE - north_grid_y
+        bounded_top = max(crop[1], math.floor(north_map_y))
+        return crop_with_top_preserving_aspect(crop, bounded_top, aspect_ratio)
+    return crop
+
+
 def crop_for_combined_map(
     anchors: list[dict[str, Any]],
     flow_groups: list[dict[str, Any]],
@@ -333,6 +386,13 @@ def crop_for_combined_map(
     if args.combined_crop_mode == "objective-area":
         objective_points = objective_positions or named_positions or anchors
         crop = crop_for_points(objective_points, args.combined_objective_margin_grid, args.aspect_ratio)
+        crop = apply_north_bound_from_marker(
+            crop,
+            [*objective_positions, *named_positions],
+            args.combined_objective_north_bound_label,
+            args.combined_objective_north_padding_nm,
+            args.aspect_ratio,
+        )
         return crop_top_fraction(crop, args.combined_objective_crop_top_fraction)
 
     flow_points = [
@@ -495,12 +555,20 @@ def draw_low_opacity_air_defense_rings(
     air_defenses: list[dict[str, Any]],
     font: ImageFont.ImageFont,
     opacity: float,
+    style: str = "target-area",
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     opacity = max(0.0, min(1.0, opacity))
-    outline_alpha = max(218, min(255, int(255 * max(opacity, 0.86))))
-    fill_alpha = max(8, min(28, int(32 * max(opacity, 0.35))))
-    label_alpha = max(205, min(232, int(255 * max(opacity, 0.82))))
+    if style == "route-reference":
+        outline_alpha = max(218, min(255, int(255 * max(opacity, 0.86))))
+        fill_alpha = max(8, min(28, int(32 * max(opacity, 0.35))))
+        label_alpha = max(205, min(232, int(255 * max(opacity, 0.82))))
+        ring_width = max(4, projector.scale // 2 + 1)
+    else:
+        outline_alpha = max(0, min(255, int(255 * opacity)))
+        fill_alpha = max(0, min(80, int(outline_alpha * 0.28)))
+        label_alpha = max(145, min(225, int(outline_alpha * 1.45)))
+        ring_width = max(3, projector.scale // 2)
     for air_defense in air_defenses:
         center = projector.grid(air_defense.get("grid_x"), air_defense.get("grid_y"))
         radius_grid = max(safe_float(air_defense.get("air_range")), safe_float(air_defense.get("low_air_range")))
@@ -509,7 +577,7 @@ def draw_low_opacity_air_defense_rings(
         radius = projector.radius(radius_grid)
         box = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
         draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
-        draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=max(4, projector.scale // 2 + 1))
+        draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
         if point_inside_image(center, overlay.width, overlay.height, 16):
             label = air_defense_threat_label(air_defense)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
@@ -604,7 +672,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
     flow_groups = package_flow_groups(packages) if include_flow else []
     named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
-    objective_positions = objective_crop_points(packages, named_positions) if include_flow else []
+    objective_positions = objective_crop_points(syntheses, packages, named_positions) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
 
     crop = crop_for_combined_map(anchors, flow_groups, named_positions, objective_positions, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
@@ -630,7 +698,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     small_font = load_font(max(13, int(args.scale * 1.15)))
 
     if air_defenses:
-        draw_low_opacity_air_defense_rings(overlay, projector, air_defenses, small_font, args.combined_threat_opacity)
+        draw_low_opacity_air_defense_rings(overlay, projector, air_defenses, small_font, args.combined_threat_opacity, args.combined_threat_style)
 
     anchor_points = [projector.grid(anchor.get("grid_x"), anchor.get("grid_y")) for anchor in anchors]
     ax = [point[0] for point in anchor_points]
@@ -826,7 +894,11 @@ def named_position_points(packages: list[dict[str, Any]]) -> list[dict[str, Any]
     return points
 
 
-def objective_crop_points(packages: list[dict[str, Any]], named_positions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def objective_crop_points(
+    syntheses: list[dict[str, Any]],
+    packages: list[dict[str, Any]],
+    named_positions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     seen: set[tuple[str, float, float]] = set()
     points: list[dict[str, Any]] = []
 
@@ -839,13 +911,11 @@ def objective_crop_points(packages: list[dict[str, Any]], named_positions: list[
         seen.add(key)
         points.append({"label": label, "grid_x": grid_x, "grid_y": grid_y})
 
-    for package in packages:
-        for match in package.get("plan_correlation", {}).get("point_matches") or []:
-            label = str(match.get("display") or match.get("label") or "").strip()
-            kind = str(match.get("kind") or "").strip().lower()
-            if kind != "target" and not label.upper().startswith("TGT "):
-                continue
-            grid = match.get("campaign_grid") or {}
+    for synthesis, package in zip(syntheses, packages):
+        ini_points = iter_named_ini_points(synthesis, package)
+        for point in objective_ini_points(ini_points, package) or ini_points:
+            grid = point.get("campaign_grid") or {}
+            label = str(point.get("label") or point.get("display") or "").strip()
             add(label, grid.get("grid_x"), grid.get("grid_y"))
 
     for position in named_positions:
@@ -1036,11 +1106,27 @@ def parse_args() -> argparse.Namespace:
         help="Trim this fraction from the north/top of an objective-area combined crop after framing. Use 0.25 to remove the top quarter.",
     )
     parser.add_argument(
+        "--combined-objective-north-bound-label",
+        help="For objective-area combined crops, set the north edge relative to this named marker label, for example SA6.",
+    )
+    parser.add_argument(
+        "--combined-objective-north-padding-nm",
+        type=float,
+        default=0.0,
+        help="Distance north of --combined-objective-north-bound-label to use as the objective crop's top edge.",
+    )
+    parser.add_argument(
         "--combined-include-flow-origins-in-bounds",
         action="store_true",
         help="Include friendly package origin airbases in the combined-map crop. Use this for a full route/threat overview.",
     )
     parser.add_argument("--combined-threat-opacity", type=float, default=0.26, help="Opacity for strategic ADA rings on --combined-out. Range 0.0-1.0.")
+    parser.add_argument(
+        "--combined-threat-style",
+        choices=("target-area", "route-reference"),
+        default="target-area",
+        help="ADA ring style for --combined-out. target-area keeps soft existing target-map rings; route-reference uses near-solid 738-style WEZ outlines.",
+    )
     parser.add_argument("--no-combined-threat-rings", dest="combined_threat_rings", action="store_false", help="Disable strategic ADA rings on --combined-out.")
     parser.set_defaults(combined_threat_rings=True)
     parser.add_argument("--scale", type=int, default=10, help="Output scale multiplier for the cropped map.")
