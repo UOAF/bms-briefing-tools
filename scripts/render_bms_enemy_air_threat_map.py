@@ -419,7 +419,26 @@ def load_airbase_objectives(args: argparse.Namespace, object_catalog: dict[str, 
     return build_airbase_objective_refs(load_objectives(path), object_catalog, 0.0, 0.0)
 
 
-def draw_air_threat_map(args: argparse.Namespace) -> Path:
+def draw_flow_groups(
+    draw: ImageDraw.ImageDraw,
+    projector: Projector,
+    flow_groups: list[dict[str, Any]],
+    label_font: ImageFont.ImageFont,
+    scale: int,
+) -> None:
+    for group in flow_groups:
+        points = [projector.grid(point.get("grid_x"), point.get("grid_y")) for point in group.get("points") or []]
+        draw_flow_arrow(draw, points, group.get("color") or FLOW_BLUE, width=max(8, scale))
+        mid = points[min(len(points) - 1, max(0, len(points) // 2))]
+        label_offset = {
+            "SEAD / DEAD Flow": (14, -34),
+            "Escort / BARCAP Flow": (14, 24),
+            "East Fighter Screen": (14, -24),
+        }.get(str(group.get("label")), (14, -24))
+        draw_text_box(draw, (mid[0] + label_offset[0], mid[1] + label_offset[1]), str(group.get("label")), label_font, fill=TEXT, bg=LABEL_BG)
+
+
+def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False, output_path: Path | None = None) -> Path:
     syntheses = [load_json(path) for path in args.synthesis]
     if args.package_id:
         package_ids = args.package_id
@@ -437,6 +456,8 @@ def draw_air_threat_map(args: argparse.Namespace) -> Path:
     origins, anchors = collect_air_threat_origins(cam_decode, packages, object_catalog, args.radius_nm, airbase_objectives)
     if not origins:
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
+    flow_groups = package_flow_groups(packages) if include_flow else []
+    named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
 
     crop = crop_for_air_threat_map(origins, anchors, args)
     base, source_scale_x, source_scale_y, _ = open_base_map(args.map_source or (args.campaign_dir / "Korea.tm"))
@@ -474,6 +495,10 @@ def draw_air_threat_map(args: argparse.Namespace) -> Path:
         start = clip_segment_to_rect(origin_xy, end, map_width, map_height)
         draw_arrow(draw, start, end, width=max(5, args.scale // 2))
 
+    if include_flow:
+        draw_flow_groups(draw, projector, flow_groups, label_font, args.scale)
+        draw_named_positions(draw, projector, named_positions, label_font)
+
     label_offsets = [(16, -34), (16, 16), (-16, -34), (-16, 16), (24, -4), (-24, -4)]
     for index, origin in enumerate(origins):
         origin_xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
@@ -499,20 +524,27 @@ def draw_air_threat_map(args: argparse.Namespace) -> Path:
         draw_text_box(draw, (label_xy[0], meta_y), meta, small_font, fill=(255, 205, 205), bg=LABEL_BG, anchor=anchor)
 
     draw_scale_and_north(overlay, crop, args.scale, small_font)
-    draw_text_box(draw, (26, 26), args.title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
+    title = args.combined_title if include_flow else args.title
+    subtitle = (
+        f"Package flow, named positions, and active enemy fighter/strike origins within {args.radius_nm:g} NM"
+        if include_flow
+        else f"Active enemy fighter/strike squadron origins within {args.radius_nm:g} NM; arrows show likely axes toward player AO"
+    )
+    draw_text_box(draw, (26, 26), title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
     draw_text_box(
         draw,
         (26, 62),
-        f"Active enemy fighter/strike squadron origins within {args.radius_nm:g} NM; arrows show likely axes toward player AO",
+        subtitle,
         small_font,
         fill=(255, 220, 220),
         bg=(9, 13, 15, 205),
     )
 
     output = Image.alpha_composite(map_image, overlay)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    output.convert("RGB").save(args.out)
-    return args.out
+    out = output_path or args.out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    output.convert("RGB").save(out)
+    return out
 
 
 def centroid(points: list[dict[str, Any]]) -> tuple[float, float] | None:
@@ -726,17 +758,7 @@ def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
     label_font = load_font(max(15, int(args.scale * 1.45)), bold=True)
     small_font = load_font(max(13, int(args.scale * 1.15)))
 
-    for group in flow_groups:
-        points = [projector.grid(point.get("grid_x"), point.get("grid_y")) for point in group.get("points") or []]
-        draw_flow_arrow(draw, points, group.get("color") or FLOW_BLUE, width=max(8, args.scale))
-        mid = points[min(len(points) - 1, max(0, len(points) // 2))]
-        label_offset = {
-            "SEAD / DEAD Flow": (14, -34),
-            "Escort / BARCAP Flow": (14, 24),
-            "East Fighter Screen": (14, -24),
-        }.get(str(group.get("label")), (14, -24))
-        draw_text_box(draw, (mid[0] + label_offset[0], mid[1] + label_offset[1]), str(group.get("label")), label_font, fill=TEXT, bg=LABEL_BG)
-
+    draw_flow_groups(draw, projector, flow_groups, label_font, args.scale)
     draw_named_positions(draw, projector, named_positions, label_font)
     draw_scale_and_north(overlay, crop, args.scale, small_font)
     draw_text_box(draw, (26, 26), args.flow_title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
@@ -765,6 +787,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp-obj-data", type=Path, help="CampObjData.XML for human-readable airbase objective names. Defaults beside --campaign-dir.")
     parser.add_argument("--map-source", type=Path, help="Override map raster path, such as 8_KTO_16k_Skyvector.png.")
     parser.add_argument("--out", type=Path, required=True, help="Output PNG path.")
+    parser.add_argument("--combined-out", type=Path, help="Optional output PNG combining enemy air axes, package flow, and named positions.")
     parser.add_argument("--flow-out", type=Path, help="Optional output PNG for a high-level package-flow map.")
     parser.add_argument("--radius-nm", type=float, default=100.0, help="Enemy squadron origin inclusion radius from player AO anchors.")
     parser.add_argument("--crop-mode", choices=("ao", "all"), default="ao", help="Crop around player AO by default; use all to include origin bases.")
@@ -774,6 +797,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scale", type=int, default=10, help="Output scale multiplier for the cropped map.")
     parser.add_argument("--aspect-ratio", default="16:9", help="Slide map-area aspect ratio. Defaults to 16:9.")
     parser.add_argument("--title", default="Enemy Air Threat Axes", help="Map title.")
+    parser.add_argument("--combined-title", default="Package Flow + Enemy Air Threat Axes", help="Combined map title.")
     parser.add_argument("--flow-title", default="Package Flow Overview", help="Flow map title.")
     return parser.parse_args()
 
@@ -782,6 +806,9 @@ def main() -> None:
     args = parse_args()
     out = draw_air_threat_map(args)
     print(out)
+    if args.combined_out:
+        combined_out = draw_air_threat_map(args, include_flow=True, output_path=args.combined_out)
+        print(combined_out)
     flow_out = draw_package_flow_map(args)
     if flow_out:
         print(flow_out)
