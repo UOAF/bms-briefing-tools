@@ -485,8 +485,9 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     ax = [point[0] for point in anchor_points]
     ay = [point[1] for point in anchor_points]
     ao_box = (min(ax) - 18, min(ay) - 18, max(ax) + 18, max(ay) + 18)
-    draw.rounded_rectangle(ao_box, radius=18, outline=BLUE + (220,), width=4, fill=BLUE_SOFT)
-    draw_text_box(draw, (ao_box[0] + 8, ao_box[1] - 10), "PLAYER AO", label_font, fill=BLUE, bg=LABEL_BG)
+    if not include_flow:
+        draw.rounded_rectangle(ao_box, radius=18, outline=BLUE + (220,), width=4, fill=BLUE_SOFT)
+        draw_text_box(draw, (ao_box[0] + 8, ao_box[1] - 10), "PLAYER AO", label_font, fill=BLUE, bg=LABEL_BG)
 
     for origin in origins:
         target_anchor = origin.get("nearest_anchor") or anchors[0]
