@@ -781,7 +781,7 @@ def flight_plan_summary(
         if labels:
             summary_parts.append(f"{waypoint_match['action_short']}: {', '.join(labels)}")
     if not summary_parts:
-        return "No close INI planning marks decoded", waypoint_matches
+        return "No close data-cartridge planning marks", waypoint_matches
     return "; ".join(summary_parts[:3]), waypoint_matches
 
 
@@ -1341,7 +1341,7 @@ def selected_loadout_pairs(flight: dict[str, Any], object_catalog: dict[str, Any
     fallback_pairs = loadout_pairs_from_arrays(flight.get("weapon_ids") or [], flight.get("weapon_counts") or [], object_catalog)
     if fallback_pairs:
         return fallback_pairs, "weapon arrays"
-    return [], "not decoded"
+    return [], "not listed"
 
 
 def weapons_summary(flight: dict[str, Any], object_catalog: dict[str, Any]) -> dict[str, Any]:
@@ -1350,7 +1350,7 @@ def weapons_summary(flight: dict[str, Any], object_catalog: dict[str, Any]) -> d
         return {
             "source": source,
             "items": [],
-            "summary": "not decoded",
+            "summary": "not listed",
         }
     text = ", ".join(f"{item['name']} x{item['count']}" for item in pairs[:8])
     if len(pairs) > 8:
@@ -1428,7 +1428,7 @@ def station_summary(key_waypoints: list[dict[str, Any]]) -> str:
             if waypoint.get("action") not in {"WP_TAKEOFF", "WP_LAND", "WP_NOTHING"}
         ]
     if not points:
-        return "No station waypoint decoded"
+        return "No station waypoint listed"
     labels = []
     for waypoint in points[:4]:
         action = action_label(waypoint.get("action"))
@@ -2358,7 +2358,7 @@ def brief_target_text(targets: list[dict[str, Any]], limit: int = 4) -> str:
         if name not in names:
             names.append(name)
     if not names:
-        return "No named tactical target resolved"
+        return "No named tactical target listed"
     suffix = "" if len(names) <= limit else f" +{len(names) - limit} more"
     return ", ".join(names[:limit]) + suffix
 
@@ -2439,6 +2439,23 @@ def enemy_anchor_cell(unit: dict[str, Any]) -> str:
     if time and time not in label:
         return f"{label} @ {time}"
     return label
+
+
+def player_enemy_summary(summary: str | None) -> str:
+    if not summary:
+        return ""
+    parts = [part.strip() for part in str(summary).split(".") if part.strip()]
+    visible_parts = []
+    for part in parts:
+        lower = part.lower()
+        if "candidates filtered" in lower:
+            continue
+        visible_parts.append(
+            part.replace("enemy non-air unit records", "enemy ground/naval units")
+            .replace("strategic air-defense records", "strategic air-defense sites")
+            .replace("enemy squadron bases", "enemy squadron base areas")
+        )
+    return ". ".join(visible_parts) + ("." if visible_parts else "")
 
 
 def bearing_degrees_from_to(origin: dict[str, Any], point: dict[str, Any]) -> float | None:
@@ -2795,29 +2812,16 @@ def append_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
     if not package:
         return
     weather = package.get("weather") or {}
-    lines.append("## Meteorology")
     if not weather.get("available"):
-        lines.append(f"- Weather unavailable: {weather.get('error') or 'no decoded FMAP data'}")
-        lines.append("")
         return
 
-    summary = weather.get("summary") or {}
-    grid = summary.get("grid") or {}
-    lines.append(
-        f"- Source: `{weather.get('source')}` ({summary.get('layout')}, "
-        f"{grid.get('rows')}x{grid.get('cols')} cells). Map wind {summary.get('map_wind')}."
-    )
-    lines.append(f"- Basis: {weather.get('basis')}")
-    counts = summary.get("weather_counts") or {}
-    if counts:
-        lines.append("- Theater mix: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
-    lines.append("")
-    lines.append("| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y | Basis |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    lines.append("## Meteorology")
+    lines.append("| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for sample in weather.get("samples") or []:
         contrail = sample.get("contrail_layer_fl")
         lines.append(
-            "| {area} | {time} | {tod} | {conditions} | {cloud_base} | {contrail} | {temp} | {vis} | {wind} | {grid_x} | {grid_y} | {basis} |".format(
+            "| {area} | {time} | {tod} | {conditions} | {cloud_base} | {contrail} | {temp} | {vis} | {wind} | {grid_x} | {grid_y} |".format(
                 area=markdown_cell(sample.get("label")),
                 time=markdown_cell(sample.get("time_hhmm")),
                 tod=markdown_cell(sample.get("time_of_day")),
@@ -2829,7 +2833,6 @@ def append_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
                 wind=markdown_cell(sample.get("wind")),
                 grid_x=number_cell(sample.get("grid_x"), 1),
                 grid_y=number_cell(sample.get("grid_y"), 1),
-                basis=markdown_cell(sample.get("basis")),
             )
         )
     lines.append("")
@@ -2901,7 +2904,7 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
     lines.append("## Other Package Factors")
     if factors:
         lines.append(
-            "Friendly non-player packages are only listed here when their decoded tactical waypoints are close enough in "
+            "Friendly non-player packages are only listed here when their tactical waypoints are close enough in "
             "space and time to require deconfliction or to materially affect the player package."
         )
         lines.append("")
@@ -2925,19 +2928,19 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
             )
         lines.append("")
     else:
-        lines.append("- No friendly non-player packages met the current target-area proximity and timing filter.")
+        lines.append("- No additional friendly packages are expected to affect the target area.")
         lines.append("")
 
     axes = enemy_air_threat_axes(package)
     lines.append("## Enemy Air Threat Estimate")
     lines.append(
-        "This section intentionally avoids decoded enemy ATO/package knowledge. It is based on active enemy squadron bases "
+        "This section avoids enemy ATO/package tasking. It is based on active enemy squadron bases "
         "within the threat radius, known aircraft types, and bearing from those bases to the package/INI target-area anchors. "
         "Treat it as likely fighter threat axes, not a prediction of specific launches, callsigns, package IDs, or timings."
     )
     lines.append("")
     if not axes:
-        lines.append("- No active enemy fighter-capable airbases were resolved within the current airbase threat radius.")
+        lines.append("- No active enemy fighter-capable airbases were identified within the current airbase threat radius.")
         lines.append("")
     else:
         lines.append("| Possible source sector | Likely origin bases | Fighter-capable types | Other strike-capable types | Closest package area | Closest base range | Basis |")
@@ -2947,9 +2950,9 @@ def append_other_package_factors(lines: list[str], synthesis: dict[str, Any]) ->
             lines.append(
                 "| {sector} | {origins} | {fighters} | {strike} | {anchor} | {distance} NM | {basis} |".format(
                     sector=markdown_cell(axis.get("sector")),
-                    origins=markdown_cell("; ".join(axis.get("origin_bases") or []) or "none resolved"),
-                    fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none resolved"),
-                    strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none resolved"),
+                    origins=markdown_cell("; ".join(axis.get("origin_bases") or []) or "none identified"),
+                    fighters=markdown_cell("; ".join(axis.get("fighter_types") or []) or "none identified"),
+                    strike=markdown_cell("; ".join(axis.get("strike_types") or []) or "none identified"),
                     anchor=markdown_cell(axis.get("nearest_anchor")),
                     distance=number_cell(axis.get("closest_distance_nm"), 1),
                     basis=markdown_cell(basis),
@@ -3013,7 +3016,7 @@ def append_friendly_surface_defense(lines: list[str], synthesis: dict[str, Any])
 
 def l16_cell(record: dict[str, Any], key: str) -> str:
     if record.get("match_basis") == "unresolved":
-        return "unresolved"
+        return ""
     value = record.get(key)
     if value is None:
         return ""
@@ -3025,12 +3028,6 @@ def append_comm_ladder(lines: list[str], synthesis: dict[str, Any]) -> None:
     if not package:
         return
     lines.append("## Comm Ladder")
-    package_id = package.get("package_id") or synthesis.get("focus_package_id") or "selected"
-    lines.append(
-        "Campaign comm sidecars currently expose Link 16 rows, but this save's `.l16` flight numbers do not match the CAM "
-        f"camp IDs/name IDs/VU numbers for package {package_id}. UHF/VHF preset channels are not decoded from the campaign bundle yet."
-    )
-    lines.append("")
     lines.append("| Element | Role | TACAN | Laser | Link 16 STN | F2F | Mission | EW | Notes |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     elements = [
@@ -3088,14 +3085,13 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
 
     lines.append("## Enemy Situation And Air Defense Estimate")
     lines.append(
-        "This is a campaign-data estimate: enemy battalion/unit positions are measured against the decoded package route, CAP, SAD, "
-        "and correlated INI anchors. The air-defense section is strategic-only: Air Defense class systems, and each listed site "
-        "has a nonzero decoded roster slot for its tracking radar. "
-        "Class names and equipment come from Falcon object tables."
+        "Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. "
+        "Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars."
     )
     lines.append(f"- Enemy teams considered: {', '.join(enemy.get('enemy_teams') or []) or 'none'}")
-    lines.append(f"- Basis: {enemy.get('basis')} Anchor count: {enemy.get('anchor_count')}.")
-    lines.append(f"- Summary: {enemy.get('summary')}")
+    summary = player_enemy_summary(enemy.get("summary"))
+    if summary:
+        lines.append(f"- Summary: {summary}")
     if enemy.get("airbase_summary"):
         lines.append(f"- Airbase threat: {enemy['airbase_summary']}")
     lines.append("")
@@ -3103,7 +3099,7 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
     air_defenses = enemy.get("air_defenses") or []
     if air_defenses:
         lines.append("### Strategic Air Defense Units Near Package Route")
-        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest anchor | Dist NM | UCD air rng | UCD low rng | Strength air/low |")
+        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest anchor | Dist NM | Air range | Low-alt range | Strength air/low |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for unit in air_defenses:
             lines.append(
@@ -3149,7 +3145,7 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
 
     nearby_units = enemy.get("closest_units") or []
     if nearby_units:
-        lines.append("### Nearby Enemy Unit Records")
+        lines.append("### Nearby Enemy Ground/Naval Units")
         lines.append("| ID | Team | Class | Category | Equipment | Grid X | Grid Y | Nearest anchor | Dist NM |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for unit in nearby_units:
@@ -3179,8 +3175,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
 
     lines.append("## Coordinate Appendix")
     lines.append(
-        "Location data is intentionally separated from the commander-facing read. "
-        "Flight steerpoints use decoded campaign grid coordinates; INI points also show source world-foot coordinates and the converted campaign grid."
+        "Location data is separated here so the main brief stays readable."
     )
     lines.append("")
     lines.append(f"### PKG {focus_id} Flight Steerpoints")
@@ -3280,9 +3275,9 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
         lines.append("### Strategic Air Defense Coordinates")
         lines.append(
             "Air-defense rows use saved campaign battalion/unit grid coordinates and exclude embedded short-range point/base defenses. "
-            "They are enemy strategic sites with active decoded tracking-radar roster slots."
+            "They are enemy strategic sites with active tracking radars."
         )
-        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | UCD air rng | UCD low rng |")
+        lines.append("| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for unit in air_defense_locations:
             lines.append(
@@ -3306,7 +3301,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     if active_air_contacts:
         lines.append("### Active Enemy Air Contact Coordinates")
         lines.append(
-            "Rows use current decoded flight positions at campaign time. Enemy callsigns/package IDs are omitted from the briefing output."
+            "Rows use current campaign-time positions. Enemy callsigns and package IDs are omitted."
         )
         lines.append("| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Alt ft | Nearest package/INI anchor | Dist NM | Basis |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
@@ -3331,14 +3326,14 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     if airbase_locations:
         lines.append("### Enemy Airbase Coordinates")
         lines.append(
-            "Airbase rows are enemy squadron base objectives with active squadron rosters, greater than 0 percent decoded operational state, "
+            "Airbase rows are enemy squadron base objectives with active squadron rosters, greater than 0 percent operational state, "
             f"and within {number_cell(enemy.get('airbase_radius_nm'), 0)} NM of package/INI anchors."
         )
-        lines.append("| Airbase ID | Name | Objective class | Team | Active sqns | Aircraft | Operational | Source X ft | Source Y ft | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Status |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Airbase ID | Name | Objective class | Team | Active sqns | Aircraft | Operational | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Status |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for base in airbase_locations:
             lines.append(
-                "| {airbase_id} | {name} | {objective_class} | {team} | {squadron_count} | {aircraft} | {operational} | {source_x} | {source_y} | {grid_x} | {grid_y} | {anchor} | {distance} | {status} |".format(
+                "| {airbase_id} | {name} | {objective_class} | {team} | {squadron_count} | {aircraft} | {operational} | {grid_x} | {grid_y} | {anchor} | {distance} | {status} |".format(
                     airbase_id=markdown_cell(base.get("airbase_id")),
                     name=markdown_cell(base.get("name")),
                     objective_class=markdown_cell(base.get("objective_class")),
@@ -3346,8 +3341,6 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
                     squadron_count=markdown_cell(base.get("squadron_count")),
                     aircraft=markdown_cell(base.get("aircraft_summary")),
                     operational=markdown_cell(operational_cell(base)),
-                    source_x=number_cell(base.get("source_x"), 1),
-                    source_y=number_cell(base.get("source_y"), 1),
                     grid_x=number_cell(base.get("grid_x"), 1),
                     grid_y=number_cell(base.get("grid_y"), 1),
                     anchor=markdown_cell(enemy_anchor_cell(base)),
@@ -3413,70 +3406,26 @@ def append_map_products(lines: list[str], synthesis: dict[str, Any]) -> None:
 
 def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
     lines: list[str] = []
-    lines.append(f"# Generated BMS Briefing Draft: {synthesis['prefix']}")
-    lines.append("")
-    clock = synthesis.get("campaign_clock") or {}
-    if clock:
-        lines.append(
-            "Timing is provisional: HHMM values use the inferred `.cmp` clock "
-            f"base `{clock.get('clock_base_hhmm')}` and campaign time `{clock.get('campaign_time_ms')}`."
-        )
-        lines.append("")
-
-    status = synthesis["deck_package_status"]
-    lines.append("## Reference Deck Package Check")
-    lines.append(f"- Mentioned in deck: {', '.join(map(str, status['mentioned'])) or 'none'}")
-    lines.append(f"- Present in local CAM: {', '.join(map(str, status['present_in_cam'])) or 'none'}")
-    lines.append(f"- Missing from local CAM: {', '.join(map(str, status['missing_from_cam'])) or 'none'}")
-    lines.append("")
-
-    planning = synthesis.get("planning", {})
-    ppts = planning.get("ppts", [])
-    targets = planning.get("targets", [])
-    line_stpts = planning.get("line_stpts", [])
-    lines.append("## Operating Area Inputs")
-    if ppts:
-        lines.append("- PPT labels and rings: " + "; ".join(
-            f"{point['index']} {point['label']}" + (f" ({point['radius_nm']} NM)" if point.get("radius_nm") else "")
-            for point in ppts[:16]
-        ))
-    if line_stpts:
-        lines.append(f"- Drawn line STPTs: {len(line_stpts)} points")
-    if targets:
-        named_targets = [
-            point["label"].strip()
-            for point in targets
-            if point.get("label") and point["label"].strip().lower() != "not set"
-        ]
-        if named_targets:
-            lines.append("- DTC target labels: " + "; ".join(named_targets[:12]))
-    if planning.get("grid_basis"):
-        lines.append(f"- INI grid transform: `{planning['grid_basis']['ini_to_campaign_grid']}`")
+    lines.append(f"# BMS Mission Briefing: {synthesis['prefix']}")
     lines.append("")
 
     append_meteorology(lines, synthesis)
 
-    lines.append("## Package Coordination Draft")
+    lines.append("## Package Coordination")
     primary_package = focus_package(synthesis)
     packages_to_print = [primary_package] if primary_package else synthesis["packages"][:1]
     for package in [item for item in packages_to_print if item]:
-        if package.get("package_id") == synthesis.get("focus_package_id"):
-            mention = "explicit request"
-        else:
-            mention = "reference deck" if package.get("deck_mentions") else "score"
         lines.append(
             f"### PKG {package['package_id']} - {package.get('mission') or 'UNKNOWN'} "
-            f"({package['flight_count']} flights, selected by {mention})"
+            f"({package['flight_count']} flights)"
         )
         lines.append(f"- Targets: {brief_target_text(package.get('targets', []))}")
         enemy = package.get("enemy_situation") or {}
-        if enemy.get("summary"):
-            lines.append(f"- Enemy situation: {enemy['summary']}")
-        if package.get("deck_mentions"):
-            deck_refs = ", ".join(f"slide {item['slide']}: {item['title']}" for item in package["deck_mentions"])
-            lines.append(f"- Reference deck mentions: {deck_refs}")
+        enemy_summary = player_enemy_summary(enemy.get("summary"))
+        if enemy_summary:
+            lines.append(f"- Enemy situation: {enemy_summary}")
         if package.get("plan_interpretation"):
-            lines.append(f"- INI plan correlation: {package['plan_interpretation']}")
+            lines.append(f"- Data-cartridge plan: {package['plan_interpretation']}")
             correlation = package.get("plan_correlation") or {}
             close_points = [
                 match
@@ -3493,7 +3442,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
                     )
                     for match in close_points
                 )
-                lines.append(f"- Close INI marks: {point_text}")
+                lines.append(f"- Close planning marks: {point_text}")
             line_summary = correlation.get("line_summary") or {}
             if line_summary.get("interpretation"):
                 lines.append(f"- Drawn-line read: {line_summary['interpretation']}")
@@ -3537,7 +3486,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
             append_friendly_package_composition(lines, package)
             append_support_assets(lines, package)
         else:
-            lines.append("| C/S | Team | Role | T/O | TOT | Decoded Targets | INI Plan Match | Human Contract |")
+            lines.append("| C/S | Team | Role | T/O | TOT | Targets | Planning mark | Human contract |")
             lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
             for flight in package["flights"]:
                 lines.append(
@@ -3561,11 +3510,131 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
     append_location_appendix(lines, synthesis)
     append_map_products(lines, synthesis)
 
-    lines.append("## Human Interpretation Needed")
-    lines.append("- Confirm package inclusion against the actual mission commander's intent.")
-    lines.append("- Convert package tables into contracts, push flow, and target-file slides.")
-    lines.append("- Validate decoded aircraft/loadout/laser/TACAN values against the BMS UI before publishing a live mission brief.")
-    lines.append("- Validate inferred HHMM times against BMS UI or the human deck before treating them as authoritative.")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def append_workup_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
+    package = focus_package(synthesis)
+    if not package:
+        return
+    weather = package.get("weather") or {}
+    lines.append("## Meteorology Workup")
+    if not weather.get("available"):
+        lines.append(f"- Weather data unavailable: {weather.get('error') or 'no FMAP data resolved'}.")
+        lines.append("")
+        return
+    summary = weather.get("summary") or {}
+    grid = summary.get("grid") or {}
+    lines.append(
+        f"- Source: `{weather.get('source')}` ({summary.get('layout')}, "
+        f"{grid.get('rows')}x{grid.get('cols')} cells). Map wind {summary.get('map_wind')}."
+    )
+    lines.append(f"- Sampling basis: {weather.get('basis')}")
+    counts = summary.get("weather_counts") or {}
+    if counts:
+        lines.append("- Theater mix: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
+    lines.append("")
+    append_meteorology(lines, synthesis)
+
+
+def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
+    lines: list[str] = []
+    lines.append(f"# BMS Briefing Workup: {synthesis['prefix']}")
+    lines.append("")
+    lines.append(
+        "Internal transitional artifact for briefing iteration. Keep provenance, gaps, and correlation notes here; "
+        "`generated_briefing.md` is the player-facing mission brief."
+    )
+    lines.append("")
+
+    clock = synthesis.get("campaign_clock") or {}
+    if clock:
+        lines.append("## Timing Source")
+        lines.append(
+            f"- HHMM values use clock base `{clock.get('clock_base_hhmm')}` and campaign time `{clock.get('campaign_time_ms')}`."
+        )
+        lines.append("")
+
+    status = synthesis.get("deck_package_status") or {}
+    lines.append("## Reference Deck Package Check")
+    lines.append(f"- Mentioned in deck: {', '.join(map(str, status.get('mentioned') or [])) or 'none'}")
+    lines.append(f"- Present in local CAM: {', '.join(map(str, status.get('present_in_cam') or [])) or 'none'}")
+    lines.append(f"- Missing from local CAM: {', '.join(map(str, status.get('missing_from_cam') or [])) or 'none'}")
+    lines.append("")
+
+    planning = synthesis.get("planning", {})
+    ppts = planning.get("ppts", [])
+    targets = planning.get("targets", [])
+    line_stpts = planning.get("line_stpts", [])
+    lines.append("## Operating Area Inputs")
+    if ppts:
+        lines.append("- PPT labels and rings: " + "; ".join(
+            f"{point['index']} {point['label']}" + (f" ({point['radius_nm']} NM)" if point.get("radius_nm") else "")
+            for point in ppts[:24]
+        ))
+    if line_stpts:
+        lines.append(f"- Drawn line STPTs: {len(line_stpts)} points")
+    named_targets = [
+        point["label"].strip()
+        for point in targets
+        if point.get("label") and point["label"].strip().lower() != "not set"
+    ]
+    if named_targets:
+        lines.append("- DTC target labels: " + "; ".join(named_targets[:24]))
+    if planning.get("grid_basis"):
+        lines.append(f"- INI grid transform: `{planning['grid_basis']['ini_to_campaign_grid']}`")
+    lines.append("")
+
+    append_workup_meteorology(lines, synthesis)
+
+    lines.append("## Package Correlation Workup")
+    primary_package = focus_package(synthesis)
+    packages_to_print = [primary_package] if primary_package else synthesis.get("packages", [])[:1]
+    for package in [item for item in packages_to_print if item]:
+        mention = "explicit request" if package.get("package_id") == synthesis.get("focus_package_id") else (
+            "reference deck" if package.get("deck_mentions") else "score"
+        )
+        lines.append(
+            f"### PKG {package['package_id']} - {package.get('mission') or 'UNKNOWN'} "
+            f"({package['flight_count']} flights, selected by {mention})"
+        )
+        lines.append(f"- Targets: {brief_target_text(package.get('targets', []))}")
+        enemy = package.get("enemy_situation") or {}
+        if enemy.get("summary"):
+            lines.append(f"- Enemy situation: {enemy['summary']}")
+        if package.get("deck_mentions"):
+            deck_refs = ", ".join(f"slide {item['slide']}: {item['title']}" for item in package["deck_mentions"])
+            lines.append(f"- Reference deck mentions: {deck_refs}")
+        if package.get("plan_interpretation"):
+            lines.append(f"- INI plan correlation: {package['plan_interpretation']}")
+        context = package.get("human_context") or {}
+        if context:
+            if context.get("briefing_read"):
+                lines.append(f"- Commander context: {context['briefing_read']}")
+            if context.get("route_note"):
+                lines.append(f"- Route context: {context['route_note']}")
+            if context.get("fallback_logic"):
+                lines.append(f"- Fallback logic: {context['fallback_logic']}")
+        lines.append("")
+
+    l16 = synthesis.get("l16_source") or {}
+    lines.append("## Comm Data Workup")
+    lines.append(f"- Link 16 rows available: {l16.get('flight_count', 0)}.")
+    lines.append(f"- Correlation basis: {l16.get('correlation_basis') or 'not recorded'}.")
+    lines.append("- UHF/VHF preset channel decoding is not yet available from the campaign bundle.")
+    lines.append("")
+
+    append_friendly_surface_defense(lines, synthesis)
+    append_other_package_factors(lines, synthesis)
+    append_comm_ladder(lines, synthesis)
+    append_enemy_situation(lines, synthesis)
+    append_location_appendix(lines, synthesis)
+    append_map_products(lines, synthesis)
+
+    lines.append("## Review Items")
+    lines.append("- Confirm package inclusion and tasking against the mission commander's intent.")
+    lines.append("- Validate aircraft/loadout/laser/TACAN values against the BMS UI before publishing a live mission brief.")
+    lines.append("- Validate inferred HHMM times against the BMS UI or human mission card before treating them as authoritative.")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -3614,8 +3683,10 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "briefing_synthesis.json").write_text(json.dumps(synthesis, indent=2, ensure_ascii=False), encoding="utf-8")
     write_markdown(synthesis, out_dir / "generated_briefing.md")
+    write_workup_markdown(synthesis, out_dir / "briefing_workup.md")
     print(f"Wrote {out_dir / 'briefing_synthesis.json'}")
     print(f"Wrote {out_dir / 'generated_briefing.md'}")
+    print(f"Wrote {out_dir / 'briefing_workup.md'}")
     return 0
 
 

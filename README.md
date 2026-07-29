@@ -74,8 +74,15 @@ python .\scripts\synthesize_bms_briefing.py `
   --focus-package 2515
 ```
 
-That writes `briefing_synthesis.json` and `generated_briefing.md`. The
-synthesizer resolves tactical waypoint targets to objectives, flights, packages,
+That writes three briefing artifacts:
+
+- `briefing_synthesis.json`: structured source of truth for follow-on tooling.
+- `briefing_workup.md`: transitional analysis with provenance, gaps, and
+  correlation notes for human/Codex iteration.
+- `generated_briefing.md`: player-facing mission brief with development notes
+  and missing-data chatter removed.
+
+The synthesizer resolves tactical waypoint targets to objectives, flights, packages,
 squadrons, and ground/naval units when the CAM exposes matching VU IDs. It also
 converts mission INI plan points into campaign grid coordinates and correlates
 them to package route waypoints. Korea/UOAF currently defaults to
@@ -175,8 +182,9 @@ python .\scripts\synthesize_bms_briefing.py `
 ```
 
 Stop here for briefing iteration. Render/review maps, adjust mission context, and
-rerun synthesis as needed. Do not export a Claude bundle until final deck
-production is explicitly requested.
+rerun synthesis as needed. Use `briefing_workup.md` to preserve analysis context
+while keeping `generated_briefing.md` clean for players. Do not export a Claude
+bundle until final deck production is explicitly requested.
 
 Deprecated fallback deck render:
 
