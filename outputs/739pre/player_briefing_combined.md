@@ -13,6 +13,16 @@ Deck structure: packages 3465 and 3494 should be presented as one integrated gam
 - Bullseye: grid 643.0 / 145.0
 - Key references: Tiger/TIG BE 237/47; Jewel/JEW BE 249/17; Crown/CRO BE 220/18; SA-6 mark BE 276/13; SA-10 West BE 270/1; SA-10 South BE 137/10; SA-10 East BE 080/9.
 
+## Meteorology
+
+Weather is VMC across the package window. Expect clear/sunny conditions, 60 km visibility, light winds at the sampled package points, cloud base around 38,000 ft, and contrails around 34,000 ft.
+
+| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility | Wind | Grid |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1420 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 km | 332/4 kt | 448/138 |
+| Target Area | 1424 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 60.0 km | 302/2 kt | 552/124 |
+| Landing | 1450 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 km | 332/4 kt | 448/138 |
+
 ## Commander's Intent
 
 - Cyborg 1: work from Joule, kill the SA-6 north of Joule first if factor, then prosecute SA-10 West. Confirm positive destruction of both targets.
@@ -128,6 +138,10 @@ Current campaign-time contacts near package 3465 include Su-33, Su-35S, MiG-31, 
 
 ## Map Products
 
+- Slide image pack route/threat map: `briefing_images/01_route_threat_map.png`
+- Slide image pack target area: `briefing_images/02_target_area_map.png`
+- Slide image pack objective close-up: `briefing_images/03_objective_area_map.png`
+- Slide image pack weather review: `briefing_images/04_weather_map.png`
 - Package 3465 overview: `pkg3465/package_3465_route_threat_map_skyvector.png`
 - Package 3465 target area: `pkg3465/package_3465_target_area_zoom_skyvector.png`
 - Package 3465 objective close-up: `pkg3465/package_3465_objective_area_zoom_skyvector.png`

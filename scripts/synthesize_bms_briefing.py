@@ -2401,6 +2401,18 @@ def number_cell(value: Any, digits: int = 1) -> str:
         return markdown_cell(value)
 
 
+def weather_altitude_cell(value: Any, *, increment: int = 1000) -> str:
+    if value is None:
+        return ""
+    try:
+        altitude = float(value)
+    except (TypeError, ValueError):
+        return markdown_cell(value)
+    if increment > 0:
+        altitude = round(altitude / increment) * increment
+    return f"{int(altitude):,} ft"
+
+
 def target_ref_cell(target: dict[str, Any] | None) -> str:
     if not target:
         return ""
@@ -2856,15 +2868,22 @@ def other_package_factors(synthesis: dict[str, Any], focus: dict[str, Any], limi
 
 
 def weather_sample_text(sample: dict[str, Any]) -> str:
-    cloud_base = number_cell(sample.get("cumulus_base_ft"), 0)
-    contrail = sample.get("contrail_layer_fl")
-    contrail_text = f"FL{contrail}" if contrail is not None else ""
+    cloud_base = weather_cloud_base_text(sample)
+    contrail_text = weather_contrail_text(sample)
     return (
-        f"{sample.get('condition')} {sample.get('cloud_cover')} base {cloud_base} ft; "
+        f"{sample.get('condition')} {sample.get('cloud_cover')} {cloud_base}; "
         f"vis {number_cell(sample.get('visibility_km'), 1)} km; "
         f"temp {number_cell(sample.get('temperature_c'), 1)} C; "
         f"wind {sample.get('wind')}; con {contrail_text}"
     )
+
+
+def weather_cloud_base_text(sample: dict[str, Any]) -> str:
+    return weather_altitude_cell(sample.get("stratus_base_ft"))
+
+
+def weather_contrail_text(sample: dict[str, Any]) -> str:
+    return weather_altitude_cell(sample.get("contrail_layer_ft"))
 
 
 def append_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
@@ -2879,15 +2898,14 @@ def append_meteorology(lines: list[str], synthesis: dict[str, Any]) -> None:
     lines.append("| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for sample in weather.get("samples") or []:
-        contrail = sample.get("contrail_layer_fl")
         lines.append(
             "| {area} | {time} | {tod} | {conditions} | {cloud_base} | {contrail} | {temp} | {vis} | {wind} | {grid_x} | {grid_y} |".format(
                 area=markdown_cell(sample.get("label")),
                 time=markdown_cell(sample.get("time_hhmm")),
                 tod=markdown_cell(sample.get("time_of_day")),
                 conditions=markdown_cell(f"{sample.get('condition')} {sample.get('cloud_cover')}"),
-                cloud_base=number_cell(sample.get("cumulus_base_ft"), 0),
-                contrail=markdown_cell(f"FL{contrail}" if contrail is not None else ""),
+                cloud_base=markdown_cell(weather_cloud_base_text(sample)),
+                contrail=markdown_cell(weather_contrail_text(sample)),
                 temp=number_cell(sample.get("temperature_c"), 1),
                 vis=number_cell(sample.get("visibility_km"), 1),
                 wind=markdown_cell(sample.get("wind")),
@@ -3239,7 +3257,7 @@ def append_enemy_situation(lines: list[str], synthesis: dict[str, Any]) -> None:
         lines.append("")
 
 
-def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> None:
+def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, include_raw_weather: bool = False) -> None:
     focus_id = synthesis.get("focus_package_id")
     if focus_id is None:
         return
@@ -3301,25 +3319,39 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any]) -> Non
     weather = package.get("weather") or {}
     if weather.get("available"):
         lines.append("### Weather Sample Coordinates")
-        lines.append("| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base ft | Contrail |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        if include_raw_weather:
+            lines.append("| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Briefed cloud base | Raw cumulus field ft | Contrail |")
+            lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        else:
+            lines.append("| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base | Contrail |")
+            lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for sample in weather.get("samples") or []:
-            contrail = sample.get("contrail_layer_fl")
-            lines.append(
-                "| {area} | {time} | {row} | {col} | {grid_x} | {grid_y} | {conditions} | {wind} | {vis} | {cloud_base} | {contrail} |".format(
-                    area=markdown_cell(sample.get("label")),
-                    time=markdown_cell(sample.get("time_hhmm")),
-                    row=markdown_cell(sample.get("row")),
-                    col=markdown_cell(sample.get("col")),
-                    grid_x=number_cell(sample.get("grid_x"), 1),
-                    grid_y=number_cell(sample.get("grid_y"), 1),
-                    conditions=markdown_cell(f"{sample.get('condition')} {sample.get('cloud_cover')}"),
-                    wind=markdown_cell(sample.get("wind")),
-                    vis=number_cell(sample.get("visibility_km"), 1),
-                    cloud_base=number_cell(sample.get("cumulus_base_ft"), 0),
-                    contrail=markdown_cell(f"FL{contrail}" if contrail is not None else ""),
+            row_values = {
+                "area": markdown_cell(sample.get("label")),
+                "time": markdown_cell(sample.get("time_hhmm")),
+                "row": markdown_cell(sample.get("row")),
+                "col": markdown_cell(sample.get("col")),
+                "grid_x": number_cell(sample.get("grid_x"), 1),
+                "grid_y": number_cell(sample.get("grid_y"), 1),
+                "conditions": markdown_cell(f"{sample.get('condition')} {sample.get('cloud_cover')}"),
+                "wind": markdown_cell(sample.get("wind")),
+                "vis": number_cell(sample.get("visibility_km"), 1),
+                "cloud_base": markdown_cell(weather_cloud_base_text(sample)),
+                "raw_cloud_base": number_cell(sample.get("cumulus_base_ft"), 0),
+                "contrail": markdown_cell(weather_contrail_text(sample)),
+            }
+            if include_raw_weather:
+                lines.append(
+                    "| {area} | {time} | {row} | {col} | {grid_x} | {grid_y} | {conditions} | {wind} | {vis} | {cloud_base} | {raw_cloud_base} | {contrail} |".format(
+                        **row_values
+                    )
                 )
-            )
+            else:
+                lines.append(
+                    "| {area} | {time} | {row} | {col} | {grid_x} | {grid_y} | {conditions} | {wind} | {vis} | {cloud_base} | {contrail} |".format(
+                        **row_values
+                    )
+                )
         lines.append("")
 
     transformed_points = synthesis.get("planning", {}).get("transformed_points", [])
@@ -3591,7 +3623,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
     append_other_package_factors(lines, synthesis)
     append_comm_ladder(lines, synthesis)
     append_enemy_situation(lines, synthesis)
-    append_location_appendix(lines, synthesis)
+    append_location_appendix(lines, synthesis, include_raw_weather=False)
     append_map_products(lines, synthesis)
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -3713,7 +3745,7 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
     append_other_package_factors(lines, synthesis)
     append_comm_ladder(lines, synthesis)
     append_enemy_situation(lines, synthesis)
-    append_location_appendix(lines, synthesis)
+    append_location_appendix(lines, synthesis, include_raw_weather=True)
     append_map_products(lines, synthesis)
 
     lines.append("## Review Items")

@@ -1,5 +1,12 @@
 # BMS Mission Briefing: 739pre
 
+## Meteorology
+| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1420 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 | 332/4 kt | 448.0 | 138.0 |
+| Target Area | 1424 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 60.0 | 302/2 kt | 552.0 | 124.0 |
+| Landing | 1450 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 | 332/4 kt | 448.0 | 138.0 |
+
 ## Bullseye
 - Bullseye: grid 643.0 / 145.0
 - Named references: CRO BE 220/18; TIG BE 237/47; JEW BE 249/17; SA6 BE 276/13; 15 BE 280/15
@@ -174,6 +181,13 @@ Location data is separated here so the main brief stays readable.
 | TANKER | Copper 5 | 5 | TANKER | 1533 | 360.0 | 342.0 | BE 305/186 | 2400.0 |  |
 | TANKER | Copper 5 | 7 | LAND | 2037 | 421.0 | 313.0 | BE 307/150 | 0.0 | Pyeongtaek AAF (RKSG) (objective 924) |
 | TANKER | Copper 5 | 8 | LAND | 1027 | 470.0 | 341.0 | BE 319/141 | 0.0 | Gumi Highway Strip (objective 927) |
+
+### Weather Sample Coordinates
+| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base | Contrail |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1420 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 332/4 kt | 60.0 | 38,000 ft | 34,000 ft |
+| Target Area | 1424 | 51 | 31 | 552.0 | 124.0 | Sunny CLR | 302/2 kt | 60.0 | 38,000 ft | 34,000 ft |
+| Landing | 1450 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 332/4 kt | 60.0 | 38,000 ft | 34,000 ft |
 
 ### INI Planning Steerpoints
 | Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Bullseye | Nearest package route point |

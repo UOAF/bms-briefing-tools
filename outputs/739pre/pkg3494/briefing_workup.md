@@ -15,7 +15,16 @@ Internal transitional artifact for briefing iteration. Keep provenance, gaps, an
 - INI grid transform: `grid_x = (ini_y / 3280.84); grid_y = (ini_x / 3280.84)`
 
 ## Meteorology Workup
-- Weather data unavailable: No FMAP sidecar was found..
+- Source: `C:\Falcon BMS 4.38\Data\Campaign\739pre.fmap` (v8+, 59x59 cells). Map wind 284/18 kt.
+- Sampling basis: FMAP row 0 is north; campaign grid Y is inverted into weather row space before sampling.
+- Theater mix: Sunny=2541, Fair=658, Poor=282
+
+## Meteorology
+| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1419 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 29.3 | 60.0 | 202/2 kt | 432.0 | 224.0 |
+| Target Area | 1437 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 | 332/4 kt | 448.4 | 138.5 |
+| Landing | 1526 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 29.3 | 60.0 | 202/2 kt | 432.0 | 224.0 |
 
 ## Bullseye
 - Bullseye: grid 643.0 / 145.0
@@ -137,6 +146,13 @@ Location data is separated here so the main brief stays readable.
 | AWACS | Dragnet 1 | 6 | SPLIT | 1905 | 485.0 | 326.0 | BE 319/130 | 2700.0 |  |
 | AWACS | Dragnet 1 | 7 | LAND | 1911 | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
 | AWACS | Dragnet 1 | 8 | LAND | 1040 | 477.0 | 395.0 | BE 326/162 | 0.0 | Seoul AB (RKSM) (objective 1484) |
+
+### Weather Sample Coordinates
+| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Briefed cloud base | Raw cumulus field ft | Contrail |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1419 | 46 | 24 | 432.0 | 224.0 | Sunny CLR | 202/2 kt | 60.0 | 38,000 ft | 4186 | 34,000 ft |
+| Target Area | 1437 | 51 | 25 | 448.4 | 138.5 | Sunny CLR | 332/4 kt | 60.0 | 38,000 ft | 4241 | 34,000 ft |
+| Landing | 1526 | 46 | 24 | 432.0 | 224.0 | Sunny CLR | 202/2 kt | 60.0 | 38,000 ft | 4186 | 34,000 ft |
 
 ### INI Planning Steerpoints
 | Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Bullseye | Nearest package route point |

@@ -1,5 +1,16 @@
 # BMS Mission Briefing: 739pre
 
+## Meteorology
+| Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1420 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 | 332/4 kt | 448.0 | 138.0 |
+| Target Area | 1424 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 60.0 | 302/2 kt | 552.0 | 124.0 |
+| Landing | 1450 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 30.1 | 60.0 | 332/4 kt | 448.0 | 138.0 |
+
+## Bullseye
+- Bullseye: grid 643.0 / 145.0
+- Named references: CRO BE 220/18; TIG BE 237/47; JEW BE 249/17; SA6 BE 276/13; 15 BE 280/15
+
 ## Package Coordination
 ### PKG 3465 - SEAD (5 flights)
 - Targets: No named tactical target listed
@@ -118,118 +129,126 @@ Threats below are focused on the package route, CAP/SAD areas, and named data-ca
 
 ## Coordinate Appendix
 Location data is separated here so the main brief stays readable.
+- Bullseye: grid 643.0 / 145.0
 
 ### PKG 3465 Flight Steerpoints
-| C/S | STPT | Action | Arrive | Grid X | Grid Y | Grid Z | Target/object |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Cyborg 1 | 0 | TAKEOFF | 1420 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cyborg 1 | 2 | TIMING | 1427 | 514.0 | 107.0 | 2200.0 |  |
-| Cyborg 1 | 3 | PUSH | 1435 | 570.0 | 98.0 | 2200.0 |  |
-| Cyborg 1 | 5 | SEAD | 1439 | 613.0 | 133.0 | 2000.0 |  |
-| Cyborg 1 | 6 | SPLIT | 1445 | 528.0 | 131.0 | 2100.0 |  |
-| Cyborg 1 | 8 | LAND | 1450 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cyborg 1 | 9 | LAND | 1450 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Jackal 2 | 0 | TAKEOFF | 1421 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jackal 2 | 2 | TIMING | 1428 | 511.0 | 103.0 | 2200.0 |  |
-| Jackal 2 | 3 | PUSH | 1435 | 570.0 | 99.0 | 2200.0 |  |
-| Jackal 2 | 6 | SEAD | 1439 | 621.0 | 119.0 | 2000.0 |  |
-| Jackal 2 | 7 | SPLIT | 1445 | 530.0 | 133.0 | 2100.0 |  |
-| Jackal 2 | 9 | LAND | 1451 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jackal 2 | 10 | LAND | 1451 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Cobra 2 | 0 | TAKEOFF | 1422 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cobra 2 | 3 | CAP | 1436 | 596.0 | 118.0 | 2100.0 |  |
-| Cobra 2 | 4 | CAP | 1438 | 624.0 | 126.0 | 2100.0 |  |
-| Cobra 2 | 6 | LAND | 1520 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cobra 2 | 7 | LAND | 1520 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Cajun 1 | 0 | TAKEOFF | 1423 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cajun 1 | 3 | CAP | 1437 | 597.0 | 108.0 | 2100.0 |  |
-| Cajun 1 | 4 | CAP | 1439 | 621.0 | 110.0 | 2100.0 |  |
-| Cajun 1 | 6 | LAND | 1520 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cajun 1 | 7 | LAND | 1520 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Cobra 4 | 0 | TAKEOFF | 1424 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cobra 4 | 3 | CAP | 1438 | 579.0 | 129.0 | 2100.0 |  |
-| Cobra 4 | 4 | CAP | 1440 | 596.0 | 141.0 | 2100.0 |  |
-| Cobra 4 | 6 | LAND | 1520 | 448.0 | 138.0 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Cobra 4 | 7 | LAND | 1520 | 410.0 | 124.0 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cyborg 1 | 0 | TAKEOFF | 1420 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cyborg 1 | 2 | TIMING | 1427 | 514.0 | 107.0 | BE 254/73 | 2200.0 |  |
+| Cyborg 1 | 3 | PUSH | 1435 | 570.0 | 98.0 | BE 237/47 | 2200.0 |  |
+| Cyborg 1 | 5 | SEAD | 1439 | 613.0 | 133.0 | BE 248/17 | 2000.0 |  |
+| Cyborg 1 | 6 | SPLIT | 1445 | 528.0 | 131.0 | BE 263/63 | 2100.0 |  |
+| Cyborg 1 | 8 | LAND | 1450 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cyborg 1 | 9 | LAND | 1450 | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Jackal 2 | 0 | TAKEOFF | 1421 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jackal 2 | 2 | TIMING | 1428 | 511.0 | 103.0 | BE 252/75 | 2200.0 |  |
+| Jackal 2 | 3 | PUSH | 1435 | 570.0 | 99.0 | BE 238/47 | 2200.0 |  |
+| Jackal 2 | 6 | SEAD | 1439 | 621.0 | 119.0 | BE 220/18 | 2000.0 |  |
+| Jackal 2 | 7 | SPLIT | 1445 | 530.0 | 133.0 | BE 264/61 | 2100.0 |  |
+| Jackal 2 | 9 | LAND | 1451 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jackal 2 | 10 | LAND | 1451 | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Cobra 2 | 0 | TAKEOFF | 1422 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cobra 2 | 3 | CAP | 1436 | 596.0 | 118.0 | BE 240/29 | 2100.0 |  |
+| Cobra 2 | 4 | CAP | 1438 | 624.0 | 126.0 | BE 225/15 | 2100.0 |  |
+| Cobra 2 | 6 | LAND | 1520 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cobra 2 | 7 | LAND | 1520 | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Cajun 1 | 0 | TAKEOFF | 1423 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cajun 1 | 3 | CAP | 1437 | 597.0 | 108.0 | BE 231/32 | 2100.0 |  |
+| Cajun 1 | 4 | CAP | 1439 | 621.0 | 110.0 | BE 212/22 | 2100.0 |  |
+| Cajun 1 | 6 | LAND | 1520 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cajun 1 | 7 | LAND | 1520 | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Cobra 4 | 0 | TAKEOFF | 1424 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cobra 4 | 3 | CAP | 1438 | 579.0 | 129.0 | BE 256/36 | 2100.0 |  |
+| Cobra 4 | 4 | CAP | 1440 | 596.0 | 141.0 | BE 265/25 | 2100.0 |  |
+| Cobra 4 | 6 | LAND | 1520 | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Cobra 4 | 7 | LAND | 1520 | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
 
 ### Linked Support Flight Coordinates
-| Role | C/S | STPT | Action | Arrive | Grid X | Grid Y | Grid Z | Target/object |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| AWACS | Dragnet 1 | 0 | TAKEOFF | 1332 | 449.0 | 407.0 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
-| AWACS | Dragnet 1 | 2 | TIMING | 1346 | 443.0 | 309.0 | 2800.0 |  |
-| AWACS | Dragnet 1 | 3 | PUSH | 1353 | 458.0 | 298.0 | 2800.0 |  |
-| AWACS | Dragnet 1 | 4 | ELINT | 1357 | 462.0 | 255.0 | 2600.0 |  |
-| AWACS | Dragnet 1 | 5 | ELINT | 1401 | 504.0 | 281.0 | 2600.0 |  |
-| AWACS | Dragnet 1 | 6 | SPLIT | 1905 | 485.0 | 326.0 | 2700.0 |  |
-| AWACS | Dragnet 1 | 7 | LAND | 1911 | 449.0 | 407.0 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
-| AWACS | Dragnet 1 | 8 | LAND | 1040 | 477.0 | 395.0 | 0.0 | Seoul AB (RKSM) (objective 1484) |
-| TANKER | Copper 5 | 0 | TAKEOFF | 1510 | 421.0 | 313.0 | 0.0 | Pyeongtaek AAF (RKSG) (objective 924) |
-| TANKER | Copper 5 | 2 | TIMING | 1514 | 406.0 | 302.0 | 530.0 |  |
-| TANKER | Copper 5 | 4 | TANKER | 1524 | 435.0 | 277.0 | 2400.0 |  |
-| TANKER | Copper 5 | 5 | TANKER | 1533 | 360.0 | 342.0 | 2400.0 |  |
-| TANKER | Copper 5 | 7 | LAND | 2037 | 421.0 | 313.0 | 0.0 | Pyeongtaek AAF (RKSG) (objective 924) |
-| TANKER | Copper 5 | 8 | LAND | 1027 | 470.0 | 341.0 | 0.0 | Gumi Highway Strip (objective 927) |
+| Role | C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AWACS | Dragnet 1 | 0 | TAKEOFF | 1332 | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
+| AWACS | Dragnet 1 | 2 | TIMING | 1346 | 443.0 | 309.0 | BE 309/140 | 2800.0 |  |
+| AWACS | Dragnet 1 | 3 | PUSH | 1353 | 458.0 | 298.0 | BE 310/130 | 2800.0 |  |
+| AWACS | Dragnet 1 | 4 | ELINT | 1357 | 462.0 | 255.0 | BE 301/114 | 2600.0 |  |
+| AWACS | Dragnet 1 | 5 | ELINT | 1401 | 504.0 | 281.0 | BE 314/105 | 2600.0 |  |
+| AWACS | Dragnet 1 | 6 | SPLIT | 1905 | 485.0 | 326.0 | BE 319/130 | 2700.0 |  |
+| AWACS | Dragnet 1 | 7 | LAND | 1911 | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
+| AWACS | Dragnet 1 | 8 | LAND | 1040 | 477.0 | 395.0 | BE 326/162 | 0.0 | Seoul AB (RKSM) (objective 1484) |
+| TANKER | Copper 5 | 0 | TAKEOFF | 1510 | 421.0 | 313.0 | BE 307/150 | 0.0 | Pyeongtaek AAF (RKSG) (objective 924) |
+| TANKER | Copper 5 | 2 | TIMING | 1514 | 406.0 | 302.0 | BE 304/154 | 530.0 |  |
+| TANKER | Copper 5 | 4 | TANKER | 1524 | 435.0 | 277.0 | BE 302/133 | 2400.0 |  |
+| TANKER | Copper 5 | 5 | TANKER | 1533 | 360.0 | 342.0 | BE 305/186 | 2400.0 |  |
+| TANKER | Copper 5 | 7 | LAND | 2037 | 421.0 | 313.0 | BE 307/150 | 0.0 | Pyeongtaek AAF (RKSG) (objective 924) |
+| TANKER | Copper 5 | 8 | LAND | 1027 | 470.0 | 341.0 | BE 319/141 | 0.0 | Gumi Highway Strip (objective 927) |
+
+### Weather Sample Coordinates
+| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base | Contrail |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Takeoff | 1420 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 332/4 kt | 60.0 | 38,000 ft | 34,000 ft |
+| Target Area | 1424 | 51 | 31 | 552.0 | 124.0 | Sunny CLR | 302/2 kt | 60.0 | 38,000 ft | 34,000 ft |
+| Landing | 1450 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 332/4 kt | 60.0 | 38,000 ft | 34,000 ft |
 
 ### INI Planning Steerpoints
-| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Nearest package route point |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| target | TGT 0 | 1 | 454277.2 | 1471071.0 | 448.4 | 138.5 | Cyborg 1 TAKEOFF STPT 0 @ 1420 0.3 NM |
-| target | TGT 1 | 0 | 359157.8 | 1589150.2 | 484.4 | 109.5 |  |
-| target | TGT 2 | 8 | 339477.9 | 1677709.8 | 511.4 | 103.5 | Jackal 2 TIMING STPT 2 @ 1428 0.3 NM |
-| target | TGT 3 | 2 | 326358.0 | 1871228.6 | 570.4 | 99.5 | Jackal 2 PUSH STPT 3 @ 1435 0.3 NM |
-| target | TGT 4 | 0 | 355877.8 | 1926988.2 | 587.3 | 108.5 | Cajun 1 CAP STPT 3 @ 1437 5.2 NM |
-| target | TGT 5 | 0 | 378837.7 | 1992587.9 | 607.3 | 115.5 | Cobra 2 CAP STPT 3 @ 1436 6.2 NM |
-| target | TGT 6 | 19 | 391957.6 | 2038507.6 | 621.3 | 119.5 | Jackal 2 SEAD STPT 6 @ 1439 0.3 NM |
-| target | TGT 7 | 3 | 437877.3 | 1740029.4 | 530.4 | 133.5 | Jackal 2 SPLIT STPT 7 @ 1445 0.3 NM |
-| target | TGT 8 | 0 | 428037.4 | 1651469.9 | 503.4 | 130.5 | Cyborg 1 SPLIT STPT 6 @ 1445 13.3 NM |
-| target | TGT 9 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | Cyborg 1 TAKEOFF STPT 0 @ 1420 0.3 NM |
-| target | TGT 10 | 7 | 408357.5 | 1346431.8 | 410.4 | 124.5 | Cyborg 1 LAND STPT 9 @ 1450 0.3 NM |
-| ppt | 10 |  | 430439.5 | 2152718.8 | 656.1 | 131.2 |  |
-| ppt | 10 |  | 477053.2 | 2107703.2 | 642.4 | 145.4 |  |
-| ppt | 15 |  | 490476.2 | 2021947.5 | 616.3 | 149.5 | Cyborg 1 SEAD STPT 5 @ 1439 9.1 NM |
-| ppt | 10 |  | 486715.5 | 2165976.5 | 660.2 | 148.4 |  |
-| ppt | SA5 |  | 526853.8 | 2211818.5 | 674.2 | 160.6 |  |
-| ppt | CRO |  | 390471.2 | 2038726.6 | 621.4 | 119.0 | Jackal 2 SEAD STPT 6 @ 1439 0.2 NM |
-| ppt | JEW |  | 438672.2 | 2013361.9 | 613.7 | 133.7 | Cyborg 1 SEAD STPT 5 @ 1439 0.5 NM |
-| ppt | SA6 |  | 483899.2 | 2031964.2 | 619.3 | 147.5 | Cyborg 1 SEAD STPT 5 @ 1439 8.5 NM |
-| ppt | 10 |  | 598985.8 | 2254517.0 | 687.2 | 182.6 |  |
-| ppt | TIG |  | 322750.0 | 1871245.2 | 570.4 | 98.4 | Cyborg 1 PUSH STPT 3 @ 1435 0.3 NM |
+| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Bullseye | Nearest package route point |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| target | TGT 0 | 1 | 454277.2 | 1471071.0 | 448.4 | 138.5 | BE 268/105 | Cyborg 1 TAKEOFF STPT 0 @ 1420 0.3 NM |
+| target | TGT 1 | 0 | 359157.8 | 1589150.2 | 484.4 | 109.5 | BE 257/88 |  |
+| target | TGT 2 | 8 | 339477.9 | 1677709.8 | 511.4 | 103.5 | BE 252/75 | Jackal 2 TIMING STPT 2 @ 1428 0.3 NM |
+| target | TGT 3 | 2 | 326358.0 | 1871228.6 | 570.4 | 99.5 | BE 238/46 | Jackal 2 PUSH STPT 3 @ 1435 0.3 NM |
+| target | TGT 4 | 0 | 355877.8 | 1926988.2 | 587.3 | 108.5 | BE 237/36 | Cajun 1 CAP STPT 3 @ 1437 5.2 NM |
+| target | TGT 5 | 0 | 378837.7 | 1992587.9 | 607.3 | 115.5 | BE 230/25 | Cobra 2 CAP STPT 3 @ 1436 6.2 NM |
+| target | TGT 6 | 19 | 391957.6 | 2038507.6 | 621.3 | 119.5 | BE 220/18 | Jackal 2 SEAD STPT 6 @ 1439 0.3 NM |
+| target | TGT 7 | 3 | 437877.3 | 1740029.4 | 530.4 | 133.5 | BE 264/61 | Jackal 2 SPLIT STPT 7 @ 1445 0.3 NM |
+| target | TGT 8 | 0 | 428037.4 | 1651469.9 | 503.4 | 130.5 | BE 264/76 | Cyborg 1 SPLIT STPT 6 @ 1445 13.3 NM |
+| target | TGT 9 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | BE 268/105 | Cyborg 1 TAKEOFF STPT 0 @ 1420 0.3 NM |
+| target | TGT 10 | 7 | 408357.5 | 1346431.8 | 410.4 | 124.5 | BE 265/126 | Cyborg 1 LAND STPT 9 @ 1450 0.3 NM |
+| ppt | 10 |  | 430439.5 | 2152718.8 | 656.1 | 131.2 | BE 136/10 |  |
+| ppt | 10 |  | 477053.2 | 2107703.2 | 642.4 | 145.4 | BE 304/0 |  |
+| ppt | 15 |  | 490476.2 | 2021947.5 | 616.3 | 149.5 | BE 280/15 | Cyborg 1 SEAD STPT 5 @ 1439 9.1 NM |
+| ppt | 10 |  | 486715.5 | 2165976.5 | 660.2 | 148.4 | BE 079/9 |  |
+| ppt | SA5 |  | 526853.8 | 2211818.5 | 674.2 | 160.6 | BE 063/19 |  |
+| ppt | CRO |  | 390471.2 | 2038726.6 | 621.4 | 119.0 | BE 220/18 | Jackal 2 SEAD STPT 6 @ 1439 0.2 NM |
+| ppt | JEW |  | 438672.2 | 2013361.9 | 613.7 | 133.7 | BE 249/17 | Cyborg 1 SEAD STPT 5 @ 1439 0.5 NM |
+| ppt | SA6 |  | 483899.2 | 2031964.2 | 619.3 | 147.5 | BE 276/13 | Cyborg 1 SEAD STPT 5 @ 1439 8.5 NM |
+| ppt | 10 |  | 598985.8 | 2254517.0 | 687.2 | 182.6 | BE 050/31 |  |
+| ppt | TIG |  | 322750.0 | 1871245.2 | 570.4 | 98.4 | BE 237/47 | Cyborg 1 PUSH STPT 3 @ 1435 0.3 NM |
 
 ### Strategic Air Defense Coordinates
 Air-defense rows use saved campaign battalion/unit grid coordinates and exclude embedded short-range point/base defenses. They are enemy strategic sites with active tracking radars.
-| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1785 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 619.0 | 147.0 | INI SA6 | 0.3 | 18 | 15 |
-| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | INI SA6 | 12.3 | 85 | 71 |
-| 1753 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 656.0 | 131.0 | Cobra 2 CAP STPT 4 @ 1438 | 17.5 | 85 | 71 |
-| 1757 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 656.0 | 131.0 | Cobra 2 CAP STPT 4 @ 1438 | 17.5 | 85 | 71 |
-| 1783 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 660.0 | 148.0 | INI SA6 | 22.0 | 85 | 71 |
-| 1787 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 660.0 | 148.0 | INI SA6 | 22.0 | 18 | 15 |
-| 1759 | USSR | Air Defense | SA-5 (S-200); Square Pair; ZIL-131; KrAz T 255B; Bar Lock B | Square Pair (slot 3, 1/1) | 674.0 | 160.0 | INI SA6 | 30.3 | 99 | 83 |
-| 1767 | USSR | Air Defense | SA-11 (9K37M1); KrAz T 255B; Snow Drift; BMP-1KSh; ACRV MT-LBu | SA-11 (9K37M1) (slot 0, 3/3) | 677.0 | 179.0 | INI SA6 | 35.5 | 22 | 19 |
-| 1781 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 617.0 | 225.0 | INI 15 | 40.8 | 85 | 71 |
-| 2235 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 617.0 | 225.0 | INI 15 | 40.8 | 85 | 71 |
-| 1773 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 687.0 | 182.0 | INI SA6 | 41.0 | 85 | 71 |
-| 1763 | USSR | Air Defense | SA-2 (S-75); Fan Song E; ZU-23; ZIL-131; KrAz T 255B | Fan Song E (slot 3, 1/1) | 643.0 | 229.0 | INI 15 | 45.3 | 30 | 25 |
-| 1769 | USSR | Air Defense | SA-17 (9K37M2); KrAz T 255B; Snow Drift; BMP-1KSh; ACRV MT-LBu | SA-17 (9K37M2) (slot 0, 3/3) | 646.0 | 234.0 | INI 15 | 48.4 | 30 | 25 |
-| 1761 | USSR | Air Defense | SA-5 (S-200); Square Pair; ZIL-131; KrAz T 255B; Bar Lock B | Square Pair (slot 3, 1/1) | 690.0 | 204.0 | INI SA6 | 48.9 | 99 | 83 |
-| 1774 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 690.0 | 204.0 | INI SA6 | 48.9 | 85 | 71 |
+| ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Bullseye | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1785 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 619.0 | 147.0 | BE 275/13 | INI SA6 | 0.3 | 18 | 15 |
+| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | BE 270/1 | INI SA6 | 12.3 | 85 | 71 |
+| 1753 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 656.0 | 131.0 | BE 137/10 | Cobra 2 CAP STPT 4 @ 1438 | 17.5 | 85 | 71 |
+| 1757 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 656.0 | 131.0 | BE 137/10 | Cobra 2 CAP STPT 4 @ 1438 | 17.5 | 85 | 71 |
+| 1783 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 660.0 | 148.0 | BE 080/9 | INI SA6 | 22.0 | 85 | 71 |
+| 1787 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 660.0 | 148.0 | BE 080/9 | INI SA6 | 22.0 | 18 | 15 |
+| 1759 | USSR | Air Defense | SA-5 (S-200); Square Pair; ZIL-131; KrAz T 255B; Bar Lock B | Square Pair (slot 3, 1/1) | 674.0 | 160.0 | BE 064/19 | INI SA6 | 30.3 | 99 | 83 |
+| 1767 | USSR | Air Defense | SA-11 (9K37M1); KrAz T 255B; Snow Drift; BMP-1KSh; ACRV MT-LBu | SA-11 (9K37M1) (slot 0, 3/3) | 677.0 | 179.0 | BE 045/26 | INI SA6 | 35.5 | 22 | 19 |
+| 1781 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 617.0 | 225.0 | BE 342/45 | INI 15 | 40.8 | 85 | 71 |
+| 2235 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 617.0 | 225.0 | BE 342/45 | INI 15 | 40.8 | 85 | 71 |
+| 1773 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 687.0 | 182.0 | BE 050/31 | INI SA6 | 41.0 | 85 | 71 |
+| 1763 | USSR | Air Defense | SA-2 (S-75); Fan Song E; ZU-23; ZIL-131; KrAz T 255B | Fan Song E (slot 3, 1/1) | 643.0 | 229.0 | BE 000/45 | INI 15 | 45.3 | 30 | 25 |
+| 1769 | USSR | Air Defense | SA-17 (9K37M2); KrAz T 255B; Snow Drift; BMP-1KSh; ACRV MT-LBu | SA-17 (9K37M2) (slot 0, 3/3) | 646.0 | 234.0 | BE 002/48 | INI 15 | 48.4 | 30 | 25 |
+| 1761 | USSR | Air Defense | SA-5 (S-200); Square Pair; ZIL-131; KrAz T 255B; Bar Lock B | Square Pair (slot 3, 1/1) | 690.0 | 204.0 | BE 039/41 | INI SA6 | 48.9 | 99 | 83 |
+| 1774 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 690.0 | 204.0 | BE 039/41 | INI SA6 | 48.9 | 85 | 71 |
 
 ### Active Enemy Air Contact Coordinates
 Rows use current campaign-time positions. Enemy callsigns and package IDs are omitted.
-| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Alt ft | Nearest package/INI anchor | Dist NM | Basis |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| E | Ka-52K | air contact | 1 | 650.0 | 146.0 | 7761 | INI JEW | 0.1 | airborne now; next leg vectors inside 30 NM by 1411 |
-| SW | Su-33 | air contact | 2 | 554.0 | 80.0 | 26000 | Cajun 1 CAP STPT 4 @ 1439 | 2.5 | airborne now; next leg vectors inside 30 NM by 1406 |
-| SW | Mi-8 | air contact | 2 | 611.0 | 146.0 | 4869 | INI 15 | 3.4 | airborne now within 30 NM of target-area anchor |
-| W | Mi-28 | air contact | 2 | 608.0 | 148.0 | 6000 | INI 15 | 4.6 | airborne now within 30 NM of target-area anchor |
-| SW | Su-39 | air contact | 2 | 529.0 | 71.0 | 16000 | Cyborg 1 PUSH STPT 3 @ 1435 | 5.8 | airborne now; next leg vectors inside 30 NM by 1404 |
-| E | MiG-31 | air contact | 2 | 642.0 | 145.0 | 0 | INI SA6 | 12.3 | airborne now within 30 NM of target-area anchor |
-| NE | Su-35S | air contact | 2 | 658.0 | 164.0 | 26000 | INI SA6 | 17.1 | airborne now; next leg vectors inside 30 NM by 1401 |
-| E | MiG-29S | fighter-capable | 2 | 653.0 | 154.0 | 14300 | INI SA6 | 18.5 | airborne now within 30 NM of target-area anchor |
-| E | MiG-29S | fighter-capable | 2 | 653.0 | 154.0 | 16300 | INI SA6 | 18.5 | airborne now within 30 NM of target-area anchor |
-| N | MiG-27 | air contact | 2 | 578.0 | 188.0 | 15000 | Cobra 4 CAP STPT 4 @ 1440 | 27.2 | airborne now within 30 NM of target-area anchor |
-| NE | Mi-28 | air contact | 2 | 666.0 | 167.0 | 6000 | INI SA6 | 27.3 | airborne now within 30 NM of target-area anchor |
+| Sector | Aircraft | Capability | Count | Grid X | Grid Y | Bullseye | Alt ft | Nearest package/INI anchor | Dist NM | Basis |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E | Ka-52K | air contact | 1 | 650.0 | 146.0 | BE 082/4 | 7761 | INI JEW | 0.1 | airborne now; next leg vectors inside 30 NM by 1411 |
+| SW | Su-33 | air contact | 2 | 554.0 | 80.0 | BE 234/60 | 26000 | Cajun 1 CAP STPT 4 @ 1439 | 2.5 | airborne now; next leg vectors inside 30 NM by 1406 |
+| SW | Mi-8 | air contact | 2 | 611.0 | 146.0 | BE 272/17 | 4869 | INI 15 | 3.4 | airborne now within 30 NM of target-area anchor |
+| W | Mi-28 | air contact | 2 | 608.0 | 148.0 | BE 275/19 | 6000 | INI 15 | 4.6 | airborne now within 30 NM of target-area anchor |
+| SW | Su-39 | air contact | 2 | 529.0 | 71.0 | BE 237/73 | 16000 | Cyborg 1 PUSH STPT 3 @ 1435 | 5.8 | airborne now; next leg vectors inside 30 NM by 1404 |
+| E | MiG-31 | air contact | 2 | 642.0 | 145.0 | BE 270/1 | 0 | INI SA6 | 12.3 | airborne now within 30 NM of target-area anchor |
+| NE | Su-35S | air contact | 2 | 658.0 | 164.0 | BE 038/13 | 26000 | INI SA6 | 17.1 | airborne now; next leg vectors inside 30 NM by 1401 |
+| E | MiG-29S | fighter-capable | 2 | 653.0 | 154.0 | BE 048/7 | 14300 | INI SA6 | 18.5 | airborne now within 30 NM of target-area anchor |
+| E | MiG-29S | fighter-capable | 2 | 653.0 | 154.0 | BE 048/7 | 16300 | INI SA6 | 18.5 | airborne now within 30 NM of target-area anchor |
+| N | MiG-27 | air contact | 2 | 578.0 | 188.0 | BE 303/42 | 15000 | Cobra 4 CAP STPT 4 @ 1440 | 27.2 | airborne now within 30 NM of target-area anchor |
+| NE | Mi-28 | air contact | 2 | 666.0 | 167.0 | BE 046/17 | 6000 | INI SA6 | 27.3 | airborne now within 30 NM of target-area anchor |
 
 ### Resolved Location Objects
 | Kind | ID | Name | Source X | Source Y | Source Z |

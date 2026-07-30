@@ -7,6 +7,9 @@ For the scalability plan and upstream parser/tooling assessment, see
 [`docs/scalable-tooling-strategy.md`](docs/scalable-tooling-strategy.md).
 For clean-machine setup and dependency checks, see
 [`docs/standalone-setup.md`](docs/standalone-setup.md).
+The Codex production workflow skill lives in
+[`skills/bms-briefing-planner`](skills/bms-briefing-planner); copy or symlink it
+into `$CODEX_HOME/skills/bms-briefing-planner` when setting up a new workstation.
 
 Current prototype:
 

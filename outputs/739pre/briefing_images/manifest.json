@@ -13,5 +13,10 @@
     "name": "03_objective_area_map.png",
     "description": "Close objective-area map for target prosecution details.",
     "source": "slide_v1_3\\briefing_images\\03_objective_area_map.png"
+  },
+  {
+    "name": "04_weather_map.png",
+    "description": "Weather review map, when available.",
+    "source": "slide_v1_3\\briefing_images\\04_weather_map.png"
   }
 ]

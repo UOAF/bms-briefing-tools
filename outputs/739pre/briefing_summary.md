@@ -2,6 +2,8 @@
 
 ## Files
 - `.cam`: 174994 bytes, head int32=[174819, 5308, 26476, -1036574465]
+- `.fmap`: 417764 bytes, head int32=[8, 59, 59, 284]
+- `.fmap.backup-20260731-004603`: 417764 bytes, head int32=[8, 59, 59, 280]
 - `.frc`: 402 bytes, head int32=[10802176, 8, 0, 0]
 - `.his`: 7123 bytes, head int32=[10802176, -1492909606, 67200258, 30868025]
 - `.iff`: 10272 bytes, head int32=[1179011419, 1819234336, 544826217, 1835099476]
@@ -51,24 +53,6 @@
 - mission_channel:1: 14
 - mission_channel:65: 5
 - mission_channel:68: 7
-
-## CAM Decode
-- Full decode: `outputs\739pre\cam_decode.json`
-- Save version: `109`, class table entries: 5261
-- Campaign clock: campaign_time_ms=12728096, clock_base=1400
-- Objective deltas: 65
-- Units: Battalion=473, Brigade=100, Flight=159, Package=112, Squadron=47, TaskForce=32
-- Teams: XX, U.S., ROK, Japan, USSR, PRC, DPRK, NATO
-- Mission counts: TARCAP=26, CAS=19, BAI=17, PRE-PLAN CAS=15, SCAR=14, BARCAP=11, QRA=10, ESCORT=9, RECCE PATROL=8, OCA STRIKE=6, TASMO=4, AEW/ABCCC=3
-- Sample flights:
-  - 943: Dragnet 3 ELINT pkg=13 wpts=9
-  - 1222: Dragnet 1 AEW/ABCCC pkg=1190 wpts=9
-  - 1227: Chalice 5 ELINT pkg=1225 wpts=9
-  - 1231: Mohawk 1 CAS pkg=1230 wpts=10
-  - 1531: Devil 4 SCAR pkg=1511 wpts=9
-  - 1945: Rumble 5 ABORTED pkg=1943 wpts=11
-  - 1949: Hawkeye 3 CAS pkg=1947 wpts=9
-  - 1951: Mako 2 CAS pkg=1855 wpts=12
 
 ## Current Status
 The `.cam` container, teams, objective deltas, units, packages, flights, squadrons, missions, callsigns, package support IDs, flight loadouts, laser codes, TACAN values, waypoint target refs, current-unit altitude, and waypoints are now decoded for briefing synthesis. Remaining non-CAM work is radio/channel sidecar correlation for saves whose Link 16 identifiers do not match CAM flight IDs.

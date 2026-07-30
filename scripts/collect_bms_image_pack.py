@@ -64,6 +64,7 @@ SLIDE_IMAGE_PRODUCTS = (
         "name": "04_weather_map.png",
         "description": "Weather review map, when available.",
         "candidates": (
+            "04_weather_map",
             "weather_map_skyvector",
         ),
         "optional": True,
