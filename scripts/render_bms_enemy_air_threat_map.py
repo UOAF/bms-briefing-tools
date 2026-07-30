@@ -508,6 +508,96 @@ def label_text(origin: dict[str, Any]) -> str:
     return f"{origin.get('name')} | {aircraft}"
 
 
+def compact_aircraft_name(name: str) -> str:
+    cleaned = str(name or "").strip()
+    compact = cleaned.upper().replace("-", "").replace(" ", "")
+    replacements = (
+        ("MIG29S", "M29S"),
+        ("MIG29", "M29"),
+        ("MIG27", "M27"),
+        ("MIG31", "M31"),
+        ("SU35S", "S35S"),
+        ("SU35", "S35"),
+        ("SU33", "S33"),
+        ("SU39", "S39"),
+        ("SU27", "S27"),
+        ("SU30", "S30"),
+        ("SU34", "S34"),
+    )
+    for needle, replacement in replacements:
+        if needle in compact:
+            return replacement
+    return cleaned[:8]
+
+
+def compact_aircraft_list(names: list[str], limit: int = 3) -> str:
+    compacted: list[str] = []
+    for name in names:
+        compact = compact_aircraft_name(name)
+        if compact and compact not in compacted:
+            compacted.append(compact)
+    shown = compacted[:limit]
+    if len(compacted) > limit:
+        shown.append("+")
+    return ", ".join(shown)
+
+
+def compact_origin_name(name: Any) -> str:
+    text = str(name or "").strip()
+    text = text.split("(", 1)[0].strip()
+    for token in (" International", " Intl", " Airport", " Airbase", " AB"):
+        text = text.replace(token, "")
+    return text.strip() or "Origin"
+
+
+def compact_sam_label(label: Any) -> str:
+    text = str(label or "").upper().replace(" ", "")
+    text = text.replace("SA-", "SA").replace("_", "")
+    if text.startswith("SA10"):
+        return "10"
+    if text.startswith("SA6"):
+        return "6"
+    if text.startswith("SA17"):
+        return "17"
+    if text.startswith("SA11"):
+        return "11"
+    if text.startswith("SA5"):
+        return "5"
+    if text.startswith("SA3"):
+        return "3"
+    if text.startswith("SA2"):
+        return "2"
+    return str(label or "")[:6]
+
+
+def compact_named_label(label: Any) -> str:
+    text = str(label or "").strip()
+    upper = text.upper().replace("-", "").replace(" ", "")
+    if upper in {"SA10W", "SA10WEST", "10WEST"}:
+        return "10W"
+    if upper in {"SA10E", "SA10EAST", "10EAST"}:
+        return "10E"
+    if upper in {"SA10S", "SA10SOUTH", "10SOUTH"}:
+        return "10S"
+    if upper in {"SA6", "SA6MARK"}:
+        return "6"
+    return text
+
+
+def compact_label_text(origin: dict[str, Any]) -> str:
+    shown = compact_aircraft_list(origin.get("aircraft") or [])
+    name = str(origin.get("name") or "").strip()
+    if name.lower().startswith("offshore group"):
+        return shown or "Offshore"
+    origin_name_short = compact_origin_name(name)
+    return f"{origin_name_short} ({shown})" if shown else origin_name_short
+
+
+def is_airbase_origin(origin: dict[str, Any]) -> bool:
+    name = str(origin.get("name") or "").lower()
+    return bool(origin.get("airbase_id")) or not name.startswith("offshore group")
+
+
 def origin_name(grid_x: float, grid_y: float, airbase_name: str | None) -> str:
     if airbase_name:
         return airbase_name
@@ -524,6 +614,34 @@ def edge_label_position(point: tuple[float, float], width: int, height: int) -> 
     if x <= margin + 1:
         return (x + 8, y - 14), "la"
     return (x + 8, y + (24 if y < height / 2 else -14)), "la"
+
+
+def draw_fitted_text_box(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[float, float],
+    text: str,
+    font: ImageFont.ImageFont,
+    width: int,
+    height: int,
+    fill: tuple[int, int, int] = TEXT,
+    bg: tuple[int, int, int, int] = LABEL_BG,
+    pad: int = 3,
+    anchor: str = "la",
+    margin: int = 8,
+) -> tuple[int, int, int, int]:
+    x, y = xy
+    bbox = draw.textbbox((x, y), text, font=font, anchor=anchor)
+    dx = 0
+    dy = 0
+    if bbox[0] < margin:
+        dx = margin - bbox[0]
+    elif bbox[2] > width - margin:
+        dx = width - margin - bbox[2]
+    if bbox[1] < margin:
+        dy = margin - bbox[1]
+    elif bbox[3] > height - margin:
+        dy = height - margin - bbox[3]
+    return draw_text_box(draw, (x + dx, y + dy), text, font, fill=fill, bg=bg, pad=pad, anchor=anchor)
 
 
 def collect_strategic_air_defenses(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -556,6 +674,7 @@ def draw_low_opacity_air_defense_rings(
     font: ImageFont.ImageFont,
     opacity: float,
     style: str = "target-area",
+    compact_labels: bool = False,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     opacity = max(0.0, min(1.0, opacity))
@@ -580,6 +699,8 @@ def draw_low_opacity_air_defense_rings(
         draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
         if point_inside_image(center, overlay.width, overlay.height, 16):
             label = air_defense_threat_label(air_defense)
+            if compact_labels:
+                label = compact_sam_label(label)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
 
 
@@ -605,6 +726,9 @@ def draw_flow_groups(
     scale: int,
     map_width: int,
     map_height: int,
+    width_multiplier: float = 1.0,
+    compact_labels: bool = False,
+    show_origin_labels: bool = False,
 ) -> None:
     labeled_origins: set[str] = set()
     origin_labels: list[tuple[tuple[float, float], str, str]] = []
@@ -619,37 +743,66 @@ def draw_flow_groups(
         if len(points) < 2:
             continue
         color = group.get("color") or FLOW_BLUE
+        origin_label = str(group.get("origin_label") or "").strip()
         if len(points) >= 2 and not point_inside_image(points[0], map_width, map_height, 18):
             clipped_origin = clip_segment_to_rect(points[0], points[1], map_width, map_height, pad=18)
             points = [clipped_origin, *points[1:]]
-            origin_label = str(group.get("origin_label") or "").strip()
-            if origin_label and origin_label not in labeled_origins:
+            if show_origin_labels and origin_label and origin_label not in labeled_origins:
                 label_xy, anchor = edge_label_position(clipped_origin, map_width, map_height)
                 if label_xy[0] < 580 and label_xy[1] < 104:
                     label_xy = (label_xy[0], 104)
                 origin_labels.append((label_xy, origin_label, anchor))
                 labeled_origins.add(origin_label)
-        draw_flow_arrow(draw, points, color, width=max(8, scale))
-        label = str(group.get("label"))
+        elif show_origin_labels and origin_label and origin_label not in labeled_origins:
+            origin_xy = points[0]
+            marker_radius = max(8, int(scale * width_multiplier * 0.65))
+            draw.rectangle(
+                (
+                    origin_xy[0] - marker_radius,
+                    origin_xy[1] - marker_radius,
+                    origin_xy[0] + marker_radius,
+                    origin_xy[1] + marker_radius,
+                ),
+                fill=(64, 180, 255, 235),
+                outline=(5, 20, 28, 250),
+                width=max(2, scale // 5),
+            )
+            draw.line(
+                (
+                    origin_xy[0] - marker_radius + 3,
+                    origin_xy[1] + marker_radius - 3,
+                    origin_xy[0] + marker_radius - 3,
+                    origin_xy[1] - marker_radius + 3,
+                ),
+                fill=(235, 250, 255, 245),
+                width=max(2, scale // 6),
+            )
+            origin_labels.append(((origin_xy[0] + marker_radius + 8, origin_xy[1] - marker_radius - 2), origin_label, "la"))
+            labeled_origins.add(origin_label)
+        draw_flow_arrow(draw, points, color, width=max(8, int(scale * width_multiplier)))
+        original_label = str(group.get("label"))
+        label = str(group.get("compact_label") if compact_labels and group.get("compact_label") else original_label)
         fraction, label_offset = next(
-            (spec for prefix, spec in flow_label_specs.items() if label.startswith(prefix)),
+            (spec for prefix, spec in flow_label_specs.items() if original_label.startswith(prefix)),
             (0.55, (14, -24)),
         )
+        if compact_labels and original_label.startswith("East Fighter Screen"):
+            label_offset = (34, -58)
         route_point = point_along_polyline(points, fraction)
         label_xy = (route_point[0] + label_offset[0], route_point[1] + label_offset[1])
         flow_labels.append((label_xy, route_point, label, color))
     for xy, route_point, _label, color in flow_labels:
-        draw.line((route_point[0], route_point[1], xy[0], xy[1]), fill=color + (190,), width=max(2, scale // 3))
-        dot_radius = max(4, scale // 2)
+        draw.line((route_point[0], route_point[1], xy[0], xy[1]), fill=color + (190,), width=max(2, int(scale * width_multiplier) // 3))
+        dot_radius = max(4, int(scale * width_multiplier) // 2)
         draw.ellipse(
             (route_point[0] - dot_radius, route_point[1] - dot_radius, route_point[0] + dot_radius, route_point[1] + dot_radius),
             fill=color + (220,),
             outline=(8, 18, 22, 230),
         )
     for xy, _route_point, label, color in flow_labels:
-        draw_text_box(draw, xy, label, label_font, fill=color, bg=LABEL_BG)
+        draw_fitted_text_box(draw, xy, label, label_font, map_width, map_height, fill=color, bg=LABEL_BG)
     for xy, label, anchor in origin_labels:
-        draw_text_box(draw, xy, label, label_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+        draw_fitted_text_box(draw, xy, label, label_font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor=anchor)
 
 
 def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False, output_path: Path | None = None) -> Path:
@@ -693,12 +846,29 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     overlay = Image.new("RGBA", (map_width, map_height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay, "RGBA")
     projector = Projector(crop, args.scale)
-    title_font = load_font(max(20, int(args.scale * 2.4)), bold=True)
-    label_font = load_font(max(15, int(args.scale * 1.45)), bold=True)
-    small_font = load_font(max(13, int(args.scale * 1.15)))
+    if args.presentation_profile == "slide":
+        label_multiplier = args.slide_label_multiplier
+        small_multiplier = args.slide_small_label_multiplier
+        flow_width_multiplier = args.slide_flow_width_multiplier
+    else:
+        label_multiplier = 1.0
+        small_multiplier = 1.0
+        flow_width_multiplier = 1.0
+    title_font = load_font(max(20, int(args.scale * 2.4 * label_multiplier)), bold=True)
+    label_font = load_font(max(15, int(args.scale * 1.45 * label_multiplier)), bold=True)
+    small_font = load_font(max(13, int(args.scale * 1.15 * small_multiplier)))
+    threat_label_font = label_font if args.presentation_profile == "slide" else small_font
 
     if air_defenses:
-        draw_low_opacity_air_defense_rings(overlay, projector, air_defenses, small_font, args.combined_threat_opacity, args.combined_threat_style)
+        draw_low_opacity_air_defense_rings(
+            overlay,
+            projector,
+            air_defenses,
+            threat_label_font,
+            args.combined_threat_opacity,
+            args.combined_threat_style,
+            compact_labels=args.presentation_profile == "slide",
+        )
 
     anchor_points = [projector.grid(anchor.get("grid_x"), anchor.get("grid_y")) for anchor in anchors]
     ax = [point[0] for point in anchor_points]
@@ -716,49 +886,86 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         draw_arrow(draw, start, end, width=max(5, args.scale // 2))
 
     if include_flow:
-        draw_flow_groups(draw, projector, flow_groups, label_font, args.scale, map_width, map_height)
-        draw_named_positions(draw, projector, named_positions, label_font)
+        draw_flow_groups(
+            draw,
+            projector,
+            flow_groups,
+            label_font,
+            args.scale,
+            map_width,
+            map_height,
+            width_multiplier=flow_width_multiplier,
+            compact_labels=args.presentation_profile == "slide",
+            show_origin_labels=args.show_flow_origin_labels,
+        )
+        marker_size = max(9, int(args.scale * args.slide_marker_multiplier)) if args.presentation_profile == "slide" else 9
+        draw_named_positions(draw, projector, named_positions, label_font, marker_size=marker_size, map_width=map_width, map_height=map_height)
 
+    origin_label_font = load_font(
+        max(15, int(args.scale * 1.45 * (args.slide_origin_label_multiplier if args.presentation_profile == "slide" else 1.0))),
+        bold=True,
+    )
     label_offsets = [(16, -34), (16, 16), (-16, -34), (-16, 16), (24, -4), (-24, -4)]
     for index, origin in enumerate(origins):
         origin_xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
         target_anchor = origin.get("nearest_anchor") or anchors[0]
         target_xy = projector.grid(target_anchor.get("grid_x"), target_anchor.get("grid_y"))
         xy = clip_segment_to_rect(origin_xy, target_xy, map_width, map_height)
-        radius = max(9, args.scale)
-        draw.rectangle(
-            (xy[0] - radius, xy[1] - radius, xy[0] + radius, xy[1] + radius),
-            fill=RED + (245,),
-            outline=(255, 245, 245, 255),
-            width=2,
-        )
+        radius = max(9, int(args.scale * (args.slide_marker_multiplier if args.presentation_profile == "slide" else 1.0)))
+        if is_airbase_origin(origin):
+            draw.rectangle(
+                (xy[0] - radius - 2, xy[1] - radius - 2, xy[0] + radius + 2, xy[1] + radius + 2),
+                fill=(40, 0, 0, 155),
+            )
+            draw.rectangle(
+                (xy[0] - radius, xy[1] - radius, xy[0] + radius, xy[1] + radius),
+                fill=(235, 38, 38, 245),
+                outline=(255, 240, 225, 255),
+                width=2,
+            )
+            draw.line(
+                (xy[0] - radius + 3, xy[1] + radius - 3, xy[0] + radius - 3, xy[1] - radius + 3),
+                fill=(255, 245, 235, 245),
+                width=max(2, radius // 4),
+            )
+        else:
+            draw.polygon(
+                [(xy[0], xy[1] - radius), (xy[0] + radius, xy[1]), (xy[0], xy[1] + radius), (xy[0] - radius, xy[1])],
+                fill=RED + (245,),
+                outline=(255, 245, 245, 255),
+            )
         if point_inside_image(origin_xy, map_width, map_height, 20):
             dx, dy = label_offsets[index % len(label_offsets)]
             label_xy = (xy[0] + dx, xy[1] + dy)
             anchor = "la" if dx >= 0 else "ra"
         else:
             label_xy, anchor = edge_label_position(xy, map_width, map_height)
-        draw_text_box(draw, label_xy, label_text(origin), label_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+        origin_label = compact_label_text(origin) if args.presentation_profile == "slide" else label_text(origin)
+        label_fill = (255, 226, 218) if is_airbase_origin(origin) else TEXT
+        label_bg = (72, 8, 8, 210) if is_airbase_origin(origin) else LABEL_BG
+        draw_fitted_text_box(draw, label_xy, origin_label, origin_label_font, map_width, map_height, fill=label_fill, bg=label_bg, anchor=anchor)
         meta = f"{compass_sector(math.degrees(math.atan2(safe_float(origin['grid_x']) - safe_float(origin['nearest_anchor']['grid_x']), safe_float(origin['grid_y']) - safe_float(origin['nearest_anchor']['grid_y']))) % 360)} | {origin['distance_nm']:.0f} NM | {origin['available_airframes']} a/c"
-        meta_y = label_xy[1] + (24 if anchor == "la" else 24)
-        draw_text_box(draw, (label_xy[0], meta_y), meta, small_font, fill=(255, 205, 205), bg=LABEL_BG, anchor=anchor)
+        if args.presentation_profile != "slide":
+            meta_y = label_xy[1] + (24 if anchor == "la" else 24)
+            draw_text_box(draw, (label_xy[0], meta_y), meta, small_font, fill=(255, 205, 205), bg=LABEL_BG, anchor=anchor)
 
     draw_scale_and_north(overlay, crop, args.scale, small_font)
-    title = args.combined_title if include_flow else args.title
-    subtitle = (
-        f"Package flow, named positions, and active enemy fighter/strike origins within {args.radius_nm:g} NM"
-        if include_flow
-        else f"Active enemy fighter/strike squadron origins within {args.radius_nm:g} NM; arrows show likely axes toward player AO"
-    )
-    draw_text_box(draw, (26, 26), title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
-    draw_text_box(
-        draw,
-        (26, 62),
-        subtitle,
-        small_font,
-        fill=(255, 220, 220),
-        bg=(9, 13, 15, 205),
-    )
+    if args.show_map_title:
+        title = args.combined_title if include_flow else args.title
+        subtitle = (
+            f"Package flow, named positions, and active enemy fighter/strike origins within {args.radius_nm:g} NM"
+            if include_flow
+            else f"Active enemy fighter/strike squadron origins within {args.radius_nm:g} NM; arrows show likely axes toward player AO"
+        )
+        draw_text_box(draw, (26, 26), title, title_font, fill=TEXT, bg=(9, 13, 15, 225))
+        draw_text_box(
+            draw,
+            (26, 62 + int(20 * (label_multiplier - 1.0))),
+            subtitle,
+            small_font,
+            fill=(255, 220, 220),
+            bg=(9, 13, 15, 205),
+        )
 
     output = Image.alpha_composite(map_image, overlay)
     out = output_path or args.out
@@ -810,6 +1017,10 @@ def short_origin_label(name: str) -> str:
     return cleaned[:34].rstrip()
 
 
+def compact_callsign(callsign: Any) -> str:
+    return str(callsign or "").replace(" ", "")
+
+
 def flow_origin_point(flights: list[dict[str, Any]]) -> dict[str, Any] | None:
     points: list[dict[str, Any]] = []
     names: list[str] = []
@@ -845,18 +1056,23 @@ def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     escort_cap = [flight for flight in barcap_flights if flight not in east_screen]
 
     specs = [
-        ("SEAD / DEAD Flow", sead_flights, (FLOW_BLUE[0], FLOW_BLUE[1], FLOW_BLUE[2]), "sead"),
-        ("Escort / BARCAP Flow", escort_cap, (98, 235, 128), "cap"),
-        ("East Fighter Screen", east_screen, (255, 199, 71), "cap"),
+        ("SEAD / DEAD Flow", "SEAD", sead_flights, (FLOW_BLUE[0], FLOW_BLUE[1], FLOW_BLUE[2]), "sead"),
+        ("Escort / BARCAP Flow", "CAP", escort_cap, (98, 235, 128), "cap"),
+        ("East Fighter Screen", "Eagles", east_screen, (255, 199, 71), "cap"),
     ]
-    for label, group_flights, color, mode in specs:
+    for label, compact_role, group_flights, color, mode in specs:
         if not group_flights:
             continue
         flight_names = ", ".join(
             str(flight.get("callsign") or f"Flight {flight.get('camp_id')}")
             for flight in group_flights
         )
+        compact_names = ", ".join(
+            compact_callsign(flight.get("callsign") or f"Flight {flight.get('camp_id')}")
+            for flight in group_flights
+        )
         display_label = f"{label} ({flight_names})" if flight_names else label
+        compact_label = f"{compact_role} ({compact_names})" if compact_names else compact_role
         origin = flow_origin_point(group_flights)
         if mode == "sead":
             push = flow_stage_point(group_flights, {"WP_PUSH"}) or flow_stage_point(group_flights, {"WP_TIMING"})
@@ -873,7 +1089,7 @@ def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
             ]
         path = [point for point in stages if point]
         if len(path) >= 2:
-            groups.append({"label": display_label, "points": path, "color": color, "origin_label": (origin or {}).get("origin_label")})
+            groups.append({"label": display_label, "compact_label": compact_label, "points": path, "color": color, "origin_label": (origin or {}).get("origin_label")})
     return groups
 
 
@@ -989,24 +1205,34 @@ def draw_named_positions(
     projector: Projector,
     positions: list[dict[str, Any]],
     font: ImageFont.ImageFont,
+    marker_size: int = 9,
+    map_width: int | None = None,
+    map_height: int | None = None,
 ) -> None:
     fixed_offsets = {
         "SA-10 WEST": (-18, -34, "ra"),
         "SA-10 EAST": (15, -28, "la"),
         "SA-10 SOUTH": (14, 20, "la"),
         "SA6": (14, 22, "la"),
+        "10W": (-18, -34, "ra"),
+        "10E": (15, -28, "la"),
+        "10S": (14, 20, "la"),
+        "6": (14, 22, "la"),
         "JEW": (14, -11, "la"),
         "CRO": (14, 16, "la"),
         "TIG": (14, 18, "la"),
     }
     for index, position in enumerate(positions):
         xy = projector.grid(position.get("grid_x"), position.get("grid_y"))
-        size = 9
+        size = marker_size
         diamond = [(xy[0], xy[1] - size), (xy[0] + size, xy[1]), (xy[0], xy[1] + size), (xy[0] - size, xy[1])]
         draw.polygon(diamond, fill=GREEN + (230,), outline=(0, 18, 5, 255))
-        label = str(position.get("label"))
+        label = compact_named_label(position.get("label"))
         dx, dy, anchor = fixed_offsets.get(label.upper(), (13, -10 if index % 2 == 0 else 18, "la"))
-        draw_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+        if map_width is not None and map_height is not None:
+            draw_fitted_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+        else:
+            draw_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
 
 
 def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
@@ -1134,6 +1360,54 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--title", default="Enemy Air Threat Axes", help="Map title.")
     parser.add_argument("--combined-title", default="Package Flow + Enemy Air Threat Axes", help="Combined map title.")
     parser.add_argument("--flow-title", default="Package Flow Overview", help="Flow map title.")
+    parser.add_argument(
+        "--presentation-profile",
+        choices=("reference", "slide"),
+        default="reference",
+        help="Use reference for data-rich standalone map PNGs, or slide for larger labels/strokes intended to be shrunk onto briefing slides.",
+    )
+    parser.add_argument(
+        "--slide-label-multiplier",
+        type=float,
+        default=2.25,
+        help="Font multiplier for labels when --presentation-profile slide is used.",
+    )
+    parser.add_argument(
+        "--slide-small-label-multiplier",
+        type=float,
+        default=1.85,
+        help="Font multiplier for secondary labels when --presentation-profile slide is used.",
+    )
+    parser.add_argument(
+        "--slide-origin-label-multiplier",
+        type=float,
+        default=1.65,
+        help="Font multiplier for enemy-origin labels when --presentation-profile slide is used.",
+    )
+    parser.add_argument(
+        "--slide-flow-width-multiplier",
+        type=float,
+        default=1.45,
+        help="Route/flow stroke multiplier when --presentation-profile slide is used.",
+    )
+    parser.add_argument(
+        "--slide-marker-multiplier",
+        type=float,
+        default=1.25,
+        help="Marker-size multiplier when --presentation-profile slide is used.",
+    )
+    parser.add_argument(
+        "--show-map-title",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Draw the map-internal title/subtitle. Use --no-show-map-title when the slide already has a title rail.",
+    )
+    parser.add_argument(
+        "--show-flow-origin-labels",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Label friendly package departure airbases on combined flow maps. Best for route overviews; keep disabled for target/objective maps.",
+    )
     return parser.parse_args()
 
 

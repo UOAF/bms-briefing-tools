@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -32,6 +33,8 @@ SLIDE_IMAGE_PRODUCTS = (
         "name": "01_route_threat_map.png",
         "description": "High-level package overview from origin airbases to the target area, with route flow and threats.",
         "candidates": (
+            "01_route_threat_map",
+            "route_threat_map_slide",
             "route_threat_map_skyvector",
             "package_flow_overview_skyvector",
         ),
@@ -40,6 +43,8 @@ SLIDE_IMAGE_PRODUCTS = (
         "name": "02_target_area_map.png",
         "description": "Target-area package flow, named positions, enemy air axes, and low-opacity threat rings.",
         "candidates": (
+            "02_target_area_map",
+            "target_area_map_slide",
             "package_flow_enemy_air_axes_skyvector",
         ),
     },
@@ -47,6 +52,8 @@ SLIDE_IMAGE_PRODUCTS = (
         "name": "03_objective_area_map.png",
         "description": "Close objective-area map for target prosecution details.",
         "candidates": (
+            "03_objective_area_map",
+            "objective_area_map_slide",
             "objective_area_map_skyvector",
             "package_3465_objective_area_zoom_skyvector",
             "package_1883_objective_area_zoom_skyvector",
@@ -66,6 +73,21 @@ SLIDE_IMAGE_PRODUCTS = (
 
 def is_under(path: Path, parent_name: str) -> bool:
     return any(part.lower() == parent_name.lower() for part in path.parts)
+
+
+def is_slide_variant_pack(path: Path) -> bool:
+    return any(part.lower().startswith("slide_v") for part in path.parts)
+
+
+def slide_variant_score(path: Path) -> int:
+    best = -1
+    for part in path.parts:
+        match = re.match(r"slide_v(\d+)(?:_(\d+))?", part.lower())
+        if match:
+            major = int(match.group(1))
+            minor = int(match.group(2) or 0)
+            best = max(best, major * 1000 + minor)
+    return best
 
 
 def is_variant(path: Path) -> bool:
@@ -102,7 +124,8 @@ def candidate_rank(path: Path, source_dir: Path, candidates: tuple[str, ...]) ->
     stem = path.stem.lower()
     for index, token in enumerate(candidates):
         if token in stem:
-            root_penalty = 0 if path.parent == source_dir else 1
+            relative_path = path.relative_to(source_dir)
+            root_penalty = -10000 - slide_variant_score(relative_path) if is_slide_variant_pack(relative_path) else (0 if path.parent == source_dir else 1)
             package_penalty = 1 if "\\pkg" in relative or "/pkg" in relative else 0
             return index, root_penalty, package_penalty, relative
     return len(candidates), 9, 9, relative
@@ -114,7 +137,9 @@ def find_slide_product(source_dir: Path, candidates: tuple[str, ...]) -> Path | 
         if not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
             continue
         relative = path.relative_to(source_dir)
-        if is_under(relative, "assets") or is_under(relative, "image_pack") or is_under(relative, "briefing_images"):
+        if is_under(relative, "assets") or is_under(relative, "image_pack"):
+            continue
+        if is_under(relative, "briefing_images") and not is_slide_variant_pack(relative):
             continue
         if "claude_design_pkg_" in str(relative).lower():
             continue
