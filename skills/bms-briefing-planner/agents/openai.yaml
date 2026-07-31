@@ -1,0 +1,7 @@
+interface:
+  display_name: "BMS Briefing Planner"
+  short_description: "Falcon BMS briefs and maps"
+  default_prompt: "Use $bms-briefing-planner to create a Falcon BMS mission brief from my campaign save, package IDs, and planner intent."
+
+policy:
+  allow_implicit_invocation: true

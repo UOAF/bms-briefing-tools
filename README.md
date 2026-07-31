@@ -7,6 +7,9 @@ For the scalability plan and upstream parser/tooling assessment, see
 [`docs/scalable-tooling-strategy.md`](docs/scalable-tooling-strategy.md).
 For clean-machine setup and dependency checks, see
 [`docs/standalone-setup.md`](docs/standalone-setup.md).
+The Codex production workflow skill lives in
+[`skills/bms-briefing-planner`](skills/bms-briefing-planner); copy or symlink it
+into `$CODEX_HOME/skills/bms-briefing-planner` when setting up a new workstation.
 
 Current prototype:
 
@@ -293,6 +296,30 @@ python .\scripts\render_bms_enemy_air_threat_map.py `
 Use `--crop-mode all` when you want the older full-origin crop for diagnostics.
 Use `--no-combined-threat-rings` when you need a clean flow/threat-axis image
 without ADA WEZ rings.
+
+For slides, render a presentation-first variant instead of shrinking the
+reference map directly into the deck. The presentation profile enlarges labels,
+markers, and route strokes, abbreviates SAM/flow/aircraft labels, keeps labels
+inside the image bounds, and lets the slide title/rail provide the title:
+
+```powershell
+python .\scripts\render_bms_enemy_air_threat_map.py `
+  --synthesis .\outputs\739pre\pkg3465\briefing_synthesis.json `
+  --synthesis .\outputs\739pre\pkg3494\briefing_synthesis.json `
+  --cam-decode .\outputs\739pre\cam_decode.json `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
+  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --radius-nm 100 `
+  --out .\outputs\739pre\slide_v1_2\briefing_images\enemy_air_threat_axes_reference.png `
+  --combined-out .\outputs\739pre\slide_v1_2\briefing_images\01_route_threat_map.png `
+  --combined-include-flow-origins-in-bounds `
+  --combined-threat-opacity 0.18 `
+  --combined-threat-style route-reference `
+  --presentation-profile slide `
+  --no-show-map-title `
+  --scale 18
+```
 
 Render the objective-area image from the same combined content stack, but with
 the package-map objective INI selection used only for crop framing. This keeps

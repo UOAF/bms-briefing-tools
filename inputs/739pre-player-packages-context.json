@@ -1,0 +1,113 @@
+{
+  "source": "User-provided mission interpretation, 2026-07-29",
+  "route_name": "SA-10 SEAD corridor",
+  "route_note": "Threat INI / data cartridge marks the SA-10 prebrief targets and CAP/fallback geometry.",
+  "deck_structure": "Treat packages 3465 and 3494 as one integrated game plan and one briefing deck.",
+  "packages": [
+    {
+      "package_id": 3465,
+      "briefing_read": "Primary SEAD/DEAD package. Cyborg 1 attacks the newly identified SA-6 north of Joule and SA-10 West; Jackal 2 attacks SA-10 East and SA-10 South while Cobra 2, Cajun 1, and Cobra 4 protect the package.",
+      "sad_contracts": [
+        {
+          "callsign": "Cyborg 1",
+          "contract": "SEAD/DEAD SA-6 North of Joule and SA-10 West",
+          "sector": "Joule",
+          "intent": "Work from Joule, destroy the SA-6 north of Joule first if it is factor, then prosecute SA-10 West. Confirm positive destruction of each target before egress."
+        },
+        {
+          "callsign": "Jackal 2",
+          "contract": "SEAD/DEAD SA-10 East and SA-10 South",
+          "sector": "Crown",
+          "intent": "Work from Crown, prosecute SA-10 East and SA-10 South, and confirm positive destruction of both targets before egress."
+        }
+      ],
+      "cap_contracts": [
+        {
+          "callsign": "Cobra 2",
+          "contract": "Escort Cyborg 1",
+          "sector": "Cyborg 1 lane",
+          "intent": "Protect Cyborg 1 during the Joule-side SA-6 and SA-10 West prosecution."
+        },
+        {
+          "callsign": "Cajun 1",
+          "contract": "Escort Jackal 2",
+          "sector": "Jackal 2 lane",
+          "intent": "Protect Jackal 2 during the Crown-side SA-10 prosecution."
+        },
+        {
+          "callsign": "Cobra 4",
+          "contract": "Northern flank BARCAP",
+          "sector": "western/northern flank oriented NNE",
+          "intent": "Hold the northern flank against fighters arriving from the north-northeast."
+        }
+      ],
+      "target_opportunities": [
+        {
+          "label": "SA-6 N",
+          "name": "SA-6 north of Joule",
+          "type": "Strategic SAM",
+          "intent": "Close SA-6 threat north of Joule; Cyborg 1 should kill this before or while working SA-10 West."
+        },
+        {
+          "label": "SA-10 W",
+          "name": "SA-10 West",
+          "type": "Strategic SAM",
+          "intent": "Western SA-10 threat in the data cartridge; Cyborg 1 primary target after the SA-6 is handled."
+        },
+        {
+          "label": "SA-10 E",
+          "name": "SA-10 East",
+          "type": "Strategic SAM",
+          "intent": "Eastern SA-10 threat in the data cartridge; Jackal 2 primary target from Crown."
+        },
+        {
+          "label": "SA-10 S",
+          "name": "SA-10 South",
+          "type": "Strategic SAM",
+          "intent": "Southern SA-10 threat in the data cartridge; Jackal 2 primary target from Crown."
+        }
+      ],
+      "fallback_logic": "If either SEAD flight becomes pressured, drag enemy fighters toward Tiger, the friendly SAG/Burke air-defense umbrella near common STPT 3. Cyborg 1 should prioritize survival and confirmation on the SA-6/SA-10 West targets; Jackal 2 stays focused on SA-10 East/South unless retasked.",
+      "slide_notes": {
+        "commander_context": "Cyborg 1: Joule-side SA-6 north of Joule, then SA-10 West. Jackal 2: Crown-side SA-10 East/South. Cobra 2 protects Cyborg, Cajun protects Jackal, Cobra 4 holds northern flank BARCAP.",
+        "positive_id": "Both SEAD flights must confirm target destruction before calling the SA-10 threat neutralized."
+      }
+    },
+    {
+      "package_id": 3494,
+      "briefing_read": "F-15C east-flank fighter screen. Intercept Flankers/Fulcrums from the east and shipborne Flankers coming off the ocean before they can pressure the SEAD package.",
+      "cap_contracts": [
+        {
+          "callsign": "Hog 5",
+          "contract": "East flank intercept",
+          "sector": "east of Crown",
+          "intent": "Push east, commit on Flanker/Fulcrum groups threatening the SEAD package, and sanitize the ocean-side axis."
+        },
+        {
+          "callsign": "Ramrod 3",
+          "contract": "East flank intercept",
+          "sector": "east of Crown",
+          "intent": "Support Hog 5 and engage shipborne Flankers or other fighters flowing toward the SA-10 prosecution area."
+        }
+      ],
+      "target_opportunities": [
+        {
+          "label": "East Flank",
+          "name": "Flanker/Fulcrum threat axis",
+          "type": "Enemy fighter axis",
+          "intent": "F-15C package should engage Flankers/Fulcrums from the east/ocean axis and any fighters pressing the SEAD package."
+        }
+      ],
+      "fallback_logic": "If the fighter picture becomes saturated, drag east-flank threats west toward Tiger, the friendly SAG/Burke air-defense umbrella, and the package BARCAPs.",
+      "slide_notes": {
+        "commander_context": "Hog 5 and Ramrod 3 are player F-15C BARCAP/intercept flights east of Crown. Their job is to kill Flankers/Fulcrums before those aircraft can reach the SEAD package."
+      }
+    }
+  ],
+  "friendly_surface_defense": {
+    "name": "Tiger - Friendly SAG / Burke umbrella",
+    "label": "TIG",
+    "description": "Tiger marks the friendly surface action group with an Arleigh Burke and two escorts near the common STPT 3 area. Use as a fallback/drag option if overwhelmed by enemy fighters.",
+    "intent": "Do not brief as a primary threat; brief as a friendly fallback air-defense anchor."
+  }
+}

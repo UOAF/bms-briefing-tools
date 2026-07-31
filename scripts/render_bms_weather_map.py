@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 import render_bms_package_map as package_map
 from bms_weather import FMap, MAP_GRID_SIZE, weather_label
@@ -19,10 +19,12 @@ from render_bms_package_map import (
     TEXT,
     Projector,
     collect_map_bounds,
+    draw_dashed_line,
     draw_flights,
     draw_ini_geometry,
     draw_scale_and_north,
     draw_support_flights,
+    draw_text_box,
     find_package,
     flight_waypoints,
     expand_crop_to_aspect,
@@ -46,12 +48,34 @@ WEATHER_COLORS = {
     4: (221, 58, 73),
 }
 
+AO_OUTLINE = (230, 235, 232)
+AO_FILL = (32, 34, 34)
+
 
 def safe_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def weather_altitude_text(value: Any, *, increment: int = 1000) -> str:
+    if value is None:
+        return ""
+    try:
+        altitude = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if increment > 0:
+        altitude = round(altitude / increment) * increment
+    return f"{int(altitude):,} ft"
+
+
+def weather_cloud_base_text(sample: dict[str, Any]) -> str:
+    base = sample.get("stratus_base_ft")
+    if base is None:
+        return "cloud base n/a"
+    return f"cloud base {weather_altitude_text(base)}"
 
 
 def draw_weather_cells(
@@ -87,30 +111,157 @@ def draw_weather_samples(
     overlay: Image.Image,
     projector: Projector,
     samples: list[dict[str, Any]],
-    font,
+    font: ImageFont.ImageFont,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
+    marker_radius = max(18, round(getattr(font, "size", 84) * 0.28))
+    grouped: dict[tuple[int, int], list[dict[str, Any]]] = {}
     for sample in samples:
+        key = (round(safe_float(sample.get("grid_x"))), round(safe_float(sample.get("grid_y"))))
+        grouped.setdefault(key, []).append(sample)
+
+    short_names = {"Takeoff": "T/O", "Target Area": "TGT", "Landing": "LNDG"}
+    for group_index, group in enumerate(grouped.values()):
+        sample = group[0]
         xy = projector.grid(sample.get("grid_x"), sample.get("grid_y"))
         color = WEATHER_COLORS.get(int(sample.get("weather_code") or 0), (245, 245, 245))
-        radius = 7
+        names = "/".join(short_names.get(str(item.get("label")), str(item.get("label"))) for item in group)
+        label = f"{names}: {sample.get('condition')} {sample.get('visibility_km')}km {sample.get('wind')}"
+
+        if "TGT" in names:
+            anchor = "la"
+            label_x = xy[0] + marker_radius + 34
+            label_y = xy[1] + round(marker_radius * 1.45)
+        else:
+            anchor = "ra"
+            label_x = xy[0] - marker_radius - 34
+            label_y = xy[1] - round(marker_radius * 1.45)
+
+        bbox = draw.textbbox((label_x, label_y), label, font=font, anchor=anchor)
+        if bbox[2] > overlay.width - 12:
+            anchor = "ra"
+            label_x = xy[0] - marker_radius - 34
+            bbox = draw.textbbox((label_x, label_y), label, font=font, anchor=anchor)
+        if bbox[0] < 12:
+            anchor = "la"
+            label_x = xy[0] + marker_radius + 34
+            bbox = draw.textbbox((label_x, label_y), label, font=font, anchor=anchor)
+        if bbox[3] > overlay.height - 12:
+            label_y -= bbox[3] - overlay.height + 12
+            bbox = draw.textbbox((label_x, label_y), label, font=font, anchor=anchor)
+        if bbox[1] < 12:
+            label_y += 12 - bbox[1]
+            bbox = draw.textbbox((label_x, label_y), label, font=font, anchor=anchor)
+
+        pad = max(8, marker_radius // 3)
+        padded_box = (bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad)
+        box_center_y = (padded_box[1] + padded_box[3]) / 2
+        label_edge_x = padded_box[0] if xy[0] < (padded_box[0] + padded_box[2]) / 2 else padded_box[2]
+        label_edge_y = max(padded_box[1] + pad, min(padded_box[3] - pad, xy[1]))
+        dx = label_edge_x - xy[0]
+        dy = label_edge_y - xy[1]
+        distance = max(1.0, math.hypot(dx, dy))
+        marker_edge = (xy[0] + dx / distance * marker_radius, xy[1] + dy / distance * marker_radius)
+        line_width = max(5, marker_radius // 4)
+        draw.line((marker_edge[0], marker_edge[1], label_edge_x, label_edge_y), fill=(0, 0, 0, 220), width=line_width + 4)
+        draw.line((marker_edge[0], marker_edge[1], label_edge_x, label_edge_y), fill=(255, 255, 235, 235), width=line_width)
         draw.ellipse(
-            (xy[0] - radius - 2, xy[1] - radius - 2, xy[0] + radius + 2, xy[1] + radius + 2),
-            fill=(0, 0, 0, 170),
+            (
+                label_edge_x - line_width,
+                label_edge_y - line_width,
+                label_edge_x + line_width,
+                label_edge_y + line_width,
+            ),
+            fill=(255, 255, 235, 235),
+            outline=(0, 0, 0, 200),
+            width=max(2, line_width // 3),
+        )
+
+        draw.ellipse(
+            (
+                xy[0] - marker_radius - 5,
+                xy[1] - marker_radius - 5,
+                xy[0] + marker_radius + 5,
+                xy[1] + marker_radius + 5,
+            ),
+            fill=(0, 0, 0, 190),
         )
         draw.ellipse(
-            (xy[0] - radius, xy[1] - radius, xy[0] + radius, xy[1] + radius),
+            (
+                xy[0] - marker_radius,
+                xy[1] - marker_radius,
+                xy[0] + marker_radius,
+                xy[1] + marker_radius,
+            ),
             fill=(*color, 245),
             outline=(255, 255, 255, 230),
-            width=2,
+            width=max(3, marker_radius // 5),
         )
-        label = (
-            f"{sample.get('label')}: {sample.get('condition')} "
-            f"{sample.get('visibility_km')}km {sample.get('wind')}"
+        draw.rounded_rectangle(
+            padded_box,
+            radius=max(6, marker_radius // 3),
+            fill=(8, 12, 14, 226),
         )
-        bbox = draw.textbbox((xy[0] + 13, xy[1] - 10), label, font=font, anchor="la")
-        draw.rounded_rectangle((bbox[0] - 4, bbox[1] - 3, bbox[2] + 4, bbox[3] + 3), radius=3, fill=(8, 12, 14, 215))
-        draw.text((xy[0] + 13, xy[1] - 10), label, font=font, fill=TEXT, anchor="la")
+        draw.text((label_x, label_y), label, font=font, fill=TEXT, anchor=anchor)
+
+
+def package_ao_points(
+    flights: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    ini_points: list[dict[str, Any]],
+    ini_line_points: list[dict[str, Any]],
+) -> list[tuple[float, float]]:
+    points: list[tuple[float, float]] = []
+    for _, waypoints in flights:
+        for waypoint in waypoints:
+            action = str(waypoint.get("action_short") or waypoint.get("action") or "").upper()
+            if action in {"LAND", "REFUEL", "TANKER", "ELINT", "AWACS"}:
+                continue
+            if waypoint.get("grid_x") is None or waypoint.get("grid_y") is None:
+                continue
+            points.append((safe_float(waypoint.get("grid_x")), safe_float(waypoint.get("grid_y"))))
+    for point in [*ini_points, *ini_line_points]:
+        grid = point.get("campaign_grid") or {}
+        if grid.get("grid_x") is None or grid.get("grid_y") is None:
+            continue
+        points.append((safe_float(grid.get("grid_x")), safe_float(grid.get("grid_y"))))
+    return points
+
+
+def draw_package_ao_box(
+    overlay: Image.Image,
+    projector: Projector,
+    ao_points: list[tuple[float, float]],
+    font: ImageFont.ImageFont,
+    label: str,
+) -> None:
+    if len(ao_points) < 2:
+        return
+
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    projected = [projector.grid(x, y) for x, y in ao_points]
+    xs = [point[0] for point in projected]
+    ys = [point[1] for point in projected]
+    font_size = getattr(font, "size", 110)
+    pad = max(48, min(140, round(min(overlay.size) * 0.065)))
+    left = max(8, min(xs) - pad)
+    top = max(8, min(ys) - pad)
+    right = min(overlay.width - 8, max(xs) + pad)
+    bottom = min(overlay.height - 8, max(ys) + pad)
+
+    draw.rounded_rectangle((left, top, right, bottom), radius=18, fill=(*AO_FILL, 18))
+    corners = [(left, top), (right, top), (right, bottom), (left, bottom), (left, top)]
+    line_width = max(8, round(font_size * 0.1))
+    draw_dashed_line(draw, corners, (0, 0, 0, 150), width=line_width + 4, dash=line_width * 3, gap=line_width * 2)
+    draw_dashed_line(draw, corners, (*AO_OUTLINE, 218), width=line_width, dash=line_width * 3, gap=line_width * 2)
+    draw_text_box(
+        draw,
+        (left + line_width * 2, top + line_width * 2),
+        label,
+        font,
+        fill=(238, 242, 239),
+        bg=(24, 27, 27, 226),
+        pad=max(10, round(font_size * 0.15)),
+    )
 
 
 def draw_footer(
@@ -159,7 +310,7 @@ def draw_footer(
     for sample in samples[:3]:
         text = (
             f"{sample.get('label')}: {sample.get('condition')} {sample.get('cloud_cover')}, "
-            f"base {sample.get('cumulus_base_ft')} ft, vis {sample.get('visibility_km')} km, "
+            f"{weather_cloud_base_text(sample)}, vis {sample.get('visibility_km')} km, "
             f"wind {sample.get('wind')}"
         )
         draw.text((18, y), text, font=text_font, fill=TEXT)
@@ -227,19 +378,24 @@ def render_weather_map(args: argparse.Namespace) -> Path:
 
     route_overlay = Image.new("RGBA", (map_width, map_height), (0, 0, 0, 0))
     projector = Projector(crop, scale)
-    small_font = load_font(max(9, min(18, int(8 * scale / 4))))
-    label_font = load_font(max(10, min(22, int(9 * scale / 4))), bold=True)
+    route_label_font = load_font(args.route_label_font_size)
+    ini_label_font = load_font(args.ini_label_font_size, bold=True)
+    weather_label_font = load_font(args.weather_label_font_size, bold=True)
+    ao_label_font = load_font(args.ao_label_font_size, bold=True)
+    scale_label_font = load_font(args.scale_label_font_size, bold=True)
     flight_colors = {
         str(flight.get("callsign") or ""): FLIGHT_COLORS[index % len(FLIGHT_COLORS)]
         for index, (flight, _) in enumerate(flights)
     }
     if support_flights:
-        draw_support_flights(route_overlay, projector, support_flights, small_font)
-    draw_flights(route_overlay, projector, flights, flight_colors, small_font)
+        draw_support_flights(route_overlay, projector, support_flights, route_label_font)
+    draw_flights(route_overlay, projector, flights, flight_colors, route_label_font)
     route_name = (package.get("human_context") or {}).get("route_name") or "INI route"
-    draw_ini_geometry(route_overlay, projector, ini_points, ini_line_points, label_font, route_name=route_name)
-    draw_weather_samples(route_overlay, projector, weather.get("samples") or [], small_font)
-    draw_scale_and_north(route_overlay, crop, scale, label_font)
+    draw_ini_geometry(route_overlay, projector, ini_points, ini_line_points, ini_label_font, route_name=route_name)
+    ao_label = args.ao_label or "PACKAGE AO"
+    draw_package_ao_box(route_overlay, projector, package_ao_points(flights, ini_points, ini_line_points), ao_label_font, ao_label)
+    draw_weather_samples(route_overlay, projector, weather.get("samples") or [], weather_label_font)
+    draw_scale_and_north(route_overlay, crop, scale, scale_label_font)
 
     footer_height = 220 if args.show_footer else 0
     output = Image.new("RGBA", (map_width, map_height + footer_height), (9, 13, 15, 255))
@@ -298,7 +454,13 @@ def parse_args() -> argparse.Namespace:
         default=True,
         help="Include the map legend/footer. Use --no-show-footer for slide-native map-only images.",
     )
-    parser.add_argument("--weather-alpha", type=int, default=68, help="Weather cell overlay alpha 0-255.")
+    parser.add_argument("--weather-alpha", type=int, default=112, help="Weather cell overlay alpha 0-255.")
+    parser.add_argument("--ao-label", default="PACKAGE AO", help="Label for the dotted package area box.")
+    parser.add_argument("--route-label-font-size", type=int, default=36, help="Full-resolution font size for route/waypoint labels.")
+    parser.add_argument("--ini-label-font-size", type=int, default=54, help="Full-resolution font size for INI/PPT labels.")
+    parser.add_argument("--weather-label-font-size", type=int, default=72, help="Full-resolution font size for weather sample labels.")
+    parser.add_argument("--ao-label-font-size", type=int, default=76, help="Full-resolution font size for the dotted AO label.")
+    parser.add_argument("--scale-label-font-size", type=int, default=52, help="Full-resolution font size for scale/north labels.")
     return parser.parse_args()
 
 
