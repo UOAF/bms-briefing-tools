@@ -276,6 +276,16 @@ def context_contract_map(context: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
+def context_a2a_tacan_map(context: dict[str, Any]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in context.get("a2a_tacan_assignments", []) or []:
+        callsign = str(item.get("callsign") or "").strip()
+        channels = item.get("channels") or []
+        if callsign and isinstance(channels, list) and channels:
+            result[callsign] = " / ".join(str(channel).strip().upper() for channel in channels if str(channel).strip())
+    return result
+
+
 def load_objectives(path: Path) -> dict[int, dict[str, Any]]:
     root = ET.parse(path).getroot()
     objectives: dict[int, dict[str, Any]] = {}
@@ -1450,7 +1460,15 @@ def station_waypoints(key_waypoints: list[dict[str, Any]]) -> list[dict[str, Any
     ]
 
 
-def station_summary(key_waypoints: list[dict[str, Any]]) -> str:
+def support_station_ref(waypoint: dict[str, Any], bullseye: dict[str, Any] | None) -> str:
+    if bullseye and bullseye.get("grid_x") is not None and bullseye.get("grid_y") is not None:
+        ref = bullseye_reference({"bullseye": bullseye}, waypoint)
+        if ref:
+            return ref
+    return f"grid {number_cell(waypoint.get('grid_x'), 0)}/{number_cell(waypoint.get('grid_y'), 0)}"
+
+
+def station_summary(key_waypoints: list[dict[str, Any]], bullseye: dict[str, Any] | None = None) -> str:
     points = station_waypoints(key_waypoints)
     if not points:
         points = [
@@ -1464,8 +1482,8 @@ def station_summary(key_waypoints: list[dict[str, Any]]) -> str:
     for waypoint in points[:4]:
         action = action_label(waypoint.get("action"))
         time = waypoint.get("arrive_hhmm") or ""
-        grid = f"{number_cell(waypoint.get('grid_x'), 0)}/{number_cell(waypoint.get('grid_y'), 0)}"
-        labels.append(f"{action} STPT {waypoint.get('index')} {time} grid {grid}".strip())
+        station_ref = support_station_ref(waypoint, bullseye)
+        labels.append(f"{action} STPT {waypoint.get('index')} {time} {station_ref}".strip())
     return "; ".join(labels)
 
 
@@ -1481,6 +1499,7 @@ def support_flight_summary(
     object_catalog: dict[str, Any],
     l16_by_number: dict[int, dict[str, Any]],
     airbase_objectives: list[dict[str, Any]],
+    bullseye: dict[str, Any] | None,
 ) -> dict[str, Any]:
     key_waypoints = waypoint_summary(
         flight,
@@ -1516,7 +1535,7 @@ def support_flight_summary(
         "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
         "key_waypoints": key_waypoints,
         "waypoint_count": len(flight.get("waypoints", [])),
-        "station_summary": station_summary(key_waypoints),
+        "station_summary": station_summary(key_waypoints, bullseye),
         "link16": correlate_l16_record(flight, l16_by_number),
     }
 
@@ -2165,6 +2184,7 @@ def synthesize(
         package_id = int(package.get("camp_id") or 0)
         package_context = context_by_package.get(package_id, {})
         contract_by_callsign = context_contract_map(package_context)
+        a2a_tacan_by_callsign = context_a2a_tacan_map(package_context)
         attach_plan = focus_package_id is None or package_id == focus_package_id or package_id in mentions
         package_planning_points = planning_points if attach_plan else []
         flight_summaries: list[dict[str, Any]] = []
@@ -2202,6 +2222,7 @@ def synthesize(
                 "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
                 "tacan": flight.get("tacan", []),
                 "tacan_summary": tacan_summary(flight.get("tacan", [])),
+                "a2a_tacan_summary": a2a_tacan_by_callsign.get(str(flight.get("callsign") or "").strip(), ""),
                 "link16": correlate_l16_record(flight, l16_by_number),
                 "target_refs": flight_targets(flight, objectives, deltas, deltas_by_key, unit_index, tactical_only=True),
                 "key_waypoints": key_waypoints,
@@ -2279,6 +2300,7 @@ def synthesize(
                     object_catalog or {},
                     l16_by_number,
                     airbase_objectives,
+                    bullseye,
                 )
             )
         weather = package_weather_summary(fmap, fmap_path, fmap_error, flight_summaries, plan_correlation) if attach_plan else {}
@@ -2955,17 +2977,18 @@ def append_friendly_package_composition(lines: list[str], package: dict[str, Any
     lines.append("### Friendly Package Composition")
     lines.append(f"- Support: {package_support_summary(package)}")
     lines.append("")
-    lines.append("| C/S | Aircraft | Role | Weapons | Laser | TACAN | T/O | TOT | Target/Area | Remarks |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    lines.append("| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Target/Area | Remarks |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for flight in package.get("flights", []):
         aircraft = f"{flight.get('aircraft_count') or ''}x {flight.get('aircraft_type') or flight.get('aircraft_class') or ''}".strip()
         lines.append(
-            "| {callsign} | {aircraft} | {mission} | {weapons} | {laser} | {tacan} | {takeoff} | {tot} | {target} | {remarks} |".format(
+            "| {callsign} | {aircraft} | {mission} | {weapons} | {laser} | {a2a_tacan} | {tacan} | {takeoff} | {tot} | {target} | {remarks} |".format(
                 callsign=markdown_cell(flight.get("callsign") or f"Flight {flight.get('camp_id')}"),
                 aircraft=markdown_cell(aircraft),
                 mission=markdown_cell(flight.get("mission")),
                 weapons=markdown_cell(flight.get("weapons_summary")),
                 laser=markdown_cell(flight.get("laser_code_summary")),
+                a2a_tacan=markdown_cell(flight.get("a2a_tacan_summary") or "not assigned"),
                 tacan=markdown_cell(flight.get("tacan_summary")),
                 takeoff=markdown_cell(flight.get("takeoff_hhmm")),
                 tot=markdown_cell(flight.get("tot_hhmm")),

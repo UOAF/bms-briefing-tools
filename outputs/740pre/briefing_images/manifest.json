@@ -2,21 +2,21 @@
   {
     "name": "01_route_threat_map.png",
     "description": "High-level package overview from origin airbases to the target area, with route flow and threats.",
-    "source": "slide_v1_0\\briefing_images\\01_route_threat_map.png"
+    "source": "slide_v1_3\\briefing_images\\01_route_threat_map.png"
   },
   {
     "name": "02_target_area_map.png",
     "description": "Target-area package flow, named positions, enemy air axes, and low-opacity threat rings.",
-    "source": "slide_v1_0\\briefing_images\\02_target_area_map.png"
+    "source": "slide_v1_3\\briefing_images\\02_target_area_map.png"
   },
   {
     "name": "03_objective_area_map.png",
     "description": "Close objective-area map for target prosecution details.",
-    "source": "slide_v1_0\\briefing_images\\03_objective_area_map.png"
+    "source": "slide_v1_3\\briefing_images\\03_objective_area_map.png"
   },
   {
     "name": "04_weather_map.png",
     "description": "Weather review map, when available.",
-    "source": "slide_v1_0\\briefing_images\\04_weather_map.png"
+    "source": "slide_v1_3\\briefing_images\\04_weather_map.png"
   }
 ]

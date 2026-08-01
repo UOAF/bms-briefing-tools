@@ -1,7 +1,7 @@
-# Event 740 Player Briefing
+# Event 740: Operation Glass Anvil Player Briefing
 
 ## Mission Summary
-Two player packages reopen the Gimhae fight by killing the remaining SA-10 West and SA-10 East threats while striking Orion/Gimhae. Package 7016 flows low from Tiger past Crown toward Blues/Orion; package 7040 flows low out of Gunsan through Crown, then works Wolf/Bando against SA-10 East. Once SA-10 West, SA-10 East, and Orion/Gimhae are solved, the whole plan retrogrades southwest toward Tiger, returns to medium altitude, and RTBs.
+Two player packages reopen the Gimhae fight by killing the remaining SA-10 West and SA-10 East threats while striking Orion/Gimhae. Treat the operation as two objective lanes: ORION STRIKE pushes Panther 1, Jaguar 4, Hawkeye 2, and Jaguar 5 through Tiger/Crown/Blues into Gimhae; 10E SEAD pushes Hammer 2 with Devil 5/6 support through Crown/Wolf against SA-10 East. Once SA-10 West, SA-10 East, and Orion/Gimhae are solved, the whole plan retrogrades southwest toward Tiger, returns to medium altitude, and RTBs.
 
 Prior result: SA-10 South was killed in Event 739. SA-10 East and SA-10 West remain the factor strategic threats for this event.
 
@@ -12,6 +12,7 @@ Prior result: SA-10 South was killed in Event 739. SA-10 East and SA-10 West rem
 - Sawbuck 2 works high between Tiger and Crown, shooting AMRAAMs at fighters coming out of Gimhae/Orion.
 - Hammer 2 attacks SA-10 East from Wolf with HARMs; if unable, Hammer uses Bando for the pop-up CBU option.
 - Devil 5 and Devil 6 cap around Wolf and intercept bandits coming from the north or north-northeast.
+- Route maps group the package by objective lane: ORION STRIKE, 10E SEAD, and Sawbuck high cover.
 
 ## Named References
 | Name | Label | Grid | Bullseye | Tactical use |
@@ -24,23 +25,23 @@ Prior result: SA-10 South was killed in Event 739. SA-10 East and SA-10 West rem
 | Bando | BAN | 661.0 / 141.3 | 102/10 | Hammer 2 alternate pop-up CBU reference |
 
 ## Package Composition
-| C/S | Pkg | Aircraft | Role | Weapons | Laser | TACAN | T/O | TOT | Contract |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | not assigned | 1419 | 1434 | Strike Orion / Gimhae |
-| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | not assigned | 1415 | 1438 | Kill SA-10 West from Blues |
-| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | not assigned | 1416 | 1438 | Escort Jaguar 4 |
-| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | not assigned | 1417 | 1439 | Escort Panther 1 |
-| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | not assigned | 1419 | 1437 | High-alt AMRAAM screen Tiger-Crown |
-| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | not assigned | 1419 | 1432 | Kill SA-10 East from Wolf; Bando CBU alternate |
-| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
-| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
+| C/S | Pkg | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Contract |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 1419 | 1434 | Strike Orion / Gimhae |
+| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 1415 | 1438 | Kill SA-10 West from Blues |
+| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 1416 | 1438 | Escort Jaguar 4 |
+| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 1417 | 1439 | Escort Panther 1 |
+| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 1419 | 1437 | High-alt AMRAAM screen Tiger-Crown |
+| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 1419 | 1432 | Kill SA-10 East from Wolf; Bando CBU alternate |
+| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
+| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
 
 ## AWACS / Tanker
 | Role | C/S | Aircraft | Station / track | TACAN |
 | --- | --- | --- | --- | --- |
-| AWACS | Sentry 1 | 1x E-3 | ELINT track grid 450/248 to 487/280 | not assigned |
-| Tanker | Copper 2 | 1x KC-135R | Tanker track grid 457/90 to 410/2 | 123Y |
-| Tanker | Copper 5 | 1x KC-135E | Tanker track grid 435/277 to 360/342 | 124Y |
+| AWACS | Sentry 1 | 1x E-3 | ELINT track BE 298/118 to BE 311/111 | not assigned |
+| Tanker | Copper 2 | 1x KC-135R | Tanker track BE 254/105 to BE 238/148 | 123Y |
+| Tanker | Copper 5 | 1x KC-135E | Tanker track BE 302/133 to BE 305/186 | 124Y |
 
 ## Meteorology
 VMC across the package window. Expect clear/sunny conditions, 59.9 km visibility, cloud base around 38,000 ft, and contrails around 34,000 ft.
@@ -75,11 +76,11 @@ This estimate is based on active enemy squadron origins and aircraft capability,
 Current campaign-time contacts inside or vectoring into the target area include MiG-29S, MiG-31, MiG-27, Su-39, and rotary-wing elements. Treat the fighter-capable contacts as immediate picture calls for Sawbuck/Devil/Hawkeye/Jaguar escorts rather than a reason for the low strikers to climb early.
 
 ## Execution Notes
-- 7016 low package: Tiger -> Crown -> Blues/Orion. Keep the low-altitude profile until the SA-10 problem is solved.
+- ORION STRIKE lane: Tiger -> Crown -> Blues/Orion. Panther 1, Jaguar 4, Hawkeye 2, and Jaguar 5 keep the low-altitude profile until the SA-10 West problem is solved.
 - Jaguar 4: attack SA-10 West from Blues; prosecute additional air defenses or parked aircraft around Orion only if the SA-10 work is controlled.
 - Panther 1: destroy Orion/Gimhae; do not arrive without escort/SEAD timing.
 - Sawbuck 2: remain high enough to create AMRAAM pressure between Tiger and Crown without dragging the low package into the SA-10 WEZ.
-- 7040: cross Crown low, pop from Wolf for SA-10 East; use Bando as the alternate CBU reference if HARM employment is not possible.
+- 10E SEAD lane: cross Crown low, pop from Wolf for SA-10 East; use Bando as the alternate CBU reference if HARM employment is not possible.
 - Devil 5/6: defend Wolf and intercept north/northeast fighters before they collapse onto Hammer 2.
 
 ## Comm Ladder

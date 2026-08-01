@@ -78,8 +78,8 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 | Hammer 2 | SEAD | not assigned | 1688 | 2666 | 65 | 65 | 1 | SEAD/DEAD SA-10 East from Wolf: Wolf / Bando - Cross Crown low, pop from Wolf to shoot SA-10 East at short range with HARMs, and if unable execute the Bando pop-up CBU option. |
 | Devil 5 | BARCAP | not assigned | 1688 | 2750 | 1 | 65 | -1 | Wolf CAP / north threat intercept: Wolf - CAP around Wolf and intercept fighters from the north or north-northeast. |
 | Devil 6 | BARCAP | not assigned | 1688 | 3154 | 1 | 65 | -1 | Wolf CAP / north threat intercept: Wolf - Support Devil 5 around Wolf and intercept fighters from the north or north-northeast. |
-| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 |
-| Copper 5 | TANKER | 124Y slot 0 | n/a |  |  |  |  | TANKER STPT 4 1403 grid 435/277; TANKER STPT 5 1413 grid 360/342 |
+| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 |
+| Copper 5 | TANKER | 124Y slot 0 | n/a |  |  |  |  | TANKER STPT 4 1403 BE 302/133; TANKER STPT 5 1413 BE 305/186 |
 
 ## Enemy Situation And Air Defense Estimate
 Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars.

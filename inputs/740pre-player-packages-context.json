@@ -1,6 +1,7 @@
 {
   "source": "User-provided mission-planner interpretation, 2026-08-01",
   "event": "740",
+  "operation_name": "Glass Anvil",
   "campaign_prefix": "740pre",
   "route_name": "Gimhae / SA-10 follow-on strike",
   "deck_structure": "Treat packages 7016 and 7040 as one integrated player game plan and one briefing deck.",
@@ -43,6 +44,13 @@
   "packages": [
     {
       "package_id": 7016,
+      "a2a_tacan_assignments": [
+        {"callsign": "Panther 1", "channels": ["15X", "78X", "78Y", "15Y"]},
+        {"callsign": "Jaguar 4", "channels": ["16X", "79X", "79Y", "16Y"]},
+        {"callsign": "Hawkeye 2", "channels": ["17X", "80X", "80Y", "17Y"]},
+        {"callsign": "Jaguar 5", "channels": ["18X", "81X", "81Y", "18Y"]},
+        {"callsign": "Sawbuck 2", "channels": ["19X", "82X", "82Y", "19Y"]}
+      ],
       "briefing_read": "Low-altitude Gimhae / SA-10 West attack package. Jaguar 4 kills SA-10 West from Blues and attacks any surviving air-defense or parked-aircraft opportunity around Orion/Gimhae. Panther 1 strikes Orion/Gimhae while Hawkeye 2 escorts Jaguar 4, Jaguar 5 escorts Panther 1, and Sawbuck 2 provides high-altitude AMRAAM pressure between Tiger and Crown against fighters launching from Gimhae.",
       "strike_contracts": [
         {
@@ -98,6 +106,11 @@
     },
     {
       "package_id": 7040,
+      "a2a_tacan_assignments": [
+        {"callsign": "Hammer 2", "channels": ["25X", "88X", "88Y", "25Y"]},
+        {"callsign": "Devil 5", "channels": ["26X", "89X", "89Y", "26Y"]},
+        {"callsign": "Devil 6", "channels": ["27X", "90X", "90Y", "27Y"]}
+      ],
       "briefing_read": "Low-altitude SA-10 East attack package from Gunsan. Hammer 2 crosses Crown low, then pops from Wolf to attack SA-10 East at short range with HARMs; if unable, Hammer 2 uses Bando for a pop-up CBU attack. Devil 5 and Devil 6 cap around Wolf and intercept bandits from the north or north-northeast.",
       "sad_contracts": [
         {
@@ -139,5 +152,59 @@
     "Sawbuck 2 works high around Tiger-Crown to pressure Gimhae-origin fighters.",
     "Devil 5 and Devil 6 work around Wolf against north/north-northeast fighters.",
     "All player elements retrograde southwest toward Tiger after the SA-10 East, SA-10 West, and Orion/Gimhae objectives are solved."
+  ],
+  "map_mark_overrides": [
+    {
+      "label": "10W",
+      "name": "SA-10 West",
+      "from_ppt_label": "10",
+      "nearest_callsign": "Jaguar 4",
+      "nearest_action": "WP_SEAD"
+    },
+    {
+      "label": "10E",
+      "name": "SA-10 East",
+      "from_ppt_label": "10",
+      "nearest_callsign": "Hammer 2",
+      "nearest_action": "WP_SEAD"
+    }
+  ],
+  "map_flow_groups": [
+    {
+      "label": "ORION STRIKE",
+      "compact_label": "ORION (Panther1, J4, H2, J5)",
+      "color": "blue",
+      "callsigns": ["Panther 1", "Jaguar 4", "Hawkeye 2", "Jaguar 5"],
+      "stages": [
+        {"type": "origin"},
+        {"type": "ini", "label": "TIG"},
+        {"type": "ini", "label": "CRO"},
+        {"type": "ini", "label": "BLU"},
+        {"type": "target", "label": "10W"}
+      ]
+    },
+    {
+      "label": "10E SEAD",
+      "compact_label": "10E (Hammer2, D5, D6)",
+      "color": "green",
+      "callsigns": ["Hammer 2", "Devil 5", "Devil 6"],
+      "stages": [
+        {"type": "origin"},
+        {"type": "ini", "label": "CRO"},
+        {"type": "ini", "label": "WWO"},
+        {"type": "target", "label": "10E"}
+      ]
+    },
+    {
+      "label": "HIGH COVER",
+      "compact_label": "COVER (Sawbuck2)",
+      "color": "amber",
+      "callsigns": ["Sawbuck 2"],
+      "stages": [
+        {"type": "origin"},
+        {"type": "action", "action": "WP_CAP", "occurrence": 0},
+        {"type": "action", "action": "WP_CAP", "occurrence": 1}
+      ]
+    }
   ]
 }

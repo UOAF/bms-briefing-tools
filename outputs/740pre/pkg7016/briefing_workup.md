@@ -76,8 +76,8 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 | Hawkeye 2 | ESCORT | not assigned | 1688 | 1403 | 65 | 65 | -1 | Escort Jaguar 4: Jaguar 4 lane - Protect Jaguar 4 through the low-altitude SA-10 West attack. |
 | Jaguar 5 | ESCORT | not assigned | 1688 | 4137 | 65 | 65 | -1 | Escort Panther 1: Panther 1 lane - Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress. |
 | Sawbuck 2 | BARCAP | not assigned | 1688 | 1125 | 1 | 65 | -1 | High-altitude AMRAAM screen: Tiger to Crown - Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers. |
-| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 |
-| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 1522 grid 457/90; TANKER STPT 5 1530 grid 410/2 |
+| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 |
+| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 1522 BE 254/105; TANKER STPT 5 1530 BE 238/148 |
 
 ## Enemy Situation And Air Defense Estimate
 Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars.

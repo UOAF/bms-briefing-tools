@@ -2,6 +2,7 @@
 
 ## Source Inputs
 - Campaign prefix: `740pre`
+- Event name: `Operation Glass Anvil`
 - Campaign directory: `C:\Falcon BMS 4.38\Data\Campaign`
 - Player packages: `7016`, `7040`
 - Mission context: `inputs/740pre-player-packages-context.json`
@@ -19,6 +20,8 @@
 - `740pre.ini` includes valid PPT anchors `TIG`, `CRO`, `BLU`, `WWO`, `BAN`, `SA6`, `SA5`, and three numeric `10` rings.
 - The save also includes two out-of-theater PPT transforms: `ORO` and one duplicate `BAN`, both with grid Y above the 1024-map range. These are now flagged as invalid in synthesis and excluded from map crops/labels.
 - Orion/Gimhae is still represented by the OCA/strike target around grid `642 / 145`; player-facing brief uses Orion/Gimhae there rather than exposing the invalid PPT coordinate.
+- Map mark overrides now pin `10W` to the numeric `10` nearest Jaguar 4's SEAD point and `10E` to the numeric `10` nearest Hammer 2's SEAD point. The third numeric `10` is not promoted as `10S` because the planner stated SA-10 South was killed in Event 739.
+- Package-flow maps now use objective lanes from mission context: `ORION (Panther1, J4, H2, J5)`, `10E (Hammer2, D5, D6)`, and `COVER (Sawbuck2)`.
 - The map renderer found active enemy air-origin axes from Gimhae, Pohang, and an offshore east group. The package-level generated drafts still under-report active enemy airbases through the older airbase-objective summary path, so the combined player brief uses the squadron-origin axis logic reflected on the maps.
 
 ## Generated Outputs
@@ -26,12 +29,13 @@
 - Package 7016 detailed draft/workup: `outputs/740pre/pkg7016/`
 - Package 7040 detailed draft/workup: `outputs/740pre/pkg7040/`
 - Canonical image pack: `outputs/740pre/briefing_images/`
-- Slide-size preview/contact sheet: `outputs/740pre/slide_v1_0/preview/contact_sheet.jpg`
+- Selected slide image variant: `outputs/740pre/slide_v1_3/briefing_images/`
+- Older slide preview/contact-sheet scratch remains under `outputs/740pre/slide_v1_0/`
 
 ## Image QA
-- `01_route_threat_map.png`: route overview includes Cheongju/Gunsan departure bases, aggregated package flow, strategic WEZs, and enemy air-origin axes.
-- `02_target_area_map.png`: target-area view keeps named anchors, package flow, enemy axes, and threat rings together.
-- `03_objective_area_map.png`: tighter Gimhae/SA-10 close-up suppresses route text labels to reduce clutter.
+- `01_route_threat_map.png`: route overview includes Cheongju/Gunsan departure bases, objective-lane package flow, strategic WEZs, and enemy air-origin axes.
+- `02_target_area_map.png`: target-area view keeps named anchors, objective-lane flow, enemy axes, and threat rings together. It shows `10W` and `10E`; `10S` is intentionally absent.
+- `03_objective_area_map.png`: Crown-to-SA5 objective crop keeps the same target-area content stack but removes route/departure clutter. It preserves `CRO`, `BLU`, `10W`, `10E`, `BAN`, `WWO`, `SA6`, and `SA5`.
 - `04_weather_map.png`: weather overlay uses save-specific FMAP and grey dotted package AO box.
 - Route map size is under 20 MB.
 
@@ -40,5 +44,7 @@
 - `python scripts\synthesize_bms_briefing.py ... --focus-package 7016 --mission-context inputs\740pre-player-packages-context.json`
 - `python scripts\synthesize_bms_briefing.py ... --focus-package 7040 --mission-context inputs\740pre-player-packages-context.json`
 - `python scripts\render_bms_enemy_air_threat_map.py ... --combined-out outputs\740pre\slide_v1_0\briefing_images\01_route_threat_map.png`
+- `python scripts\render_bms_enemy_air_threat_map.py ... --combined-out outputs\740pre\slide_v1_2\briefing_images\01_route_threat_map.png`
+- `python scripts\render_bms_enemy_air_threat_map.py ... --combined-crop-labels CRO SA5 10W 10E BLU BAN WWO SA6 --combined-out outputs\740pre\slide_v1_3\briefing_images\03_objective_area_map.png`
 - `python scripts\render_bms_weather_map.py ... --out outputs\740pre\slide_v1_0\briefing_images\04_weather_map.png`
 - `python scripts\collect_bms_image_pack.py outputs\740pre`

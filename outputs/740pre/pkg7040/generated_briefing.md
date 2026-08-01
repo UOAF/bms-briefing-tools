@@ -24,19 +24,19 @@
 - Target opportunities: 10E SA-10 East: Strategic SAM - Hammer 2 primary target from Wolf, with Bando as the alternate pop-up CBU reference.
 
 ### Friendly Package Composition
-- Support: AWACS: Sentry 1 (1x E-3, ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280); TANKER: Copper 5 (1x KC-135E, TANKER STPT 4 1403 grid 435/277; TANKER STPT 5 1413 grid 360/342)
+- Support: AWACS: Sentry 1 (1x E-3, ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111); TANKER: Copper 5 (1x KC-135E, TANKER STPT 4 1403 BE 302/133; TANKER STPT 5 1413 BE 305/186)
 
-| C/S | Aircraft | Role | Weapons | Laser | TACAN | T/O | TOT | Target/Area | Remarks |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Hammer 2 | 4x F-16CM-50 | SEAD | 20mm M61 x51, AGM-88 HARM x1, AIM-120C AMRAAM x4, AN/AAQ-33 SNIPER x1, AN/ALQ-184 x1, AN/ASQ-213 HTS x1, GBU-38/B /HE x2, Tank 370gal x2 | 1688 | not assigned | 1419 | 1432 | SEAD/DEAD SA-10 East from Wolf | Cross Crown low, pop from Wolf to shoot SA-10 East at short range with HARMs, and if unable execute the Bando pop-up CBU option. |
-| Devil 5 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x2, AIM-120C AMRAAM x6, Tank F-15C 600gal x2 | 1688 | not assigned | 1419 | 1439 | Wolf CAP / north threat intercept | CAP around Wolf and intercept fighters from the north or north-northeast. |
-| Devil 6 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x2, AIM-120C AMRAAM x6, Tank F-15C 600gal x2 | 1688 | not assigned | 1419 | 1439 | Wolf CAP / north threat intercept | Support Devil 5 around Wolf and intercept fighters from the north or north-northeast. |
+| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Target/Area | Remarks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Hammer 2 | 4x F-16CM-50 | SEAD | 20mm M61 x51, AGM-88 HARM x1, AIM-120C AMRAAM x4, AN/AAQ-33 SNIPER x1, AN/ALQ-184 x1, AN/ASQ-213 HTS x1, GBU-38/B /HE x2, Tank 370gal x2 | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 1419 | 1432 | SEAD/DEAD SA-10 East from Wolf | Cross Crown low, pop from Wolf to shoot SA-10 East at short range with HARMs, and if unable execute the Bando pop-up CBU option. |
+| Devil 5 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x2, AIM-120C AMRAAM x6, Tank F-15C 600gal x2 | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 1419 | 1439 | Wolf CAP / north threat intercept | CAP around Wolf and intercept fighters from the north or north-northeast. |
+| Devil 6 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x2, AIM-120C AMRAAM x6, Tank F-15C 600gal x2 | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 1419 | 1439 | Wolf CAP / north threat intercept | Support Devil 5 around Wolf and intercept fighters from the north or north-northeast. |
 
 ### AWACS / Tanker Tracks
 | Role | C/S | Aircraft | TOT | Station / Track | TACAN | Weapons |
 | --- | --- | --- | --- | --- | --- | --- |
-| AWACS | Sentry 1 | 1x E-3 | 1345 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 | not assigned | none |
-| TANKER | Copper 5 | 1x KC-135E | 1327 | TANKER STPT 4 1403 grid 435/277; TANKER STPT 5 1413 grid 360/342 | 124Y slot 0 | none |
+| AWACS | Sentry 1 | 1x E-3 | 1345 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 | not assigned | none |
+| TANKER | Copper 5 | 1x KC-135E | 1327 | TANKER STPT 4 1403 BE 302/133; TANKER STPT 5 1413 BE 305/186 | 124Y slot 0 | none |
 
 ## Other Package Factors
 - No additional friendly packages are expected to affect the target area.
@@ -73,8 +73,8 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 | Hammer 2 | SEAD | not assigned | 1688 | 2666 | 65 | 65 | 1 | SEAD/DEAD SA-10 East from Wolf: Wolf / Bando - Cross Crown low, pop from Wolf to shoot SA-10 East at short range with HARMs, and if unable execute the Bando pop-up CBU option. |
 | Devil 5 | BARCAP | not assigned | 1688 | 2750 | 1 | 65 | -1 | Wolf CAP / north threat intercept: Wolf - CAP around Wolf and intercept fighters from the north or north-northeast. |
 | Devil 6 | BARCAP | not assigned | 1688 | 3154 | 1 | 65 | -1 | Wolf CAP / north threat intercept: Wolf - Support Devil 5 around Wolf and intercept fighters from the north or north-northeast. |
-| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 |
-| Copper 5 | TANKER | 124Y slot 0 | n/a |  |  |  |  | TANKER STPT 4 1403 grid 435/277; TANKER STPT 5 1413 grid 360/342 |
+| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 |
+| Copper 5 | TANKER | 124Y slot 0 | n/a |  |  |  |  | TANKER STPT 4 1403 BE 302/133; TANKER STPT 5 1413 BE 305/186 |
 
 ## Enemy Situation And Air Defense Estimate
 Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars.

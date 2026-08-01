@@ -37,13 +37,19 @@ Ask for missing mission-planner context only when it cannot be discovered from f
 Minimum intake:
 
 - Campaign save prefix and campaign directory.
+- Event number and operation/event name. If the user has not supplied a name and asks for one, propose a short evocative `Operation: <Name>` title that fits the mission tone.
 - Player package ID or package IDs.
 - Player flights/callsigns and their intended roles.
+- A-A TACAN plan or generation pattern for player flights, when provided. Keep per-ship A-A TACAN separate from tanker/package TACAN.
 - Named INI/data-cartridge marks and their tactical meaning.
 - Commander intent, priorities, alternates, fallback logic, and deconfliction notes.
 - Any deck/design constraints, but do not generate the design handoff until requested.
 
 If the user narrates corrections after an initial render, incorporate them as planner intent and update the mission-context file. Do not hard-code those facts into reusable code.
+
+Player-facing briefs should use bullseye references for AWACS/tanker/support
+tracks whenever bullseye data is available. Keep raw grid coordinates for those
+tracks in appendices or workups, not in the main support table.
 
 ## Data Policy
 
@@ -56,7 +62,7 @@ Use BMS 4.38 real-life grid scale by default: `3280.84 ft/grid`. Avoid estimated
 For a mission output folder such as `outputs/<prefix>`, produce:
 
 - `briefing_workup.md`: detailed transitional analysis with data provenance, unresolved issues, and coordinate appendices.
-- `player_briefing_combined.md` and `generated_briefing.md`: player-facing mission brief with no dev comments. For multi-package human/player operations, both root files should represent the unified operation rather than one package's draft.
+- `player_briefing_combined.md` and `generated_briefing.md`: player-facing mission brief with no dev comments. For multi-package human/player operations, both root files should represent the unified operation rather than one package's draft. Include the operation/event name alongside the event number in the title, for example `Event 740: Operation Glass Anvil Player Briefing`.
 - `briefing_images/01_route_threat_map.png`
 - `briefing_images/02_target_area_map.png`
 - `briefing_images/03_objective_area_map.png`

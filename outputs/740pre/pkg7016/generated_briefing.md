@@ -24,21 +24,21 @@
 - Target opportunities: 10W SA-10 West: Strategic SAM - Jaguar 4 primary SEAD/DEAD target from Blues.; ORO Orion / Gimhae: Airbase / OCA target - Panther 1 primary strike target; Jaguar 4 may attack additional air defenses or parked aircraft on top of Orion/Gimhae if able.
 
 ### Friendly Package Composition
-- Support: AWACS: Sentry 1 (1x E-3, ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280); TANKER: Copper 2 (1x KC-135R, TANKER STPT 4 1522 grid 457/90; TANKER STPT 5 1530 grid 410/2)
+- Support: AWACS: Sentry 1 (1x E-3, ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111); TANKER: Copper 2 (1x KC-135R, TANKER STPT 4 1522 BE 254/105; TANKER STPT 5 1530 BE 238/148)
 
-| C/S | Aircraft | Role | Weapons | Laser | TACAN | T/O | TOT | Target/Area | Remarks |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panther 1 | 4x F-16C-52 ROKAF | OCA STRIKE | 20mm M61 x51, AIM-120C AMRAAM x4, AN/AAQ-33 SNIPER x1, GBU-31(v)3/B /AP x2, Tank 370gal x2 | 1688 | not assigned | 1419 | 1434 | Unresolved target 2035 | TIMING: TGT 2, TGT 1; PUSH: TGT 3, TIG; SPLIT: TGT 7 |
-| Jaguar 4 | 4x F-16C-52 ROKAF | SEAD | 20mm M61 x51, AGM-88 HARM x1, AIM-120B AMRAAM x2, AIM-9M Sidewinder x2, CBU-105/B x2, Tank 370gal x2 | 1688 | not assigned | 1415 | 1438 | SEAD/DEAD SA-10 West from Blues | Flow from Tiger nap-of-the-earth past Crown, use Blues as the IP, then destroy SA-10 West with HARMs/CBUs. If able, prosecute any remaining air defenses or aircraft on top of Orion/Gimhae. |
-| Hawkeye 2 | 4x F-16C-52 ROKAF | ESCORT | 20mm M61 x51, AIM-120C AMRAAM x6, AN/AAQ-33 SNIPER x1, Tank 300gal x1, Tank 370gal x2 | 1688 | not assigned | 1416 | 1438 | Escort Jaguar 4 | Protect Jaguar 4 through the low-altitude SA-10 West attack. |
-| Jaguar 5 | 4x F-16C-52 ROKAF | ESCORT | 20mm M61 x51, AIM-120C AMRAAM x6, AN/AAQ-33 SNIPER x1, Tank 300gal x1, Tank 370gal x2 | 1688 | not assigned | 1417 | 1439 | Escort Panther 1 | Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress. |
-| Sawbuck 2 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x6, AIM-120C AMRAAM x2, Tank F-15C 600gal x2 | 1688 | not assigned | 1419 | 1437 | High-altitude AMRAAM screen | Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers. |
+| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Target/Area | Remarks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Panther 1 | 4x F-16C-52 ROKAF | OCA STRIKE | 20mm M61 x51, AIM-120C AMRAAM x4, AN/AAQ-33 SNIPER x1, GBU-31(v)3/B /AP x2, Tank 370gal x2 | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 1419 | 1434 | Unresolved target 2035 | TIMING: TGT 2, TGT 1; PUSH: TGT 3, TIG; SPLIT: TGT 7 |
+| Jaguar 4 | 4x F-16C-52 ROKAF | SEAD | 20mm M61 x51, AGM-88 HARM x1, AIM-120B AMRAAM x2, AIM-9M Sidewinder x2, CBU-105/B x2, Tank 370gal x2 | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 1415 | 1438 | SEAD/DEAD SA-10 West from Blues | Flow from Tiger nap-of-the-earth past Crown, use Blues as the IP, then destroy SA-10 West with HARMs/CBUs. If able, prosecute any remaining air defenses or aircraft on top of Orion/Gimhae. |
+| Hawkeye 2 | 4x F-16C-52 ROKAF | ESCORT | 20mm M61 x51, AIM-120C AMRAAM x6, AN/AAQ-33 SNIPER x1, Tank 300gal x1, Tank 370gal x2 | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 1416 | 1438 | Escort Jaguar 4 | Protect Jaguar 4 through the low-altitude SA-10 West attack. |
+| Jaguar 5 | 4x F-16C-52 ROKAF | ESCORT | 20mm M61 x51, AIM-120C AMRAAM x6, AN/AAQ-33 SNIPER x1, Tank 300gal x1, Tank 370gal x2 | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 1417 | 1439 | Escort Panther 1 | Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress. |
+| Sawbuck 2 | 4x F-15C | BARCAP | 20mm M61 x95, AIM-120B AMRAAM x6, AIM-120C AMRAAM x2, Tank F-15C 600gal x2 | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 1419 | 1437 | High-altitude AMRAAM screen | Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers. |
 
 ### AWACS / Tanker Tracks
 | Role | C/S | Aircraft | TOT | Station / Track | TACAN | Weapons |
 | --- | --- | --- | --- | --- | --- | --- |
-| AWACS | Sentry 1 | 1x E-3 | 1345 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 | not assigned | none |
-| TANKER | Copper 2 | 1x KC-135R | 1522 | TANKER STPT 4 1522 grid 457/90; TANKER STPT 5 1530 grid 410/2 | 123Y slot 0 | none |
+| AWACS | Sentry 1 | 1x E-3 | 1345 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 | not assigned | none |
+| TANKER | Copper 2 | 1x KC-135R | 1522 | TANKER STPT 4 1522 BE 254/105; TANKER STPT 5 1530 BE 238/148 | 123Y slot 0 | none |
 
 ## Other Package Factors
 - No additional friendly packages are expected to affect the target area.
@@ -73,8 +73,8 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 | Hawkeye 2 | ESCORT | not assigned | 1688 | 1403 | 65 | 65 | -1 | Escort Jaguar 4: Jaguar 4 lane - Protect Jaguar 4 through the low-altitude SA-10 West attack. |
 | Jaguar 5 | ESCORT | not assigned | 1688 | 4137 | 65 | 65 | -1 | Escort Panther 1: Panther 1 lane - Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress. |
 | Sawbuck 2 | BARCAP | not assigned | 1688 | 1125 | 1 | 65 | -1 | High-altitude AMRAAM screen: Tiger to Crown - Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers. |
-| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 grid 450/248; ELINT STPT 5 1401 grid 487/280 |
-| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 1522 grid 457/90; TANKER STPT 5 1530 grid 410/2 |
+| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 1357 BE 298/118; ELINT STPT 5 1401 BE 311/111 |
+| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 1522 BE 254/105; TANKER STPT 5 1530 BE 238/148 |
 
 ## Enemy Situation And Air Defense Estimate
 Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars.

@@ -104,6 +104,13 @@ LABEL_BG = (10, 12, 13, 218)
 THREAT_RING = (255, 0, 0)
 THREAT_FILL = (190, 0, 0)
 THREAT_LABEL_BG = (72, 0, 0, 150)
+FLOW_COLOR_NAMES = {
+    "blue": FLOW_BLUE,
+    "green": (98, 235, 128),
+    "amber": (255, 199, 71),
+    "yellow": (255, 199, 71),
+    "red": RED,
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -383,6 +390,10 @@ def crop_for_combined_map(
     objective_positions: list[dict[str, Any]],
     args: argparse.Namespace,
 ) -> tuple[int, int, int, int]:
+    labeled_crop = crop_for_requested_labels(named_positions, args.combined_crop_labels, args)
+    if labeled_crop:
+        return labeled_crop
+
     if args.combined_crop_mode == "objective-area":
         objective_points = objective_positions or named_positions or anchors
         crop = crop_for_points(objective_points, args.combined_objective_margin_grid, args.aspect_ratio)
@@ -405,6 +416,26 @@ def crop_for_combined_map(
         )
     ]
     return crop_for_points([*anchors, *flow_points, *named_positions], args.combined_margin_grid, args.aspect_ratio)
+
+
+def crop_for_requested_labels(
+    named_positions: list[dict[str, Any]],
+    labels: list[str] | None,
+    args: argparse.Namespace,
+) -> tuple[int, int, int, int] | None:
+    wanted = {normalized_marker_label(label) for label in labels or [] if normalized_marker_label(label)}
+    if not wanted:
+        return None
+    selected = [
+        point
+        for point in named_positions
+        if normalized_marker_label(point.get("label")) in wanted and valid_map_grid(point.get("grid_x"), point.get("grid_y"))
+    ]
+    found = {normalized_marker_label(point.get("label")) for point in selected}
+    missing = sorted(wanted - found)
+    if missing:
+        raise SystemExit(f"Could not find combined crop label(s): {', '.join(missing)}")
+    return crop_for_points(selected, args.combined_crop_label_margin_grid, args.aspect_ratio)
 
 
 def point_inside_image(point: tuple[float, float], width: int, height: int, pad: float = 0.0) -> bool:
@@ -584,6 +615,10 @@ def compact_named_label(label: Any) -> str:
     return text
 
 
+def normalized_label(value: Any) -> str:
+    return "".join(char for char in str(value or "").upper() if char.isalnum())
+
+
 def compact_label_text(origin: dict[str, Any]) -> str:
     shown = compact_aircraft_list(origin.get("aircraft") or [])
     name = str(origin.get("name") or "").strip()
@@ -675,6 +710,7 @@ def draw_low_opacity_air_defense_rings(
     opacity: float,
     style: str = "target-area",
     compact_labels: bool = False,
+    named_positions: list[dict[str, Any]] | None = None,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     opacity = max(0.0, min(1.0, opacity))
@@ -698,9 +734,7 @@ def draw_low_opacity_air_defense_rings(
         draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
         draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
         if point_inside_image(center, overlay.width, overlay.height, 16):
-            label = air_defense_threat_label(air_defense)
-            if compact_labels:
-                label = compact_sam_label(label)
+            label = contextual_air_defense_label(air_defense, named_positions or [], compact_labels)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
 
 
@@ -738,6 +772,9 @@ def draw_flow_groups(
         "SEAD / DEAD Flow": (0.58, (-145, 42)),
         "Escort / BARCAP Flow": (0.53, (34, -50)),
         "East Fighter Screen": (0.66, (34, 34)),
+        "ORION STRIKE": (0.70, (-56, 44)),
+        "10E SEAD": (0.62, (38, -58)),
+        "HIGH COVER": (0.52, (-76, -58)),
     }
     for group in flow_groups:
         points = [projector.grid(point.get("grid_x"), point.get("grid_y")) for point in group.get("points") or []]
@@ -825,7 +862,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     origins, anchors = collect_air_threat_origins(cam_decode, packages, object_catalog, args.radius_nm, airbase_objectives)
     if not origins:
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
-    flow_groups = package_flow_groups(packages) if include_flow else []
+    flow_groups = package_flow_groups(packages, syntheses) if include_flow else []
     named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
     objective_positions = objective_crop_points(syntheses, packages, named_positions) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
@@ -870,6 +907,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
             args.combined_threat_opacity,
             args.combined_threat_style,
             compact_labels=args.presentation_profile == "slide",
+            named_positions=named_positions,
         )
 
     anchor_points = [projector.grid(anchor.get("grid_x"), anchor.get("grid_y")) for anchor in anchors]
@@ -1005,6 +1043,120 @@ def valid_map_grid(grid_x: Any, grid_y: Any) -> bool:
     return 0.0 <= x <= MAP_GRID_SIZE and 0.0 <= y <= MAP_GRID_SIZE
 
 
+def mission_context_from_syntheses(syntheses: list[dict[str, Any]]) -> dict[str, Any]:
+    for synthesis in syntheses:
+        context = synthesis.get("mission_context")
+        if isinstance(context, dict) and context:
+            return context
+    return {}
+
+
+def flight_map(packages: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        normalized_label(flight.get("callsign")): flight
+        for package in packages
+        for flight in package.get("flights") or []
+        if flight.get("callsign")
+    }
+
+
+def first_matching_waypoint(flight: dict[str, Any] | None, action: str | None) -> dict[str, Any] | None:
+    if not flight:
+        return None
+    for waypoint in flight.get("key_waypoints") or []:
+        if action and waypoint.get("action") != action:
+            continue
+        if waypoint.get("grid_x") is None or waypoint.get("grid_y") is None:
+            continue
+        return waypoint
+    return None
+
+
+def context_map_mark_overrides(syntheses: list[dict[str, Any]], packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    context = mission_context_from_syntheses(syntheses)
+    overrides = context.get("map_mark_overrides") or []
+    if not isinstance(overrides, list):
+        return []
+
+    flights = flight_map(packages)
+    transformed_points = [
+        point
+        for synthesis in syntheses
+        for point in (synthesis.get("planning", {}).get("transformed_points") or [])
+    ]
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for item in overrides:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or item.get("name") or "").strip()
+        if not label:
+            continue
+        if label.upper() in seen:
+            continue
+
+        explicit_x = item.get("grid_x")
+        explicit_y = item.get("grid_y")
+        if valid_map_grid(explicit_x, explicit_y):
+            result.append({"label": label, "grid_x": explicit_x, "grid_y": explicit_y, "name": item.get("name")})
+            seen.add(label.upper())
+            continue
+
+        source_label = normalized_label(item.get("from_ppt_label") or item.get("source_label") or label)
+        candidates: list[dict[str, Any]] = []
+        for point in transformed_points:
+            point_label = normalized_label(point.get("display") or point.get("label"))
+            grid = point.get("campaign_grid") or {}
+            if point.get("kind") != "ppt" or point_label != source_label:
+                continue
+            if not grid.get("valid_for_map", True) or not valid_map_grid(grid.get("grid_x"), grid.get("grid_y")):
+                continue
+            candidates.append(point)
+        if not candidates:
+            continue
+
+        anchor = first_matching_waypoint(
+            flights.get(normalized_label(item.get("nearest_callsign"))),
+            item.get("nearest_action"),
+        )
+        if anchor:
+            chosen = min(
+                candidates,
+                key=lambda point: math.hypot(
+                    safe_float((point.get("campaign_grid") or {}).get("grid_x")) - safe_float(anchor.get("grid_x")),
+                    safe_float((point.get("campaign_grid") or {}).get("grid_y")) - safe_float(anchor.get("grid_y")),
+                ),
+            )
+        else:
+            chosen = candidates[0]
+        grid = chosen.get("campaign_grid") or {}
+        result.append({"label": label, "grid_x": grid.get("grid_x"), "grid_y": grid.get("grid_y"), "name": item.get("name")})
+        seen.add(label.upper())
+    return result
+
+
+def contextual_air_defense_label(
+    air_defense: dict[str, Any],
+    named_positions: list[dict[str, Any]],
+    compact: bool,
+) -> str:
+    base_label = air_defense_threat_label(air_defense)
+    is_sa10 = normalized_label(base_label).startswith("SA10")
+    if is_sa10:
+        for position in named_positions:
+            label = compact_named_label(position.get("label"))
+            if normalized_label(label) not in {"10W", "10E", "10S"}:
+                continue
+            distance = math.hypot(
+                safe_float(air_defense.get("grid_x")) - safe_float(position.get("grid_x")),
+                safe_float(air_defense.get("grid_y")) - safe_float(position.get("grid_y")),
+            )
+            if distance <= 2.5:
+                return label
+    return compact_sam_label(base_label) if compact else base_label
+
+
 def flow_stage_point(flights: list[dict[str, Any]], actions: set[str]) -> dict[str, Any] | None:
     points: list[dict[str, Any]] = []
     for flight in flights:
@@ -1094,7 +1246,84 @@ def flow_origin_points(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return origins
 
 
-def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def color_from_context(value: Any, fallback: tuple[int, int, int]) -> tuple[int, int, int]:
+    if isinstance(value, (list, tuple)) and len(value) >= 3:
+        return (safe_int(value[0], fallback[0]), safe_int(value[1], fallback[1]), safe_int(value[2], fallback[2]))
+    return FLOW_COLOR_NAMES.get(str(value or "").strip().lower(), fallback)
+
+
+def context_flow_stage_point(
+    stage: dict[str, Any],
+    group_flights: list[dict[str, Any]],
+    named_lookup: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    stage_type = str(stage.get("type") or "").lower()
+    if stage_type == "origin":
+        return flow_origin_point(group_flights)
+    if stage_type == "action":
+        action = str(stage.get("action") or "").strip()
+        occurrence = stage.get("occurrence")
+        if occurrence is not None:
+            return flow_stage_occurrence(group_flights, action, safe_int(occurrence))
+        return flow_stage_point(group_flights, {action})
+    if stage_type in {"ini", "target", "mark"}:
+        return named_lookup.get(normalized_label(stage.get("label")))
+    if valid_map_grid(stage.get("grid_x"), stage.get("grid_y")):
+        return {"grid_x": stage.get("grid_x"), "grid_y": stage.get("grid_y")}
+    return None
+
+
+def context_package_flow_groups(
+    packages: list[dict[str, Any]],
+    syntheses: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    if not syntheses:
+        return []
+    context = mission_context_from_syntheses(syntheses)
+    flow_specs = context.get("map_flow_groups") or []
+    if not isinstance(flow_specs, list):
+        return []
+
+    flights = flight_map(packages)
+    named_positions = [*named_position_points(packages), *context_map_mark_overrides(syntheses, packages)]
+    named_lookup = {normalized_label(point.get("label")): point for point in named_positions}
+    groups: list[dict[str, Any]] = []
+    for spec in flow_specs:
+        if not isinstance(spec, dict):
+            continue
+        group_flights = [
+            flights[key]
+            for key in (normalized_label(callsign) for callsign in spec.get("callsigns") or [])
+            if key in flights
+        ]
+        if not group_flights:
+            continue
+        stages = [
+            context_flow_stage_point(stage, group_flights, named_lookup)
+            for stage in spec.get("stages") or []
+            if isinstance(stage, dict)
+        ]
+        path = [point for point in stages if point]
+        if len(path) < 2:
+            continue
+        origin = flow_origin_point(group_flights)
+        groups.append(
+            {
+                "label": str(spec.get("label") or "Package Flow"),
+                "compact_label": str(spec.get("compact_label") or spec.get("label") or "Flow"),
+                "points": path,
+                "color": color_from_context(spec.get("color"), FLOW_BLUE),
+                "origin_label": (origin or {}).get("origin_label"),
+            }
+        )
+    return groups
+
+
+def package_flow_groups(packages: list[dict[str, Any]], syntheses: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    custom_groups = context_package_flow_groups(packages, syntheses)
+    if custom_groups:
+        return custom_groups
+
     flights = [flight for package in packages for flight in package.get("flights") or []]
     groups: list[dict[str, Any]] = []
     sead_flights = [flight for flight in flights if str(flight.get("mission") or "").upper() in {"SEAD", "SAD"}]
@@ -1191,6 +1420,10 @@ def objective_crop_points(
 
 
 def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
+    overrides = context_map_mark_overrides(syntheses, packages)
+    if overrides:
+        return overrides
+
     context_names: dict[str, str] = {}
     for package in packages:
         for item in (package.get("human_context") or {}).get("target_opportunities", []):
@@ -1213,7 +1446,7 @@ def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[st
         return []
     tactical_points = [
         point
-        for group in package_flow_groups(packages)
+        for group in package_flow_groups(packages, syntheses)
         for point in group.get("points") or []
         if point.get("grid_x") is not None and point.get("grid_y") is not None
     ]
@@ -1252,6 +1485,8 @@ def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[st
     result: list[dict[str, Any]] = []
     seen: set[tuple[float, float, str]] = set()
     for key, point in assignments:
+        if key not in context_names:
+            continue
         label = context_names.get(key, key)
         marker_key = (round(safe_float(point.get("grid_x")), 1), round(safe_float(point.get("grid_y")), 1), label)
         if marker_key in seen:
@@ -1348,7 +1583,7 @@ def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
     if len(package_ids) == 1 and len(syntheses) > 1:
         package_ids = package_ids * len(syntheses)
     packages = [find_package(synthesis, package_id) for synthesis, package_id in zip(syntheses, package_ids)]
-    flow_groups = package_flow_groups(packages)
+    flow_groups = package_flow_groups(packages, syntheses)
     named_positions = named_position_points(packages) + sa10_named_positions(syntheses, packages)
     crop_items = [
         point
@@ -1415,6 +1650,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ao-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around the player AO for the default enemy-air crop.")
     parser.add_argument("--flow-margin-grid", type=float, default=22.0, help="Extra grid-cell margin around package-flow diagram points.")
     parser.add_argument("--combined-margin-grid", type=float, default=18.0, help="Extra grid-cell margin around combined map flow, named positions, and AO anchors.")
+    parser.add_argument(
+        "--combined-crop-labels",
+        nargs="+",
+        help="Frame --combined-out around these named INI/PPT/context labels, e.g. CRO SA5 10W 10E BAN WWO.",
+    )
+    parser.add_argument(
+        "--combined-crop-label-margin-grid",
+        type=float,
+        default=8.0,
+        help="Extra grid-cell margin around --combined-crop-labels before enforcing the output aspect ratio.",
+    )
     parser.add_argument(
         "--combined-crop-mode",
         choices=("target-area", "objective-area"),

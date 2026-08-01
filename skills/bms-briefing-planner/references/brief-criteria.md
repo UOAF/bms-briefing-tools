@@ -6,6 +6,7 @@ A good BMS player brief is a commander-facing interpretation of the mission, bac
 
 Required sections when data is available:
 
+- Title with event number and operation/event name when known, for example `Event 740: Operation Glass Anvil Player Briefing`.
 - Mission summary: two to four sentences.
 - Commander intent and flight contracts.
 - Player package composition.
@@ -24,6 +25,7 @@ Required sections when data is available:
 Use clear tactical language:
 
 - Say what the package must do, where, and why.
+- Use the operation/event name as an identity marker, but keep the tactical brief clear and concrete.
 - Name the flight responsible for each task.
 - Use planner terms when provided, but expand ambiguous labels once.
 - Use concise tables for loadout, timing, comms, and coordinates.
@@ -45,12 +47,14 @@ Include for player packages:
 - Takeoff time and TOT.
 - Loadout summarized by useful weapons, sensors, tanks.
 - Laser codes where decoded/applicable.
-- TACAN channels where decoded/applicable.
+- A-A TACAN channels per ship when supplied by the planner, formatted compactly in package composition, for example `15X / 78X / 78Y / 15Y` for ships #1-#4.
+- Tanker/package TACAN channels where decoded/applicable. Do not merge tanker TACAN and per-ship A-A TACAN into one ambiguous field.
 - Tactical assignment and remarks.
 
 Include non-player packages only if they matter:
 
 - AWACS/tanker supporting the package.
+- Express AWACS/tanker station tracks as bullseye references when bullseye is available, for example `BE 298/118 to BE 311/111`; keep raw grids in the coordinate appendix/workup rather than the player-facing support table.
 - Escorts/screens tied to the package.
 - Friendly package activity that crosses, deconflicts with, or affects the target area.
 - Other flights overhead or clearly vectoring toward the target area within relevant time/range.
@@ -111,4 +115,5 @@ Use coordinates to support planning without cluttering the human read:
 - Put detailed coordinates in a separate appendix.
 - Include grid and bullseye where available.
 - Include flight steerpoints, INI/PPT marks, strategic ADA, active enemy airbase origins, AWACS/tanker tracks, and relevant support anchors.
+- For AWACS/tanker/support tracks, use bullseye as the primary player-facing reference and include grids only as appendix/provenance data.
 - Explain ambiguous marks once. Example: `PPT 15 is an unnamed data-cartridge mark near the SA-6/Joule objective area.`

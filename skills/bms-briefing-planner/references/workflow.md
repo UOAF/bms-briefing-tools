@@ -5,6 +5,7 @@
 Treat the current mission as a clean room:
 
 - Identify campaign prefix, theater/campaign directory, BMS root, map source, package IDs, and player package scope.
+- Capture the event number and operation/event name. If no name exists and the user asks for one, propose a short evocative operation title and store it in mission context, not only in the final markdown.
 - If the mission maker names multiple human/player packages, default to one unified operation and one combined player-facing brief/deck. Only split briefs when the mission maker explicitly asks for package-separated outputs.
 - Check whether old output folders are style references or current mission inputs.
 - Prevent prior-mission leakage. Examples of forbidden carryover unless restated: `Route Black`, `Guardpost`, `Barrier`, `Tiger`, `Joule`, `Crown`, named SA-10 geometry, or old package IDs.
@@ -47,8 +48,10 @@ For multiple player packages in one operation, synthesize package-specific folde
 Correlate the planner prompt with decoded data:
 
 - Package IDs and flights.
+- Event name/codename and how it should appear in the player-facing title.
 - Callsigns, aircraft count/type, role, takeoff, TOT, loadout, laser codes, TACAN.
-- AWACS/tanker callsigns, aircraft, TACAN, tracks, and whether they matter to the player package.
+- Per-ship A-A TACAN assignments or planner-provided generation pattern. Expand patterns by package and flight order, then store explicit `a2a_tacan_assignments` in mission context so regenerated briefs preserve the exact channels. For example, if the planner says package 1 flight #1 uses `15X / 78X / 78Y / 15Y` and flight #2 increments from there, assign each callsign its four ship channels rather than leaving the rule only in prose.
+- AWACS/tanker callsigns, aircraft, TACAN, tracks, and whether they matter to the player package. Use bullseye track references in the player-facing brief when available; reserve raw grid tracks for appendices/workups.
 - Flight plan steerpoints and mission actions.
 - INI/PPT marks, named marks, drawn lines, route labels, threat steerpoints, and bullseye.
 - Weather at takeoff, target, and landing: local time/day-night, conditions, cloud base, contrail layer, temp, visibility, wind.

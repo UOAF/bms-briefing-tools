@@ -30,6 +30,7 @@ The route overview must:
 - Show friendly departure airbases and flow from those origins to the target area.
 - Aggregate route flow when individual flight plans clutter the slide.
 - Label aggregated route arrows with compact role and callsigns, for example `SEAD (Cyborg1, Jackal2)`, `CAP (Cobra2, Cajun1, Cobra4)`, `Eagles (Hog5, Ramrod3)`.
+- When the mission planner describes objective lanes, prefer explicit context-defined flow groups such as `ORION (Panther1, J4, H2, J5)` and `10E (Hammer2, D5, D6)` over generic mission-type buckets.
 - Show strategic ADA WEZ rings with readable outlines and subdued fill.
 - Show active enemy airbase origins and enemy air axes, using human-readable airbase names and abbreviated aircraft where needed.
 - Avoid over-wide crops that include irrelevant terrain no player would reasonably care about.
@@ -92,6 +93,7 @@ Use compact labels on slide maps:
 - `MiG-29S`, `MiG-27`, `MiG-31` -> `M29S`, `M27`, `M31`.
 - `Su-33`, `Su-35S`, `Su-39` -> `S33`, `S35S`, `S39`.
 - Drop `Offshore group` when the aircraft label is enough.
+- If multiple PPTs share a generic label such as `10`, use mission-context mark overrides tied to a callsign/action or explicit grid so destroyed/irrelevant historical targets do not reappear on the map.
 
 ## Readability Checks
 
@@ -159,6 +161,7 @@ Objective area:
 
 - Use `--combined-crop-mode objective-area`.
 - Set an objective north bound and padding when the planner gives a useful anchor.
+- When the objective close-up is cropped too tightly, use explicit crop labels around the tactical box rather than simply increasing margin. Example: `--combined-crop-labels CRO SA5 10W 10E BLU BAN WWO SA6` frames a Crown-to-SA5 target view without returning to the full target-area crop.
 - Use smaller label multipliers than target.
 - If flow labels obscure terrain, reduce label multipliers or render flow lines without text.
 - Treat route labels on objective maps as optional. The objective map may rely on the slide legend or sidebar text for flow names if labels block the prosecution area.
