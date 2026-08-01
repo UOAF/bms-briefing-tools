@@ -18,6 +18,12 @@ Use this skill as a briefing production workflow:
 5. Render and QA the numbered image pack.
 6. Wait for explicit user approval before generating Claude/design bundles, committing, or pushing.
 
+Default package scope: when the mission maker identifies more than one human
+or player package, treat those packages as one unified operation and one
+player-facing briefing unless the mission maker explicitly asks for separate
+briefs. Package-specific generated drafts and workups are allowed as evidence,
+but the root mission brief and deck-facing image pack should be combined.
+
 ## Read These References
 
 - Read [workflow.md](references/workflow.md) before running a new mission from campaign data.
@@ -50,7 +56,7 @@ Use BMS 4.38 real-life grid scale by default: `3280.84 ft/grid`. Avoid estimated
 For a mission output folder such as `outputs/<prefix>`, produce:
 
 - `briefing_workup.md`: detailed transitional analysis with data provenance, unresolved issues, and coordinate appendices.
-- `player_briefing_combined.md` or `generated_briefing.md`: player-facing mission brief with no dev comments.
+- `player_briefing_combined.md` and `generated_briefing.md`: player-facing mission brief with no dev comments. For multi-package human/player operations, both root files should represent the unified operation rather than one package's draft.
 - `briefing_images/01_route_threat_map.png`
 - `briefing_images/02_target_area_map.png`
 - `briefing_images/03_objective_area_map.png`

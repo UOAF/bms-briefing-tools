@@ -5,6 +5,7 @@
 Treat the current mission as a clean room:
 
 - Identify campaign prefix, theater/campaign directory, BMS root, map source, package IDs, and player package scope.
+- If the mission maker names multiple human/player packages, default to one unified operation and one combined player-facing brief/deck. Only split briefs when the mission maker explicitly asks for package-separated outputs.
 - Check whether old output folders are style references or current mission inputs.
 - Prevent prior-mission leakage. Examples of forbidden carryover unless restated: `Route Black`, `Guardpost`, `Barrier`, `Tiger`, `Joule`, `Crown`, named SA-10 geometry, or old package IDs.
 - Put user-provided planner intent into a mission-context JSON file under `inputs/`, not directly into renderer code.
@@ -39,7 +40,7 @@ python .\scripts\synthesize_bms_briefing.py `
   --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects"
 ```
 
-For multiple player packages in one deck, synthesize package-specific folders and then render combined products with repeated `--synthesis`.
+For multiple player packages in one operation, synthesize package-specific folders for evidence and package tables, then render combined deck-facing products with repeated `--synthesis`. Promote the final root `player_briefing_combined.md`, `generated_briefing.md`, and numbered `briefing_images` as the unified operation.
 
 ## 3. Correlate Planner Intent
 
