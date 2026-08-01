@@ -729,6 +729,7 @@ def draw_flow_groups(
     width_multiplier: float = 1.0,
     compact_labels: bool = False,
     show_origin_labels: bool = False,
+    show_flow_labels: bool = True,
 ) -> None:
     labeled_origins: set[str] = set()
     origin_labels: list[tuple[tuple[float, float], str, str]] = []
@@ -780,17 +781,18 @@ def draw_flow_groups(
             origin_labels.append(((origin_xy[0] + marker_radius + 8, origin_xy[1] - marker_radius - 2), origin_label, "la"))
             labeled_origins.add(origin_label)
         draw_flow_arrow(draw, points, color, width=max(8, int(scale * width_multiplier)))
-        original_label = str(group.get("label"))
-        label = str(group.get("compact_label") if compact_labels and group.get("compact_label") else original_label)
-        fraction, label_offset = next(
-            (spec for prefix, spec in flow_label_specs.items() if original_label.startswith(prefix)),
-            (0.55, (14, -24)),
-        )
-        if compact_labels and original_label.startswith("East Fighter Screen"):
-            label_offset = (34, -58)
-        route_point = point_along_polyline(points, fraction)
-        label_xy = (route_point[0] + label_offset[0], route_point[1] + label_offset[1])
-        flow_labels.append((label_xy, route_point, label, color))
+        if show_flow_labels:
+            original_label = str(group.get("label"))
+            label = str(group.get("compact_label") if compact_labels and group.get("compact_label") else original_label)
+            fraction, label_offset = next(
+                (spec for prefix, spec in flow_label_specs.items() if original_label.startswith(prefix)),
+                (0.55, (14, -24)),
+            )
+            if compact_labels and original_label.startswith("East Fighter Screen"):
+                label_offset = (34, -58)
+            route_point = point_along_polyline(points, fraction)
+            label_xy = (route_point[0] + label_offset[0], route_point[1] + label_offset[1])
+            flow_labels.append((label_xy, route_point, label, color))
     for xy, route_point, _label, color in flow_labels:
         draw.line((route_point[0], route_point[1], xy[0], xy[1]), fill=color + (190,), width=max(2, int(scale * width_multiplier) // 3))
         dot_radius = max(4, int(scale * width_multiplier) // 2)
@@ -896,9 +898,20 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
             map_height,
             width_multiplier=flow_width_multiplier,
             compact_labels=args.presentation_profile == "slide",
-            show_origin_labels=args.show_flow_origin_labels,
+            show_origin_labels=False,
+            show_flow_labels=args.show_combined_flow_labels,
         )
         marker_size = max(9, int(args.scale * args.slide_marker_multiplier)) if args.presentation_profile == "slide" else 9
+        if args.show_flow_origin_labels:
+            draw_friendly_origins(
+                draw,
+                projector,
+                flow_origin_points(packages),
+                label_font,
+                args.scale,
+                map_width,
+                map_height,
+            )
         draw_named_positions(draw, projector, named_positions, label_font, marker_size=marker_size, map_width=map_width, map_height=map_height)
 
     origin_label_font = load_font(
@@ -984,6 +997,14 @@ def centroid(points: list[dict[str, Any]]) -> tuple[float, float] | None:
     )
 
 
+def valid_map_grid(grid_x: Any, grid_y: Any) -> bool:
+    if grid_x is None or grid_y is None:
+        return False
+    x = safe_float(grid_x)
+    y = safe_float(grid_y)
+    return 0.0 <= x <= MAP_GRID_SIZE and 0.0 <= y <= MAP_GRID_SIZE
+
+
 def flow_stage_point(flights: list[dict[str, Any]], actions: set[str]) -> dict[str, Any] | None:
     points: list[dict[str, Any]] = []
     for flight in flights:
@@ -1047,6 +1068,32 @@ def flow_origin_point(flights: list[dict[str, Any]]) -> dict[str, Any] | None:
     return {"grid_x": center[0], "grid_y": center[1], "origin_label": label}
 
 
+def flow_origin_points(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple[str, float, float]] = set()
+    origins: list[dict[str, Any]] = []
+    for package in packages:
+        for flight in package.get("flights") or []:
+            waypoint = next(
+                (
+                    item
+                    for item in flight.get("key_waypoints") or []
+                    if item.get("action") == "WP_TAKEOFF" and item.get("grid_x") is not None and item.get("grid_y") is not None
+                ),
+                None,
+            )
+            if not waypoint:
+                continue
+            target = waypoint.get("target") or {}
+            name = str(target.get("name") or "Departure").strip()
+            label = short_origin_label(name)
+            key = (label, round(safe_float(waypoint.get("grid_x")), 1), round(safe_float(waypoint.get("grid_y")), 1))
+            if key in seen:
+                continue
+            seen.add(key)
+            origins.append({"label": label, "grid_x": waypoint.get("grid_x"), "grid_y": waypoint.get("grid_y")})
+    return origins
+
+
 def package_flow_groups(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     flights = [flight for package in packages for flight in package.get("flights") or []]
     groups: list[dict[str, Any]] = []
@@ -1103,7 +1150,7 @@ def named_position_points(packages: list[dict[str, Any]]) -> list[dict[str, Any]
             if not label or label.upper().startswith("TGT ") or label.lower() in {"not set", "ini not set"}:
                 continue
             key = label.upper()
-            if key in seen or grid.get("grid_x") is None or grid.get("grid_y") is None:
+            if key in seen or not grid.get("valid_for_map", True) or not valid_map_grid(grid.get("grid_x"), grid.get("grid_y")):
                 continue
             seen.add(key)
             points.append({"label": label, "grid_x": grid.get("grid_x"), "grid_y": grid.get("grid_y")})
@@ -1119,7 +1166,7 @@ def objective_crop_points(
     points: list[dict[str, Any]] = []
 
     def add(label: str, grid_x: Any, grid_y: Any) -> None:
-        if grid_x is None or grid_y is None:
+        if not valid_map_grid(grid_x, grid_y):
             return
         key = (label.upper(), round(safe_float(grid_x), 1), round(safe_float(grid_y), 1))
         if key in seen:
@@ -1144,12 +1191,24 @@ def objective_crop_points(
 
 
 def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
-    context_names = {
-        str(item.get("label") or item.get("name") or "").upper(): str(item.get("name") or item.get("label") or "")
-        for package in packages
-        for item in (package.get("human_context") or {}).get("target_opportunities", [])
-        if "SA-10" in str(item.get("label") or item.get("name") or "").upper()
-    }
+    context_names: dict[str, str] = {}
+    for package in packages:
+        for item in (package.get("human_context") or {}).get("target_opportunities", []):
+            raw_label = str(item.get("label") or "").strip()
+            raw_name = str(item.get("name") or "").strip()
+            combined = f"{raw_label} {raw_name}".upper()
+            compact = combined.replace("-", "").replace(" ", "")
+            if "SA-10" not in combined and not any(token in compact for token in ("10W", "10E", "10S", "10WEST", "10EAST", "10SOUTH")):
+                continue
+            display = raw_label or raw_name
+            if "10W" in compact or "10WEST" in compact:
+                context_names["SA-10 W"] = display
+            elif "10E" in compact or "10EAST" in compact:
+                context_names["SA-10 E"] = display
+            elif "10S" in compact or "10SOUTH" in compact:
+                context_names["SA-10 S"] = display
+            if raw_label:
+                context_names[raw_label.upper()] = display
     if not context_names:
         return []
     tactical_points = [
@@ -1166,6 +1225,8 @@ def sa10_named_positions(syntheses: list[dict[str, Any]], packages: list[dict[st
             label = str(point.get("display") or point.get("label") or "").strip()
             grid = point.get("campaign_grid") or {}
             if label != "10" or grid.get("grid_x") is None or grid.get("grid_y") is None:
+                continue
+            if not grid.get("valid_for_map", True) or not valid_map_grid(grid.get("grid_x"), grid.get("grid_y")):
                 continue
             distance = 0.0
             if tactical_points:
@@ -1224,6 +1285,8 @@ def draw_named_positions(
     }
     for index, position in enumerate(positions):
         xy = projector.grid(position.get("grid_x"), position.get("grid_y"))
+        if map_width is not None and map_height is not None and not point_inside_image(xy, map_width, map_height, marker_size + 4):
+            continue
         size = marker_size
         diamond = [(xy[0], xy[1] - size), (xy[0] + size, xy[1]), (xy[0], xy[1] + size), (xy[0] - size, xy[1])]
         draw.polygon(diamond, fill=GREEN + (230,), outline=(0, 18, 5, 255))
@@ -1233,6 +1296,45 @@ def draw_named_positions(
             draw_fitted_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor=anchor)
         else:
             draw_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+
+
+def draw_friendly_origins(
+    draw: ImageDraw.ImageDraw,
+    projector: Projector,
+    origins: list[dict[str, Any]],
+    font: ImageFont.ImageFont,
+    scale: int,
+    map_width: int,
+    map_height: int,
+) -> None:
+    for origin in origins:
+        xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
+        if not point_inside_image(xy, map_width, map_height, 18):
+            continue
+        marker_radius = max(8, int(scale * 0.85))
+        draw.rectangle(
+            (
+                xy[0] - marker_radius,
+                xy[1] - marker_radius,
+                xy[0] + marker_radius,
+                xy[1] + marker_radius,
+            ),
+            fill=(64, 180, 255, 238),
+            outline=(5, 20, 28, 255),
+            width=max(2, scale // 5),
+        )
+        draw.line(
+            (
+                xy[0] - marker_radius + 3,
+                xy[1] + marker_radius - 3,
+                xy[0] + marker_radius - 3,
+                xy[1] - marker_radius + 3,
+            ),
+            fill=(235, 250, 255, 245),
+            width=max(2, scale // 6),
+        )
+        label_xy = (xy[0] + marker_radius + 8, xy[1] - marker_radius - 2)
+        draw_fitted_text_box(draw, label_xy, str(origin.get("label") or "Departure"), font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor="la")
 
 
 def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
@@ -1407,6 +1509,12 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=False,
         help="Label friendly package departure airbases on combined flow maps. Best for route overviews; keep disabled for target/objective maps.",
+    )
+    parser.add_argument(
+        "--show-combined-flow-labels",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Draw role/callsign labels on combined package-flow lines. Disable for tight objective close-ups when labels obscure the objective.",
     )
     return parser.parse_args()
 

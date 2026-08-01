@@ -131,6 +131,7 @@ When a map fails, name the failed gate and rerender that product only when possi
 - Threat rings overpower terrain: lower fill opacity, keep the outer WEZ edge visible.
 - Airbase labels collide with arrows: stagger labels, add leader lines, or move labels to crop edge.
 - Wrong map geography: verify projection, feet-per-grid, and whether the crop is based on flight routes, INI marks, or objective marks.
+- Out-of-theater INI/PPT transforms: preserve them in the workup, but exclude them from map crops and labels. A single bad PPT can explode a map crop.
 - Missing named marks at zoom: ensure crop bounds include the named positions independently of route points.
 - Wrong airbase names or aircraft types: recheck objective/object-table joins and active squadron filtering.
 
@@ -145,6 +146,7 @@ Route overview:
 - Use `--combined-threat-style route-reference`.
 - Use larger labels and strokes.
 - Compress the PNG if it exceeds 20 MB.
+- When aggregated flow groups have mixed departure bases, render explicit friendly departure-base markers for each unique takeoff airbase; do not leave only a generic `Mixed Origins` label.
 
 Target area:
 
@@ -160,6 +162,7 @@ Objective area:
 - Use smaller label multipliers than target.
 - If flow labels obscure terrain, reduce label multipliers or render flow lines without text.
 - Treat route labels on objective maps as optional. The objective map may rely on the slide legend or sidebar text for flow names if labels block the prosecution area.
+- Suppress off-crop named-position labels; edge-clamped transit/fallback labels can make a close-up read like a route map.
 
 Weather:
 

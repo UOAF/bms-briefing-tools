@@ -1,0 +1,143 @@
+{
+  "source": "User-provided mission-planner interpretation, 2026-08-01",
+  "event": "740",
+  "campaign_prefix": "740pre",
+  "route_name": "Gimhae / SA-10 follow-on strike",
+  "deck_structure": "Treat packages 7016 and 7040 as one integrated player game plan and one briefing deck.",
+  "campaign_history": {
+    "prior_event": "739",
+    "player_facing_summary": "SA-10 South was destroyed during the previous mission. SA-10 East and SA-10 West remain active and are still shaping the Gimhae fight."
+  },
+  "named_points": [
+    {
+      "label": "TIG",
+      "name": "Tiger",
+      "meaning": "Low-altitude flow / southwest fallback and retrograde anchor."
+    },
+    {
+      "label": "CRO",
+      "name": "Crown",
+      "meaning": "Low-altitude crossing / southern work area anchor."
+    },
+    {
+      "label": "BLU",
+      "name": "Blues",
+      "meaning": "Jaguar 4 IP for SA-10 West."
+    },
+    {
+      "label": "ORO",
+      "name": "Orion",
+      "meaning": "Gimhae threat steerpoint / target area."
+    },
+    {
+      "label": "WWO",
+      "name": "Wolf",
+      "meaning": "Southeast pop-up / CAP anchor for package 7040."
+    },
+    {
+      "label": "BAN",
+      "name": "Bando",
+      "meaning": "Alternate pop-up CBU attack reference for SA-10 East."
+    }
+  ],
+  "packages": [
+    {
+      "package_id": 7016,
+      "briefing_read": "Low-altitude Gimhae / SA-10 West attack package. Jaguar 4 kills SA-10 West from Blues and attacks any surviving air-defense or parked-aircraft opportunity around Orion/Gimhae. Panther 1 strikes Orion/Gimhae while Hawkeye 2 escorts Jaguar 4, Jaguar 5 escorts Panther 1, and Sawbuck 2 provides high-altitude AMRAAM pressure between Tiger and Crown against fighters launching from Gimhae.",
+      "strike_contracts": [
+        {
+          "callsign": "Panther 1",
+          "contract": "OCA strike Orion / Gimhae",
+          "sector": "Orion",
+          "intent": "Flow low with the package from Tiger past Crown, attack Orion/Gimhae, and retrograde southwest toward Tiger once the SA-10 West and SA-10 East problems are solved."
+        }
+      ],
+      "sad_contracts": [
+        {
+          "callsign": "Jaguar 4",
+          "contract": "SEAD/DEAD SA-10 West from Blues",
+          "sector": "Blues / Orion",
+          "intent": "Flow from Tiger nap-of-the-earth past Crown, use Blues as the IP, then destroy SA-10 West with HARMs/CBUs. If able, prosecute any remaining air defenses or aircraft on top of Orion/Gimhae."
+        }
+      ],
+      "cap_contracts": [
+        {
+          "callsign": "Hawkeye 2",
+          "contract": "Escort Jaguar 4",
+          "sector": "Jaguar 4 lane",
+          "intent": "Protect Jaguar 4 through the low-altitude SA-10 West attack."
+        },
+        {
+          "callsign": "Jaguar 5",
+          "contract": "Escort Panther 1",
+          "sector": "Panther 1 lane",
+          "intent": "Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress."
+        },
+        {
+          "callsign": "Sawbuck 2",
+          "contract": "High-altitude AMRAAM screen",
+          "sector": "Tiger to Crown",
+          "intent": "Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers."
+        }
+      ],
+      "target_opportunities": [
+        {
+          "label": "10W",
+          "name": "SA-10 West",
+          "type": "Strategic SAM",
+          "intent": "Jaguar 4 primary SEAD/DEAD target from Blues."
+        },
+        {
+          "label": "ORO",
+          "name": "Orion / Gimhae",
+          "type": "Airbase / OCA target",
+          "intent": "Panther 1 primary strike target; Jaguar 4 may attack additional air defenses or parked aircraft on top of Orion/Gimhae if able."
+        }
+      ],
+      "fallback_logic": "After SA-10 West, SA-10 East, and Orion/Gimhae are destroyed or the package is forced off, retrograde southwest toward Tiger, return to medium altitude, and RTB."
+    },
+    {
+      "package_id": 7040,
+      "briefing_read": "Low-altitude SA-10 East attack package from Gunsan. Hammer 2 crosses Crown low, then pops from Wolf to attack SA-10 East at short range with HARMs; if unable, Hammer 2 uses Bando for a pop-up CBU attack. Devil 5 and Devil 6 cap around Wolf and intercept bandits from the north or north-northeast.",
+      "sad_contracts": [
+        {
+          "callsign": "Hammer 2",
+          "contract": "SEAD/DEAD SA-10 East from Wolf",
+          "sector": "Wolf / Bando",
+          "intent": "Cross Crown low, pop from Wolf to shoot SA-10 East at short range with HARMs, and if unable execute the Bando pop-up CBU option."
+        }
+      ],
+      "cap_contracts": [
+        {
+          "callsign": "Devil 5",
+          "contract": "Wolf CAP / north threat intercept",
+          "sector": "Wolf",
+          "intent": "CAP around Wolf and intercept fighters from the north or north-northeast."
+        },
+        {
+          "callsign": "Devil 6",
+          "contract": "Wolf CAP / north threat intercept",
+          "sector": "Wolf",
+          "intent": "Support Devil 5 around Wolf and intercept fighters from the north or north-northeast."
+        }
+      ],
+      "target_opportunities": [
+        {
+          "label": "10E",
+          "name": "SA-10 East",
+          "type": "Strategic SAM",
+          "intent": "Hammer 2 primary target from Wolf, with Bando as the alternate pop-up CBU reference."
+        }
+      ],
+      "fallback_logic": "Once SA-10 East, SA-10 West, and Orion/Gimhae are solved, retrograde southwest toward Tiger, return to medium altitude, and RTB."
+    }
+  ],
+  "commander_intent": "Two player packages reopen the Gimhae fight by killing the remaining SA-10 West and SA-10 East threats while striking Orion/Gimhae. Low-altitude strike/SEAD elements preserve survivability against the SA-10s, while F-15 screens and escorts prevent Gimhae and northern threat axes from disrupting the attack.",
+  "deconfliction": [
+    "Package 7016 flows low from Tiger past Crown toward Blues/Orion.",
+    "Package 7040 flows low from Gunsan toward Crown, then Wolf/Bando for SA-10 East.",
+    "Sawbuck 2 works high around Tiger-Crown to pressure Gimhae-origin fighters.",
+    "Devil 5 and Devil 6 work around Wolf against north/north-northeast fighters.",
+    "All player elements retrograde southwest toward Tiger after the SA-10 East, SA-10 West, and Orion/Gimhae objectives are solved."
+  ]
+}

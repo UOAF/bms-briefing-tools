@@ -118,6 +118,8 @@ THREAT_AREA_ACTIONS = {
 FEET_PER_GRID = feet_per_campaign_grid()
 FEET_PER_NM = 6076.11549
 DEFAULT_THEATER_GRID_ROWS = 928.0
+MAP_GRID_MIN = 0.0
+MAP_GRID_MAX = 1024.0
 DEFAULT_INI_GRID_OFFSET_X = 0.0
 DEFAULT_INI_GRID_OFFSET_Y = 0.0
 PLAN_MATCH_DISTANCE_GRID = 25.0
@@ -616,6 +618,14 @@ def grid_distance_nm(distance_grid: float) -> float:
     return distance_grid * FEET_PER_GRID / FEET_PER_NM
 
 
+def grid_within_map(grid_x: Any, grid_y: Any) -> bool:
+    if grid_x is None or grid_y is None:
+        return False
+    x = safe_float(grid_x)
+    y = safe_float(grid_y)
+    return MAP_GRID_MIN <= x <= MAP_GRID_MAX and MAP_GRID_MIN <= y <= MAP_GRID_MAX
+
+
 def normalize_bullseye(cam_decode: dict[str, Any]) -> dict[str, Any] | None:
     raw = cam_decode.get("bullseye")
     if not isinstance(raw, dict):
@@ -665,6 +675,7 @@ def normalize_planning_point(
     converted["campaign_grid"] = {
         "grid_x": round(grid_x, 1),
         "grid_y": round(grid_y, 1),
+        "valid_for_map": grid_within_map(grid_x, grid_y),
         "source": f"Converted from INI world feet using {ini_grid_transform_basis(ini_grid_offset_x, ini_grid_offset_y)}.",
     }
     return converted
@@ -710,7 +721,7 @@ def nearest_route_point(point: dict[str, Any], route_points: list[dict[str, Any]
     grid = point.get("campaign_grid") or {}
     grid_x = grid.get("grid_x")
     grid_y = grid.get("grid_y")
-    if grid_x is None or grid_y is None or not route_points:
+    if grid_x is None or grid_y is None or not grid.get("valid_for_map", True) or not route_points:
         return None
     nearest = min(
         route_points,
@@ -748,7 +759,7 @@ def flight_plan_summary(
         if point.get("kind") == "linestpt":
             continue
         grid = point.get("campaign_grid") or {}
-        if grid.get("grid_x") is None or grid.get("grid_y") is None or not waypoints:
+        if grid.get("grid_x") is None or grid.get("grid_y") is None or not grid.get("valid_for_map", True) or not waypoints:
             continue
         nearest = min(
             waypoints,
@@ -3358,16 +3369,17 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, inc
     if transformed_points:
         lookup = match_lookup(package)
         lines.append("### INI Planning Steerpoints")
-        lines.append("| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Bullseye | Nearest package route point |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Map status | Bullseye | Nearest package route point |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for point in sorted(
             transformed_points,
             key=lambda item: (planning_kind_rank(item.get("kind")), item.get("index") or 0),
         ):
             key = (str(point.get("kind") or ""), point.get("index"), str(point.get("display") or ""))
             grid = point.get("campaign_grid") or {}
+            valid_for_map = grid.get("valid_for_map", True)
             lines.append(
-                "| {kind} | {label} | {code} | {ini_x} | {ini_y} | {grid_x} | {grid_y} | {bullseye} | {nearest} |".format(
+                "| {kind} | {label} | {code} | {ini_x} | {ini_y} | {grid_x} | {grid_y} | {status} | {bullseye} | {nearest} |".format(
                     kind=markdown_cell(point.get("kind")),
                     label=markdown_cell(point.get("display") or point.get("label")),
                     code=markdown_cell(point.get("code")),
@@ -3375,7 +3387,8 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, inc
                     ini_y=number_cell(point.get("y"), 1),
                     grid_x=number_cell(grid.get("grid_x"), 1),
                     grid_y=number_cell(grid.get("grid_y"), 1),
-                    bullseye=markdown_cell(bullseye_reference(synthesis, grid)),
+                    status="usable" if valid_for_map else "out of theater; excluded from map crops",
+                    bullseye=markdown_cell(bullseye_reference(synthesis, grid) if valid_for_map else ""),
                     nearest=markdown_cell(nearest_route_cell(lookup.get(key))),
                 )
             )
@@ -3504,9 +3517,9 @@ def append_map_products(lines: list[str], synthesis: dict[str, Any]) -> None:
     if package:
         cap_contracts = (package.get("human_context") or {}).get("cap_contracts", [])
         cap_labels = [
-            f"{item.get('area') or item.get('label')} ({item.get('label')})"
+            f"{item.get('contract') or item.get('area') or item.get('label')} ({item.get('sector') or item.get('label')})"
             for item in cap_contracts
-            if item.get("area") or item.get("label")
+            if item.get("contract") or item.get("area") or item.get("label")
         ]
         if cap_labels:
             lines.append(
@@ -3584,7 +3597,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
                 lines.append(
                     "- CAP contracts: "
                     + "; ".join(
-                        f"{item.get('callsign')}: {item.get('area') or item.get('label')} ({item.get('sector')}) - {item.get('intent')}"
+                        f"{item.get('callsign')}: {item.get('contract') or item.get('area') or item.get('label')} ({item.get('sector')}) - {item.get('intent')}"
                         for item in cap_contracts
                     )
                 )

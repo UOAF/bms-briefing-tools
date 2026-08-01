@@ -298,6 +298,8 @@ def iter_named_ini_points(synthesis: dict[str, Any], package: dict[str, Any]) ->
         grid = point.get("campaign_grid") or {}
         if not label or grid.get("grid_x") is None or grid.get("grid_y") is None:
             continue
+        if not grid.get("valid_for_map", True):
+            continue
         item = dict(point)
         item["label"] = label
         points.append(item)
@@ -453,6 +455,11 @@ def objective_area_labels(package: dict[str, Any]) -> set[str]:
             if not label:
                 continue
             labels.update(expand_alpha_label_range(label))
+            compact = label.replace("-", "").replace(" ", "")
+            if compact.startswith("SA10") or compact.startswith("10"):
+                labels.add("10")
+            if compact.startswith("SA6") or compact == "6":
+                labels.update({"SA6", "6"})
     for contract in context.get("cap_contracts", []):
         for key in ("label", "area", "contract"):
             label = normalized_label(contract.get(key))
