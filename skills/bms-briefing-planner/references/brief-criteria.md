@@ -44,7 +44,7 @@ Include for player packages:
 - Callsign.
 - Number and aircraft type.
 - Mission role.
-- Takeoff time and TOT.
+- Takeoff time and TOT in Zulu. Use a `Z` suffix and label columns as `T/O (Z)` and `TOT (Z)`.
 - Loadout summarized by useful weapons, sensors, tanks.
 - Laser codes where decoded/applicable.
 - A-A TACAN channels per ship when supplied by the planner, formatted compactly in package composition, for example `15X / 78X / 78Y / 15Y` for ships #1-#4.
@@ -60,6 +60,17 @@ Include non-player packages only if they matter:
 - Other flights overhead or clearly vectoring toward the target area within relevant time/range.
 
 Do not include irrelevant friendly package clutter.
+
+## Communications Criteria
+
+Comm ladder means the radio plan first:
+
+- Frequencies/nets when supplied: agency/net, primary frequency, primary preset, backup preset, and callsign/remarks.
+- Check-in content: flight callsign, number/type as required, position, ordnance, playtime, capabilities, abort code, and a sample ABM check-in call when useful.
+- Comm priority: normally fighter engagement first, contract/package-critical calls second, then SEAD/strike coordination or other mission-specific priorities.
+- ABM/AWACS picture rule: state whether player packages share one ABM picture and where cross-package calls should go.
+
+Keep Link 16 data separate as `Link 16 & Nets`. Link 16 STN/F2F/Mission/EW data is useful, but it must not replace the radio frequency/check-in/priority ladder. Do not invent current-mission frequencies from a prior event; put missing frequency-plan needs in the workup/review notes, not as fake player-facing frequencies.
 
 ## Enemy Situation Criteria
 
@@ -95,7 +106,7 @@ Enemy air:
 
 Include weather at takeoff, target area, and landing:
 
-- Local time and day/night.
+- Local time and day/night. Weather is the one player-facing section that should use local time because it supports daylight and weather interpretation.
 - Conditions.
 - Cloud base. Use the BMS/UI weather-layer value from FMAP stratus base, rounded to the nearest thousand feet. Do not substitute the raw per-cell cumulus-base/fog-like field as cloud base; in `739pre`, that bad substitution produced 4,241/3,781 ft when the BMS UI showed 38,000 ft.
 - Contrail layer.
@@ -107,6 +118,17 @@ Include weather at takeoff, target area, and landing:
 Keep raw FMAP weather fields, such as raw cumulus base, in the transitional workup/JSON when useful for traceability. Do not expose them as player-facing cloud base unless the field has been confirmed to match the BMS UI.
 
 Generate a weather map when the FMAP/weather data is available. If weather data is absent, omit the player-facing weather map rather than adding a dev note to the player brief.
+
+## Timing Criteria
+
+Use Zulu for mission execution timing:
+
+- Package composition T/O and TOT.
+- Flight steerpoint/coordinate appendix arrival times.
+- AWACS/tanker station timing.
+- Active contact vector timing and other package deconfliction timing.
+
+Use local time only for meteorology/day-night assessment. For KTO/Bear Trap style Korea missions, convert local mission HHMM to Zulu by subtracting 9 hours unless the campaign data provides a more specific UTC offset.
 
 ## Coordinates Criteria
 

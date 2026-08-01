@@ -40,6 +40,7 @@ Minimum intake:
 - Event number and operation/event name. If the user has not supplied a name and asks for one, propose a short evocative `Operation: <Name>` title that fits the mission tone.
 - Player package ID or package IDs.
 - Player flights/callsigns and their intended roles.
+- Radio frequency plan: TACTICAL nets, ABM/AWACS net, preset numbers, backup nets, check-in flow, and comm priority when known.
 - A-A TACAN plan or generation pattern for player flights, when provided. Keep per-ship A-A TACAN separate from tanker/package TACAN.
 - Named INI/data-cartridge marks and their tactical meaning.
 - Commander intent, priorities, alternates, fallback logic, and deconfliction notes.

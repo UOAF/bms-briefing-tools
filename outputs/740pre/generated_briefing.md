@@ -25,16 +25,16 @@ Prior result: SA-10 South was killed in Event 739. SA-10 East and SA-10 West rem
 | Bando | BAN | 661.0 / 141.3 | 102/10 | Hammer 2 alternate pop-up CBU reference |
 
 ## Package Composition
-| C/S | Pkg | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Contract |
+| C/S | Pkg | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 1419 | 1434 | Strike Orion / Gimhae |
-| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 1415 | 1438 | Kill SA-10 West from Blues |
-| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 1416 | 1438 | Escort Jaguar 4 |
-| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 1417 | 1439 | Escort Panther 1 |
-| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 1419 | 1437 | High-alt AMRAAM screen Tiger-Crown |
-| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 1419 | 1432 | Kill SA-10 East from Wolf; Bando CBU alternate |
-| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
-| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 1419 | 1439 | Wolf CAP / north intercept |
+| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 0519Z | 0534Z | Strike Orion / Gimhae |
+| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 0515Z | 0538Z | Kill SA-10 West from Blues |
+| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 0516Z | 0538Z | Escort Jaguar 4 |
+| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 0517Z | 0539Z | Escort Panther 1 |
+| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 0519Z | 0537Z | High-alt AMRAAM screen Tiger-Crown |
+| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 0519Z | 0532Z | Kill SA-10 East from Wolf; Bando CBU alternate |
+| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 0519Z | 0539Z | Wolf CAP / north intercept |
+| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 0519Z | 0539Z | Wolf CAP / north intercept |
 
 ## AWACS / Tanker
 | Role | C/S | Aircraft | Station / track | TACAN |
@@ -84,6 +84,34 @@ Current campaign-time contacts inside or vectoring into the target area include 
 - Devil 5/6: defend Wolf and intercept north/northeast fighters before they collapse onto Hammer 2.
 
 ## Comm Ladder
+### Frequencies
+| Agency | Freq (P) | Source | Backup | Callsign / Remarks |
+| --- | --- | --- | --- | --- |
+| TACTICAL 1 | 230.175 MHz | Panther1 UHF 1 | 299.500 MHz | PKG 7016 / ORION STRIKE; intra-flight VHF 141.075 MHz |
+| TACTICAL 2 | 305.875 MHz | Hammer2 UHF 1 | 237.725 MHz | PKG 7040 / 10E SEAD; intra-flight VHF 139.325 MHz |
+| ABM / AWACS | 378.500 MHz | Sentry1 UHF 1 | 336.050 MHz | Sentry 1 picture for both player packages |
+
+### Check-In
+| Step | Call |
+| --- | --- |
+| Flight C/S | Callsign |
+| Number / Type | As required |
+| Position | Bullseye or tactical anchor as required |
+| Ordnance | As required |
+| Playtime | As required |
+| Capabilities | As required |
+| Abort Code | As required |
+
+Example: "Sentry, Panther 1, checking in as fragged, request ALPHA CHECK BULLSEYE."
+
+### Comm Priority
+1. Fighter Engagement - A live engagement owns the net.
+2. Contract Comm - Target killed, unable, abort, package timing, or lane deconfliction.
+3. SEAD / Strike Coordination - Intra-package target sorting and prosecution updates.
+
+Both player packages share one ABM picture; cross-package calls go to ABM, not package tactical.
+
+### Link 16 & Nets
 | Element | Link 16 STN | F2F | Mission | EW | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Panther 1 | 2546 | 65 | 65 | 1 | OCA strike Orion / Gimhae |

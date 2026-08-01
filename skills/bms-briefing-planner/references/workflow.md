@@ -49,7 +49,9 @@ Correlate the planner prompt with decoded data:
 
 - Package IDs and flights.
 - Event name/codename and how it should appear in the player-facing title.
-- Callsigns, aircraft count/type, role, takeoff, TOT, loadout, laser codes, TACAN.
+- Callsigns, aircraft count/type, role, takeoff, TOT, loadout, laser codes, TACAN. Display mission execution timing as Zulu in player-facing briefs; reserve local time for weather/daylight assessment.
+- Radio comm plan: TACTICAL 1/2 or package nets, ABM/AWACS net, primary/backup presets, check-in sequence, and comm priority. Store it in mission context as `comm_plan`; do not infer it from prior events unless the planner explicitly says to reuse it.
+- For generated BMS radio frequencies, join decoded current-save package callsigns to the current campaign theater `RadioMap.dat`. Use `UHF 1` as the callsign/package tactical source, `VHF` as intra-flight, and `UHF 2` as backup unless a decoded `.frc`/DTC preset source provides more precise numbered presets. Never copy frequency values from a previous event deck as current-mission data.
 - Per-ship A-A TACAN assignments or planner-provided generation pattern. Expand patterns by package and flight order, then store explicit `a2a_tacan_assignments` in mission context so regenerated briefs preserve the exact channels. For example, if the planner says package 1 flight #1 uses `15X / 78X / 78Y / 15Y` and flight #2 increments from there, assign each callsign its four ship channels rather than leaving the rule only in prose.
 - AWACS/tanker callsigns, aircraft, TACAN, tracks, and whether they matter to the player package. Use bullseye track references in the player-facing brief when available; reserve raw grid tracks for appendices/workups.
 - Flight plan steerpoints and mission actions.

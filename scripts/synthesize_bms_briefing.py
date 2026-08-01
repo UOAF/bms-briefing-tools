@@ -118,6 +118,7 @@ THREAT_AREA_ACTIONS = {
 FEET_PER_GRID = feet_per_campaign_grid()
 FEET_PER_NM = 6076.11549
 DEFAULT_THEATER_GRID_ROWS = 928.0
+DEFAULT_LOCAL_UTC_OFFSET_HOURS = 9
 MAP_GRID_MIN = 0.0
 MAP_GRID_MAX = 1024.0
 DEFAULT_INI_GRID_OFFSET_X = 0.0
@@ -177,6 +178,44 @@ def load_mission_context(path: Path | None) -> dict[str, Any]:
     if not path:
         return {}
     return load_json(path)
+
+
+def normalize_radio_callsign(value: Any) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "", str(value or ""))
+
+
+def format_radio_frequency(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text or text.upper() == "NONE":
+        return ""
+    try:
+        return f"{int(text) / 1000:.3f} MHz"
+    except ValueError:
+        return text
+
+
+def load_radio_map(campaign_dir: Path | None) -> tuple[dict[str, dict[str, str]], str | None]:
+    if not campaign_dir:
+        return {}, None
+    path = campaign_dir / "RadioMap.dat"
+    if not path.exists():
+        return {}, None
+    result: dict[str, dict[str, str]] = {}
+    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("//"):
+            continue
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 4:
+            continue
+        callsign, uhf1, vhf, uhf2 = parts[:4]
+        result[normalize_radio_callsign(callsign).upper()] = {
+            "callsign": callsign,
+            "uhf1": format_radio_frequency(uhf1),
+            "vhf": format_radio_frequency(vhf),
+            "uhf2": format_radio_frequency(uhf2),
+        }
+    return result, str(path)
 
 
 def safe_int(value: Any, default: int = 0) -> int:
@@ -333,7 +372,7 @@ def objective_delta_key_map(cam_decode: dict[str, Any]) -> dict[str, dict[str, A
     return result
 
 
-def format_clock(ms: int | None, clock: dict[str, Any] | None) -> str | None:
+def format_clock_local(ms: int | None, clock: dict[str, Any] | None) -> str | None:
     if ms is None or not clock:
         return None
     campaign_time = int(clock.get("campaign_time_ms") or 0)
@@ -341,6 +380,26 @@ def format_clock(ms: int | None, clock: dict[str, Any] | None) -> str | None:
     display = (int(ms) - campaign_time + base) % 86400000
     total_minutes = display // 60000
     return f"{total_minutes // 60:02d}{total_minutes % 60:02d}"
+
+
+def format_clock_zulu(
+    ms: int | None,
+    clock: dict[str, Any] | None,
+    local_utc_offset_hours: int = DEFAULT_LOCAL_UTC_OFFSET_HOURS,
+) -> str | None:
+    local = format_clock_local(ms, clock)
+    if not local:
+        return None
+    hour = safe_int(local[:2], -1)
+    minute = safe_int(local[2:4], -1)
+    if hour < 0 or minute < 0:
+        return None
+    total = (hour * 60 + minute - local_utc_offset_hours * 60) % 1440
+    return f"{total // 60:02d}{total % 60:02d}Z"
+
+
+def format_clock(ms: int | None, clock: dict[str, Any] | None) -> str | None:
+    return format_clock_zulu(ms, clock)
 
 
 def unique_preserve(items: list[Any]) -> list[Any]:
@@ -571,6 +630,7 @@ def waypoint_summary(
                 "action": action,
                 "arrive_raw": waypoint.get("arrive"),
                 "arrive_hhmm": format_clock(waypoint.get("arrive"), clock),
+                "arrive_local_hhmm": format_clock_local(waypoint.get("arrive"), clock),
                 "depart_raw": waypoint.get("depart"),
                 "grid_x": waypoint.get("grid_x"),
                 "grid_y": waypoint.get("grid_y"),
@@ -1533,6 +1593,7 @@ def support_flight_summary(
         "tacan_summary": tacan_summary(flight.get("tacan", [])),
         "tot_raw": flight.get("time_on_target"),
         "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
+        "tot_local_hhmm": format_clock_local(flight.get("time_on_target"), clock),
         "key_waypoints": key_waypoints,
         "waypoint_count": len(flight.get("waypoints", [])),
         "station_summary": station_summary(key_waypoints, bullseye),
@@ -1597,6 +1658,7 @@ def target_area_point(plan_correlation: dict[str, Any], flight_summaries: list[d
         return {
             "action": "TARGET_AREA",
             "arrive_hhmm": None,
+            "arrive_local_hhmm": None,
             "grid_x": round(sum(item[0] for item in grids) / len(grids), 1),
             "grid_y": round(sum(item[1] for item in grids) / len(grids), 1),
             "basis": "Centroid of correlated INI objective PPTs " + ", ".join(labels[:8]),
@@ -1611,6 +1673,7 @@ def target_area_point(plan_correlation: dict[str, Any], flight_summaries: list[d
         return {
             "action": "TARGET_AREA",
             "arrive_hhmm": None,
+            "arrive_local_hhmm": None,
             "grid_x": round(sum(safe_float(item.get("grid_x")) for item in tactical_points) / len(tactical_points), 1),
             "grid_y": round(sum(safe_float(item.get("grid_y")) for item in tactical_points) / len(tactical_points), 1),
             "basis": "Centroid of decoded tactical package waypoints.",
@@ -1621,9 +1684,13 @@ def target_area_point(plan_correlation: dict[str, Any], flight_summaries: list[d
 def package_time_window(flight_summaries: list[dict[str, Any]]) -> dict[str, Any]:
     takeoffs = [flight.get("takeoff_hhmm") for flight in flight_summaries if flight.get("takeoff_hhmm")]
     tots = [flight.get("tot_hhmm") for flight in flight_summaries if flight.get("tot_hhmm")]
+    local_takeoffs = [flight.get("takeoff_local_hhmm") for flight in flight_summaries if flight.get("takeoff_local_hhmm")]
+    local_tots = [flight.get("tot_local_hhmm") for flight in flight_summaries if flight.get("tot_local_hhmm")]
     return {
         "takeoff": min(takeoffs) if takeoffs else None,
         "target": min(tots) if tots else None,
+        "takeoff_local": min(local_takeoffs) if local_takeoffs else None,
+        "target_local": min(local_tots) if local_tots else None,
     }
 
 
@@ -1646,9 +1713,9 @@ def package_weather_summary(
     target = target_area_point(plan_correlation, flight_summaries)
     landing = main_landing_waypoint(flight_summaries)
     sample_defs = [
-        ("Takeoff", takeoff, time_window.get("takeoff")),
-        ("Target Area", target, time_window.get("target")),
-        ("Landing", landing, landing.get("arrive_hhmm") if landing else None),
+        ("Takeoff", takeoff, time_window.get("takeoff_local")),
+        ("Target Area", target, time_window.get("target_local")),
+        ("Landing", landing, landing.get("arrive_local_hhmm") if landing else None),
     ]
     samples = []
     for label, point, fallback_time in sample_defs:
@@ -1656,7 +1723,7 @@ def package_weather_summary(
             continue
         sample = fmap.sample_grid(point.get("grid_x"), point.get("grid_y"), level=0)
         sample["label"] = label
-        sample["time_hhmm"] = point.get("arrive_hhmm") or fallback_time
+        sample["time_hhmm"] = point.get("arrive_local_hhmm") or fallback_time
         sample["time_of_day"] = time_of_day_label(sample.get("time_hhmm"))
         sample["basis"] = point.get("basis") or (
             f"{point.get('callsign')} {action_label(point.get('action'))} STPT {point.get('index')}"
@@ -2155,6 +2222,8 @@ def synthesize(
     planning_points = normalized_planning_points(ini, ini_grid_offset_x, ini_grid_offset_y)
     l16_by_number = l16_records_by_flight_number(briefing_data)
     fmap, fmap_path, fmap_error = load_fmap_from_briefing_data(briefing_data)
+    campaign_dir = Path(briefing_data.get("campaign_dir") or "") if briefing_data.get("campaign_dir") else None
+    radio_map, radio_map_path = load_radio_map(campaign_dir)
     context_by_package = mission_context_by_package(mission_context or {})
     airbase_objectives = build_airbase_objective_refs(
         objectives,
@@ -2218,8 +2287,13 @@ def synthesize(
                     next((wp.get("arrive") for wp in flight.get("waypoints", []) if wp.get("action_name") == "WP_TAKEOFF"), None),
                     clock,
                 ),
+                "takeoff_local_hhmm": format_clock_local(
+                    next((wp.get("arrive") for wp in flight.get("waypoints", []) if wp.get("action_name") == "WP_TAKEOFF"), None),
+                    clock,
+                ),
                 "tot_raw": flight.get("time_on_target"),
                 "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
+                "tot_local_hhmm": format_clock_local(flight.get("time_on_target"), clock),
                 "tacan": flight.get("tacan", []),
                 "tacan_summary": tacan_summary(flight.get("tacan", [])),
                 "a2a_tacan_summary": a2a_tacan_by_callsign.get(str(flight.get("callsign") or "").strip(), ""),
@@ -2352,6 +2426,11 @@ def synthesize(
         "prefix": briefing_data.get("prefix"),
         "focus_package_id": focus_package_id,
         "campaign_clock": clock,
+        "time_basis": {
+            "mission_times": "Zulu",
+            "weather_times": "local",
+            "local_utc_offset_hours": DEFAULT_LOCAL_UTC_OFFSET_HOURS,
+        },
         "bullseye": bullseye,
         "objective_source": {
             "count": len(objectives),
@@ -2381,6 +2460,12 @@ def synthesize(
             "flight_count": len(l16_by_number),
             "correlation_basis": "Matched by CAM camp_id/name_id/VU num when possible.",
         },
+        "radio_source": {
+            "path": radio_map_path,
+            "entry_count": len(radio_map),
+            "basis": "Current campaign RadioMap.dat joined to decoded package callsigns.",
+        },
+        "radio_map": radio_map,
         "mission_counts": cam_decode.get("mission_counts", {}),
         "mission_context": {
             key: value
@@ -2977,7 +3062,7 @@ def append_friendly_package_composition(lines: list[str], package: dict[str, Any
     lines.append("### Friendly Package Composition")
     lines.append(f"- Support: {package_support_summary(package)}")
     lines.append("")
-    lines.append("| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O | TOT | Target/Area | Remarks |")
+    lines.append("| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Target/Area | Remarks |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for flight in package.get("flights", []):
         aircraft = f"{flight.get('aircraft_count') or ''}x {flight.get('aircraft_type') or flight.get('aircraft_class') or ''}".strip()
@@ -3004,7 +3089,7 @@ def append_support_assets(lines: list[str], package: dict[str, Any]) -> None:
     if not support:
         return
     lines.append("### AWACS / Tanker Tracks")
-    lines.append("| Role | C/S | Aircraft | TOT | Station / Track | TACAN | Weapons |")
+    lines.append("| Role | C/S | Aircraft | TOT (Z) | Station / Track | TACAN | Weapons |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for item in support:
         aircraft = f"{item.get('aircraft_count') or ''}x {item.get('aircraft_type') or item.get('aircraft_class') or ''}".strip()
@@ -3149,11 +3234,141 @@ def l16_cell(record: dict[str, Any], key: str) -> str:
     return str(value)
 
 
+def mission_comm_plan(synthesis: dict[str, Any]) -> dict[str, Any]:
+    context = synthesis.get("mission_context") or {}
+    plan = context.get("comm_plan") or context.get("communications") or {}
+    return plan if isinstance(plan, dict) else {}
+
+
+def radio_record_for(synthesis: dict[str, Any], callsign: Any) -> dict[str, str]:
+    radio_map = synthesis.get("radio_map") or {}
+    return radio_map.get(normalize_radio_callsign(callsign).upper()) or {}
+
+
+def derived_package_comm_plan(synthesis: dict[str, Any], package: dict[str, Any]) -> dict[str, Any]:
+    frequencies: list[dict[str, str]] = []
+    flights = package.get("flights") or []
+    if flights:
+        primary = flights[0]
+        record = radio_record_for(synthesis, primary.get("callsign"))
+        if record:
+            frequencies.append(
+                {
+                    "net": f"TACTICAL PKG {package.get('package_id')}",
+                    "frequency": record.get("uhf1") or "",
+                    "primary_preset": "UHF 1",
+                    "backup_preset": "UHF 2",
+                    "use": f"{primary.get('callsign')} package tactical; backup {record.get('uhf2') or 'not assigned'}; intra-flight VHF {record.get('vhf') or 'not assigned'}",
+                }
+            )
+    for support in package.get("support_flights", []) or []:
+        role = str(support.get("role") or "").upper()
+        if role not in {"AWACS", "AEW/ABCCC", "ELINT"}:
+            continue
+        record = radio_record_for(synthesis, support.get("callsign"))
+        if record:
+            frequencies.append(
+                {
+                    "net": "ABM / AWACS",
+                    "frequency": record.get("uhf1") or "",
+                    "primary_preset": "UHF 1",
+                    "backup_preset": "UHF 2",
+                    "use": f"{support.get('callsign')} picture; backup {record.get('uhf2') or 'not assigned'}",
+                }
+            )
+            break
+    return {"frequencies": frequencies} if frequencies else {}
+
+
+def merge_comm_plan(base: dict[str, Any], derived: dict[str, Any]) -> dict[str, Any]:
+    if not base:
+        return derived
+    if not derived:
+        return base
+    result = dict(base)
+    if not result.get("frequencies") and derived.get("frequencies"):
+        result["frequencies"] = derived["frequencies"]
+    return result
+
+
+def append_radio_comm_plan(lines: list[str], comm_plan: dict[str, Any]) -> bool:
+    wrote = False
+    frequencies = comm_plan.get("frequencies") or []
+    if frequencies:
+        lines.append("### Frequencies")
+        lines.append("| Net | Frequency | Primary preset | Backup preset | Use |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for item in frequencies:
+            lines.append(
+                "| {net} | {frequency} | {primary} | {backup} | {use} |".format(
+                    net=markdown_cell(item.get("net") or item.get("name")),
+                    frequency=markdown_cell(item.get("frequency") or item.get("freq")),
+                    primary=markdown_cell(item.get("primary_preset") or item.get("primary") or item.get("preset")),
+                    backup=markdown_cell(item.get("backup_preset") or item.get("backup")),
+                    use=markdown_cell(item.get("use") or item.get("notes")),
+                )
+            )
+        lines.append("")
+        wrote = True
+
+    check_in = comm_plan.get("check_in") or comm_plan.get("checkin") or []
+    if check_in:
+        lines.append("### Check-In")
+        lines.append("| Step | Call | Notes |")
+        lines.append("| --- | --- | --- |")
+        for item in check_in:
+            lines.append(
+                "| {step} | {call} | {notes} |".format(
+                    step=markdown_cell(item.get("step") or item.get("phase")),
+                    call=markdown_cell(item.get("call") or item.get("report")),
+                    notes=markdown_cell(item.get("notes") or item.get("use")),
+                )
+            )
+        lines.append("")
+        wrote = True
+
+    priority = comm_plan.get("priority") or comm_plan.get("comm_priority") or []
+    if priority:
+        lines.append("### Comm Priority")
+        for index, item in enumerate(priority, start=1):
+            if isinstance(item, dict):
+                text = item.get("item") or item.get("label") or item.get("priority")
+                detail = item.get("notes") or item.get("detail")
+                line = f"{index}. {markdown_cell(text)}"
+                if detail:
+                    line += f" - {markdown_cell(detail)}"
+                lines.append(line)
+            else:
+                lines.append(f"{index}. {markdown_cell(item)}")
+        lines.append("")
+        wrote = True
+
+    notes = comm_plan.get("notes") or []
+    if isinstance(notes, str):
+        notes = [notes]
+    if notes:
+        lines.append("### Comm Notes")
+        for note in notes:
+            lines.append(f"- {markdown_cell(note)}")
+        lines.append("")
+        wrote = True
+
+    return wrote
+
+
 def append_comm_ladder(lines: list[str], synthesis: dict[str, Any]) -> None:
     package = focus_package(synthesis)
     if not package:
         return
-    lines.append("## Comm Ladder")
+    comm_plan = merge_comm_plan(mission_comm_plan(synthesis), derived_package_comm_plan(synthesis, package))
+    wrote_radio = False
+    if comm_plan:
+        lines.append("## Comm Ladder")
+        wrote_radio = append_radio_comm_plan(lines, comm_plan)
+    if not wrote_radio:
+        lines.append("## Link 16 & Nets")
+    else:
+        lines.append("### Link 16 & Nets")
     lines.append("| Element | Role | TACAN | Laser | Link 16 STN | F2F | Mission | EW | Notes |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     elements = [
@@ -3308,7 +3523,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, inc
         lines.append(f"- Bullseye: grid {number_cell(bullseye.get('grid_x'), 1)} / {number_cell(bullseye.get('grid_y'), 1)}")
     lines.append("")
     lines.append(f"### PKG {focus_id} Flight Steerpoints")
-    lines.append("| C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
+    lines.append("| C/S | STPT | Action | Arrive (Z) | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for flight in package.get("flights", []):
         for waypoint in flight.get("key_waypoints", []):
@@ -3330,7 +3545,7 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, inc
     support_flights = package.get("support_flights") or []
     if support_flights:
         lines.append("### Linked Support Flight Coordinates")
-        lines.append("| Role | C/S | STPT | Action | Arrive | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
+        lines.append("| Role | C/S | STPT | Action | Arrive (Z) | Grid X | Grid Y | Bullseye | Grid Z | Target/object |")
         lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for support in support_flights:
             for waypoint in support.get("key_waypoints", []):
@@ -3354,10 +3569,10 @@ def append_location_appendix(lines: list[str], synthesis: dict[str, Any], *, inc
     if weather.get("available"):
         lines.append("### Weather Sample Coordinates")
         if include_raw_weather:
-            lines.append("| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Briefed cloud base | Raw cumulus field ft | Contrail |")
+            lines.append("| Area | Local time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Briefed cloud base | Raw cumulus field ft | Contrail |")
             lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         else:
-            lines.append("| Area | Time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base | Contrail |")
+            lines.append("| Area | Local time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Cloud base | Contrail |")
             lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for sample in weather.get("samples") or []:
             row_values = {
@@ -3638,7 +3853,7 @@ def write_markdown(synthesis: dict[str, Any], path: Path) -> None:
             append_friendly_package_composition(lines, package)
             append_support_assets(lines, package)
         else:
-            lines.append("| C/S | Team | Role | T/O | TOT | Targets | Planning mark | Human contract |")
+            lines.append("| C/S | Team | Role | T/O (Z) | TOT (Z) | Targets | Planning mark | Human contract |")
             lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
             for flight in package["flights"]:
                 lines.append(
@@ -3703,8 +3918,10 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
     if clock:
         lines.append("## Timing Source")
         lines.append(
-            f"- HHMM values use clock base `{clock.get('clock_base_hhmm')}` and campaign time `{clock.get('campaign_time_ms')}`."
+            f"- Mission execution HHMM values are displayed as Zulu after converting local clock base `{clock.get('clock_base_hhmm')}` "
+            f"with UTC+{DEFAULT_LOCAL_UTC_OFFSET_HOURS}; campaign time `{clock.get('campaign_time_ms')}`."
         )
+        lines.append("- Weather tables intentionally keep local time for daylight and meteorology interpretation.")
         lines.append("")
 
     status = synthesis.get("deck_package_status") or {}
@@ -3771,10 +3988,20 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
         lines.append("")
 
     l16 = synthesis.get("l16_source") or {}
+    radio_source = synthesis.get("radio_source") or {}
+    focused_package = focus_package(synthesis)
+    combined_comm_plan = merge_comm_plan(
+        mission_comm_plan(synthesis),
+        derived_package_comm_plan(synthesis, focused_package) if focused_package else {},
+    )
     lines.append("## Comm Data Workup")
     lines.append(f"- Link 16 rows available: {l16.get('flight_count', 0)}.")
     lines.append(f"- Correlation basis: {l16.get('correlation_basis') or 'not recorded'}.")
-    lines.append("- UHF/VHF preset channel decoding is not yet available from the campaign bundle.")
+    if radio_source.get("path"):
+        lines.append(f"- Radio frequencies: derived from current campaign `RadioMap.dat` at `{radio_source.get('path')}` and joined to decoded package callsigns.")
+    lines.append("- UHF/VHF numbered preset decoding from `.frc` is not yet available; RadioMap bands are labeled by source field (`UHF 1`, `VHF`, `UHF 2`).")
+    if not combined_comm_plan.get("frequencies"):
+        lines.append("- Radio frequency rows could not be derived; provide TACTICAL, ABM, check-in, and comm-priority data before final deck production.")
     lines.append("")
 
     append_friendly_surface_defense(lines, synthesis)
@@ -3788,6 +4015,8 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
     lines.append("- Confirm package inclusion and tasking against the mission commander's intent.")
     lines.append("- Validate aircraft/loadout/laser/TACAN values against the BMS UI before publishing a live mission brief.")
     lines.append("- Validate inferred HHMM times against the BMS UI or human mission card before treating them as authoritative.")
+    if not combined_comm_plan.get("frequencies"):
+        lines.append("- Add the planner radio frequency card so the player-facing comm ladder can include TACTICAL/ABM frequencies, check-in, and comm priority.")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

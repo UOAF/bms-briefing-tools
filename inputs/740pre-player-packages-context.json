@@ -146,6 +146,26 @@
     }
   ],
   "commander_intent": "Two player packages reopen the Gimhae fight by killing the remaining SA-10 West and SA-10 East threats while striking Orion/Gimhae. Low-altitude strike/SEAD elements preserve survivability against the SA-10s, while F-15 screens and escorts prevent Gimhae and northern threat axes from disrupting the attack.",
+  "comm_plan": {
+    "check_in": [
+      {"step": "Flight C/S", "call": "Callsign"},
+      {"step": "Number / Type", "call": "As required"},
+      {"step": "Position", "call": "Bullseye or tactical anchor as required"},
+      {"step": "Ordnance", "call": "As required"},
+      {"step": "Playtime", "call": "As required"},
+      {"step": "Capabilities", "call": "As required"},
+      {"step": "Abort Code", "call": "As required"}
+    ],
+    "notes": [
+      "Example: Sentry, Panther 1, checking in as fragged, request ALPHA CHECK BULLSEYE.",
+      "Use one ABM picture for both player packages; cross-package calls go to ABM, not package tactical."
+    ],
+    "priority": [
+      {"item": "Fighter Engagement", "notes": "A live engagement owns the net."},
+      {"item": "Contract Comm", "notes": "Target killed, unable, abort, package timing, or lane deconfliction."},
+      {"item": "SEAD / Strike Coordination", "notes": "Intra-package target sorting and prosecution updates."}
+    ]
+  },
   "deconfliction": [
     "Package 7016 flows low from Tiger past Crown toward Blues/Orion.",
     "Package 7040 flows low from Gunsan toward Crown, then Wolf/Bando for SA-10 East.",
