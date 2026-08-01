@@ -18,6 +18,8 @@
 
 ## Decode / Correlation Notes
 - `740pre.ini` includes valid PPT anchors `TIG`, `CRO`, `BLU`, `WWO`, `BAN`, `SA6`, `SA5`, and three numeric `10` rings.
+- Timing is anchored by extraction from `.cmp current_time`: `05:29:05Z / 14:29:05LT` for this save. Player-facing execution times are Zulu; weather windows remain local.
+- Package-composition `TOT` now follows the BMS package-element `Tgt` semantics by role: strike/OCA uses `WP_STRIKE`, SEAD uses `WP_SEAD`, escort uses `WP_ESCORT`, and BARCAP uses the first `WP_CAP`.
 - The save also includes two out-of-theater PPT transforms: `ORO` and one duplicate `BAN`, both with grid Y above the 1024-map range. These are now flagged as invalid in synthesis and excluded from map crops/labels.
 - Orion/Gimhae is still represented by the OCA/strike target around grid `642 / 145`; player-facing brief uses Orion/Gimhae there rather than exposing the invalid PPT coordinate.
 - Map mark overrides now pin `10W` to the numeric `10` nearest Jaguar 4's SEAD point and `10E` to the numeric `10` nearest Hammer 2's SEAD point. The third numeric `10` is not promoted as `10S` because the planner stated SA-10 South was killed in Event 739.

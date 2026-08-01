@@ -118,7 +118,7 @@ THREAT_AREA_ACTIONS = {
 FEET_PER_GRID = feet_per_campaign_grid()
 FEET_PER_NM = 6076.11549
 DEFAULT_THEATER_GRID_ROWS = 928.0
-DEFAULT_LOCAL_UTC_OFFSET_HOURS = 9
+DEFAULT_LOCAL_UTC_OFFSET_MINUTES = 540
 MAP_GRID_MIN = 0.0
 MAP_GRID_MAX = 1024.0
 DEFAULT_INI_GRID_OFFSET_X = 0.0
@@ -141,6 +141,29 @@ SUPPORT_ID_FIELDS = (
     ("tanker_id", "TANKER"),
     ("interceptor_id", "INTERCEPT"),
 )
+
+DISPLAY_TARGET_ACTIONS_BY_MISSION = {
+    "OCASTRIKE": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "STRIKE": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "INTSTRIKE": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "DEEPSTRIKE": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "STSTRIKE": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "STRATBOMB": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "AI": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "BAI": ["WP_STRIKE", "WP_BOMB", "WP_GNDSTRIKE", "WP_NAVSTRIKE"],
+    "SEAD": ["WP_SEAD", "WP_SAD", "WP_STRIKE", "WP_BOMB"],
+    "SEADSTRIKE": ["WP_SEAD", "WP_SAD", "WP_STRIKE", "WP_BOMB"],
+    "SEADESCORT": ["WP_SEAD", "WP_ESCORT", "WP_SAD"],
+    "SAD": ["WP_SAD", "WP_SEAD", "WP_STRIKE"],
+    "ESCORT": ["WP_ESCORT"],
+    "BARCAP": ["WP_CAP"],
+    "BARCAP1": ["WP_CAP"],
+    "BARCAP2": ["WP_CAP"],
+    "HAVCAP": ["WP_CAP"],
+    "TARCAP": ["WP_CAP"],
+    "SWEEP": ["WP_CAP"],
+    "INTERCEPT": ["WP_CAP", "WP_INTERCEPT"],
+}
 
 AIR_DEFENSE_NAMES = {"air defense", "aaa", "base defense"}
 AIR_DEFENSE_KEYWORDS = (
@@ -382,10 +405,75 @@ def format_clock_local(ms: int | None, clock: dict[str, Any] | None) -> str | No
     return f"{total_minutes // 60:02d}{total_minutes % 60:02d}"
 
 
+def parse_hhmm_ms(value: Any) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip().upper().replace("Z", "").replace("LT", "")
+    text = re.sub(r"[^0-9:]", "", text)
+    if not text:
+        return None
+    if ":" in text:
+        parts = [safe_int(part, -1) for part in text.split(":")]
+        if len(parts) < 2 or any(part < 0 for part in parts):
+            return None
+        hour, minute = parts[0], parts[1]
+        second = parts[2] if len(parts) > 2 else 0
+    else:
+        digits = re.sub(r"\D", "", text)
+        if len(digits) in {3, 5}:
+            digits = "0" + digits
+        if len(digits) == 4:
+            hour, minute, second = safe_int(digits[:2]), safe_int(digits[2:4]), 0
+        elif len(digits) == 6:
+            hour, minute, second = safe_int(digits[:2]), safe_int(digits[2:4]), safe_int(digits[4:6])
+        else:
+            return None
+    if not (0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59):
+        return None
+    return ((hour * 60 + minute) * 60 + second) * 1000
+
+
+def format_hhmm_from_ms(ms: int | None) -> str | None:
+    if ms is None:
+        return None
+    total_minutes = (int(ms) % 86400000) // 60000
+    return f"{total_minutes // 60:02d}{total_minutes % 60:02d}"
+
+
+def apply_clock_override(clock: dict[str, Any] | None, mission_context: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not clock:
+        return clock
+    result = dict(clock)
+    result.setdefault("local_utc_offset_minutes", DEFAULT_LOCAL_UTC_OFFSET_MINUTES)
+    override = (mission_context or {}).get("clock_override") or (mission_context or {}).get("time_basis") or {}
+    if not isinstance(override, dict) or not override:
+        return result
+
+    offset_minutes = safe_int(
+        override.get("local_utc_offset_minutes", override.get("utc_offset_minutes")),
+        safe_int(result.get("local_utc_offset_minutes"), DEFAULT_LOCAL_UTC_OFFSET_MINUTES),
+    )
+    current_z_ms = parse_hhmm_ms(override.get("current_time_z") or override.get("current_zulu"))
+    current_local_ms = parse_hhmm_ms(override.get("current_time_local") or override.get("current_local"))
+    if current_local_ms is None and current_z_ms is not None:
+        current_local_ms = (current_z_ms + offset_minutes * 60000) % 86400000
+    if current_z_ms is None and current_local_ms is not None:
+        current_z_ms = (current_local_ms - offset_minutes * 60000) % 86400000
+
+    if current_local_ms is not None:
+        result["clock_base_ms"] = int(current_local_ms)
+        result["clock_base_hhmm"] = format_hhmm_from_ms(current_local_ms)
+        result["local_utc_offset_minutes"] = offset_minutes
+        result["current_time_z"] = format_hhmm_from_ms(current_z_ms) if current_z_ms is not None else None
+        result["current_time_local"] = format_hhmm_from_ms(current_local_ms)
+        result["clock_override_source"] = override.get("source") or "mission_context.clock_override"
+    return result
+
+
 def format_clock_zulu(
     ms: int | None,
     clock: dict[str, Any] | None,
-    local_utc_offset_hours: int = DEFAULT_LOCAL_UTC_OFFSET_HOURS,
+    local_utc_offset_minutes: int | None = None,
 ) -> str | None:
     local = format_clock_local(ms, clock)
     if not local:
@@ -394,7 +482,14 @@ def format_clock_zulu(
     minute = safe_int(local[2:4], -1)
     if hour < 0 or minute < 0:
         return None
-    total = (hour * 60 + minute - local_utc_offset_hours * 60) % 1440
+    offset = (
+        safe_int(clock.get("local_utc_offset_minutes"), DEFAULT_LOCAL_UTC_OFFSET_MINUTES)
+        if clock
+        else DEFAULT_LOCAL_UTC_OFFSET_MINUTES
+    )
+    if local_utc_offset_minutes is not None:
+        offset = local_utc_offset_minutes
+    total = (hour * 60 + minute - offset) % 1440
     return f"{total // 60:02d}{total % 60:02d}Z"
 
 
@@ -1015,6 +1110,25 @@ def package_flight_order(package: dict[str, Any], flight: dict[str, Any]) -> tup
     return (1, flight.get("time_on_target") or 0, flight.get("callsign") or "")
 
 
+def first_waypoint_arrive_for_actions(flight: dict[str, Any], actions: list[str]) -> int | None:
+    action_set = set(actions)
+    for waypoint in flight.get("waypoints", []):
+        if waypoint.get("action_name") in action_set and waypoint.get("arrive") is not None:
+            return waypoint.get("arrive")
+    return None
+
+
+def display_target_time_raw(flight: dict[str, Any]) -> int | None:
+    mission = mission_key(flight.get("mission_short") or flight.get("mission"))
+    raw = first_waypoint_arrive_for_actions(flight, DISPLAY_TARGET_ACTIONS_BY_MISSION.get(mission, []))
+    if raw is not None:
+        return raw
+    raw = first_waypoint_arrive_for_actions(flight, list(TARGET_ACTIONS))
+    if raw is not None:
+        return raw
+    return flight.get("time_on_target")
+
+
 def class_vehicle_records(unit_class: dict[str, Any], object_catalog: dict[str, Any]) -> list[dict[str, Any]]:
     vcd_by_ct = object_catalog.get("vcd_by_ct") or {}
     vehicles: list[dict[str, Any]] = []
@@ -1575,6 +1689,7 @@ def support_flight_summary(
     if role in {"AWACS", "JSTAR", "TANKER"} and not weapon_info.get("items"):
         weapon_info = dict(weapon_info)
         weapon_info["summary"] = "none"
+    target_time_raw = display_target_time_raw(flight)
     return {
         "role": role,
         "camp_id": flight.get("camp_id"),
@@ -1591,9 +1706,9 @@ def support_flight_summary(
         "laser_code_summary": "n/a" if role in {"AWACS", "JSTAR", "TANKER"} else laser_code_summary(flight),
         "tacan": flight.get("tacan", []),
         "tacan_summary": tacan_summary(flight.get("tacan", [])),
-        "tot_raw": flight.get("time_on_target"),
-        "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
-        "tot_local_hhmm": format_clock_local(flight.get("time_on_target"), clock),
+        "tot_raw": target_time_raw,
+        "tot_hhmm": format_clock(target_time_raw, clock),
+        "tot_local_hhmm": format_clock_local(target_time_raw, clock),
         "key_waypoints": key_waypoints,
         "waypoint_count": len(flight.get("waypoints", [])),
         "station_summary": station_summary(key_waypoints, bullseye),
@@ -2214,7 +2329,10 @@ def synthesize(
     deltas_by_key = objective_delta_key_map(cam_decode)
     unit_index = build_unit_index(cam_decode)
     mentions = deck_package_mentions(briefing_data)
-    clock = cam_decode.get("campaign_clock")
+    clock = apply_clock_override(cam_decode.get("campaign_clock"), mission_context)
+    if clock:
+        cam_decode = dict(cam_decode)
+        cam_decode["campaign_clock"] = clock
     bullseye = normalize_bullseye(cam_decode)
     teams = {team.get("who"): team.get("name") for team in cam_decode.get("teams", [])}
     teams_by_id = {safe_int(team.get("who"), -1): team for team in cam_decode.get("teams", [])}
@@ -2269,6 +2387,8 @@ def synthesize(
             )
             aircraft_type, aircraft_class = aircraft_label_for_unit(flight, object_catalog or {})
             weapon_info = weapons_summary(flight, object_catalog or {})
+            target_time_raw = display_target_time_raw(flight)
+            takeoff_raw = first_waypoint_arrive_for_actions(flight, ["WP_TAKEOFF"])
             flight_summary = {
                 "camp_id": flight.get("camp_id"),
                 "vu_id": flight.get("id"),
@@ -2282,18 +2402,12 @@ def synthesize(
                 "weapons": weapon_info,
                 "weapons_summary": weapon_info["summary"],
                 "laser_code_summary": laser_code_summary(flight),
-                "takeoff_raw": next((wp.get("arrive") for wp in flight.get("waypoints", []) if wp.get("action_name") == "WP_TAKEOFF"), None),
-                "takeoff_hhmm": format_clock(
-                    next((wp.get("arrive") for wp in flight.get("waypoints", []) if wp.get("action_name") == "WP_TAKEOFF"), None),
-                    clock,
-                ),
-                "takeoff_local_hhmm": format_clock_local(
-                    next((wp.get("arrive") for wp in flight.get("waypoints", []) if wp.get("action_name") == "WP_TAKEOFF"), None),
-                    clock,
-                ),
-                "tot_raw": flight.get("time_on_target"),
-                "tot_hhmm": format_clock(flight.get("time_on_target"), clock),
-                "tot_local_hhmm": format_clock_local(flight.get("time_on_target"), clock),
+                "takeoff_raw": takeoff_raw,
+                "takeoff_hhmm": format_clock(takeoff_raw, clock),
+                "takeoff_local_hhmm": format_clock_local(takeoff_raw, clock),
+                "tot_raw": target_time_raw,
+                "tot_hhmm": format_clock(target_time_raw, clock),
+                "tot_local_hhmm": format_clock_local(target_time_raw, clock),
                 "tacan": flight.get("tacan", []),
                 "tacan_summary": tacan_summary(flight.get("tacan", [])),
                 "a2a_tacan_summary": a2a_tacan_by_callsign.get(str(flight.get("callsign") or "").strip(), ""),
@@ -2429,7 +2543,10 @@ def synthesize(
         "time_basis": {
             "mission_times": "Zulu",
             "weather_times": "local",
-            "local_utc_offset_hours": DEFAULT_LOCAL_UTC_OFFSET_HOURS,
+            "local_utc_offset_minutes": safe_int(
+                (clock or {}).get("local_utc_offset_minutes"),
+                DEFAULT_LOCAL_UTC_OFFSET_MINUTES,
+            ),
         },
         "bullseye": bullseye,
         "objective_source": {
@@ -3916,11 +4033,20 @@ def write_workup_markdown(synthesis: dict[str, Any], path: Path) -> None:
 
     clock = synthesis.get("campaign_clock") or {}
     if clock:
+        offset_minutes = safe_int(clock.get("local_utc_offset_minutes"), DEFAULT_LOCAL_UTC_OFFSET_MINUTES)
+        offset_sign = "+" if offset_minutes >= 0 else "-"
+        offset_abs = abs(offset_minutes)
+        offset_label = f"UTC{offset_sign}{offset_abs // 60:02d}:{offset_abs % 60:02d}"
+        override_source = clock.get("clock_override_source")
         lines.append("## Timing Source")
         lines.append(
             f"- Mission execution HHMM values are displayed as Zulu after converting local clock base `{clock.get('clock_base_hhmm')}` "
-            f"with UTC+{DEFAULT_LOCAL_UTC_OFFSET_HOURS}; campaign time `{clock.get('campaign_time_ms')}`."
+            f"with {offset_label}; campaign time `{clock.get('campaign_time_ms')}`."
         )
+        if override_source:
+            lines.append(f"- Clock anchor: {override_source}.")
+        elif clock.get("clock_source"):
+            lines.append(f"- Clock source: {clock.get('clock_source')}.")
         lines.append("- Weather tables intentionally keep local time for daylight and meteorology interpretation.")
         lines.append("")
 

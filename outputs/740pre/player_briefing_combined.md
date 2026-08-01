@@ -27,14 +27,14 @@ Prior result: SA-10 South was killed in Event 739. SA-10 East and SA-10 West rem
 ## Package Composition
 | C/S | Pkg | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 0519Z | 0534Z | Strike Orion / Gimhae |
-| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 0515Z | 0538Z | Kill SA-10 West from Blues |
-| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 0516Z | 0538Z | Escort Jaguar 4 |
-| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 0517Z | 0539Z | Escort Panther 1 |
-| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 0519Z | 0537Z | High-alt AMRAAM screen Tiger-Crown |
-| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 0519Z | 0532Z | Kill SA-10 East from Wolf; Bando CBU alternate |
-| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 0519Z | 0539Z | Wolf CAP / north intercept |
-| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 0519Z | 0539Z | Wolf CAP / north intercept |
+| Panther 1 | 7016 | 4x F-16C-52 ROKAF | OCA STRIKE | 2x GBU-31(v)3/B /AP, 4x AIM-120C, Sniper, tanks | 1688 | 15X / 78X / 78Y / 15Y | not assigned | 0549Z | 0611Z | Strike Orion / Gimhae |
+| Jaguar 4 | 7016 | 4x F-16C-52 ROKAF | SEAD | 1x AGM-88, 2x CBU-105/B, AIM-120B/AIM-9M, tanks | 1688 | 16X / 79X / 79Y / 16Y | not assigned | 0545Z | 0607Z | Kill SA-10 West from Blues |
+| Hawkeye 2 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 17X / 80X / 80Y / 17Y | not assigned | 0546Z | 0608Z | Escort Jaguar 4 |
+| Jaguar 5 | 7016 | 4x F-16C-52 ROKAF | ESCORT | 6x AIM-120C, Sniper, tanks | 1688 | 18X / 81X / 81Y / 18Y | not assigned | 0547Z | 0609Z | Escort Panther 1 |
+| Sawbuck 2 | 7016 | 4x F-15C | BARCAP | 6x AIM-120B, 2x AIM-120C, tanks | 1688 | 19X / 82X / 82Y / 19Y | not assigned | 0549Z | 0607Z | High-alt AMRAAM screen Tiger-Crown |
+| Hammer 2 | 7040 | 4x F-16CM-50 | SEAD | 1x AGM-88, 2x GBU-38/B /HE, AIM-120C, HTS, Sniper, ALQ-184, tanks | 1688 | 25X / 88X / 88Y / 25Y | not assigned | 0549Z | 0613Z | Kill SA-10 East from Wolf; Bando CBU alternate |
+| Devil 5 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 26X / 89X / 89Y / 26Y | not assigned | 0549Z | 0611Z | Wolf CAP / north intercept |
+| Devil 6 | 7040 | 4x F-15C | BARCAP | 2x AIM-120B, 6x AIM-120C, tanks | 1688 | 27X / 90X / 90Y / 27Y | not assigned | 0549Z | 0612Z | Wolf CAP / north intercept |
 
 ## AWACS / Tanker
 | Role | C/S | Aircraft | Station / track | TACAN |
@@ -48,9 +48,9 @@ VMC across the package window. Expect clear/sunny conditions, 59.9 km visibility
 
 | Area | Local time | Day/Night | Conditions | Cloud base | Con layer | Temp | Visibility | Wind | Grid |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cheongju takeoff / recovery | 1415-1455 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 C | 59.9 km | 336/4 kt | 448 / 138 |
-| Gunsan takeoff / recovery | 1419-1532 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 26.7 C | 59.9 km | 183/3 kt | 432 / 224 |
-| Gimhae / Orion target area | 1434-1444 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 27-28 C | 59.9 km | 293-315/3-5 kt | 642 / 145 to 660 / 148 |
+| Cheongju takeoff / recovery | 1445-1524 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 C | 59.9 km | 336/4 kt | 448 / 138 |
+| Gunsan takeoff / recovery | 1449-1601 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 26.7 C | 59.9 km | 183/3 kt | 432 / 224 |
+| Gimhae / Orion target area | 1507-1513 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 27-28 C | 59.9 km | 293-315/3-5 kt | 642 / 145 to 660 / 148 |
 
 ## Strategic Air Defense
 Known strategic threats below have active tracking radars and are factor to the route/target area.

@@ -3,7 +3,8 @@
 Internal transitional artifact for briefing iteration. Keep provenance, gaps, and correlation notes here; `generated_briefing.md` is the player-facing mission brief.
 
 ## Timing Source
-- Mission execution HHMM values are displayed as Zulu after converting local clock base `1400` with UTC+9; campaign time `19745032`.
+- Mission execution HHMM values are displayed as Zulu after converting local clock base `1429` with UTC+09:00; campaign time `19745032`.
+- Clock source: .cmp current_time modulo day via pyopencam.
 - Weather tables intentionally keep local time for daylight and meteorology interpretation.
 
 ## Reference Deck Package Check
@@ -23,9 +24,9 @@ Internal transitional artifact for briefing iteration. Keep provenance, gaps, an
 ## Meteorology
 | Area | Local time | Day/Night | Conditions | Cloud base | Contrail layer | Temp C | Visibility km | Wind | Grid X | Grid Y |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Takeoff | 1419 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 59.9 | 336/4 kt | 448.0 | 138.0 |
-| Target Area | 1434 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 27.4 | 59.9 | 315/5 kt | 540.8 | 153.6 |
-| Landing | 1455 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 59.9 | 336/4 kt | 448.0 | 138.0 |
+| Takeoff | 1449 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 59.9 | 336/4 kt | 448.0 | 138.0 |
+| Target Area | 1507 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 27.4 | 59.9 | 315/5 kt | 540.8 | 153.6 |
+| Landing | 1524 | Day | Sunny CLR | 38,000 ft | 34,000 ft | 31.1 | 59.9 | 336/4 kt | 448.0 | 138.0 |
 
 ## Bullseye
 - Bullseye: grid 643.0 / 145.0
@@ -58,11 +59,11 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 
 | Sector from AO | Aircraft | Capability | Count | Nearest area | Range | Basis |
 | --- | --- | --- | --- | --- | --- | --- |
-| W | MiG-27 | air contact | 2 | Panther 1 STRIKE STPT 6 @ 0542Z | 1.6 NM | airborne now within 30 NM of target-area anchor |
-| NE | MiG-27 | air contact | 2 | Panther 1 STRIKE STPT 6 @ 0542Z | 1.9 NM | airborne now; next leg vectors inside 30 NM by 0503Z |
+| W | MiG-27 | air contact | 2 | Panther 1 STRIKE STPT 6 @ 0611Z | 1.6 NM | airborne now within 30 NM of target-area anchor |
+| NE | MiG-27 | air contact | 2 | Panther 1 STRIKE STPT 6 @ 0611Z | 1.9 NM | airborne now; next leg vectors inside 30 NM by 0532Z |
 | W | Mi-8 | air contact | 2 | INI SA6 | 3.4 NM | airborne now within 30 NM of target-area anchor |
 | NE | Mi-8 | air contact | 2 | INI SA6 | 3.6 NM | airborne now within 30 NM of target-area anchor |
-| N | Ka-52K | air contact | 1 | INI TGT 4 | 5.8 NM | airborne now; next leg vectors inside 30 NM by 0503Z |
+| N | Ka-52K | air contact | 1 | INI TGT 4 | 5.8 NM | airborne now; next leg vectors inside 30 NM by 0533Z |
 | N | MiG-29S | fighter-capable | 2 | INI TGT 6 | 7.8 NM | airborne now within 30 NM of target-area anchor |
 | N | Mi-28 | air contact | 2 | INI 10 | 12.0 NM | airborne now within 30 NM of target-area anchor |
 | N | Mi-8 | air contact | 2 | INI SA6 | 17.7 NM | airborne now within 30 NM of target-area anchor |
@@ -105,8 +106,8 @@ These are current-position contacts only. Callsigns and enemy package/tasking ID
 | Hawkeye 2 | ESCORT | not assigned | 1688 | 1403 | 65 | 65 | -1 | Escort Jaguar 4: Jaguar 4 lane - Protect Jaguar 4 through the low-altitude SA-10 West attack. |
 | Jaguar 5 | ESCORT | not assigned | 1688 | 4137 | 65 | 65 | -1 | Escort Panther 1: Panther 1 lane - Protect Panther 1 during ingress, Orion/Gimhae attack, and initial egress. |
 | Sawbuck 2 | BARCAP | not assigned | 1688 | 1125 | 1 | 65 | -1 | High-altitude AMRAAM screen: Tiger to Crown - Work high around Tiger to Crown and shoot AMRAAMs at bandits coming out of Gimhae/Orion before they pressure the low-altitude strikers. |
-| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 0457Z BE 298/118; ELINT STPT 5 0501Z BE 311/111 |
-| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 0622Z BE 254/105; TANKER STPT 5 0630Z BE 238/148 |
+| Sentry 1 | AWACS | not assigned | n/a | 1577 | 65 | 68 | -1 | ELINT STPT 4 0526Z BE 298/118; ELINT STPT 5 0530Z BE 311/111 |
+| Copper 2 | TANKER | 123Y slot 0 | n/a | 6676 | 65 | 68 | -1 | TANKER STPT 4 0651Z BE 254/105; TANKER STPT 5 0659Z BE 238/148 |
 
 ## Enemy Situation And Air Defense Estimate
 Threats below are focused on the package route, CAP/SAD areas, and named data-cartridge anchors. Strategic air-defense rows only include enemy Air Defense class systems with active tracking radars.
@@ -117,7 +118,7 @@ Threats below are focused on the package route, CAP/SAD areas, and named data-ca
 ### Strategic Air Defense Units Near Package Route
 | ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Nearest anchor | Dist NM | Air range | Low-alt range | Strength air/low |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | Panther 1 STRIKE STPT 6 @ 0542Z | 0.0 | 85 | 71 | 150/150 |
+| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | Panther 1 STRIKE STPT 6 @ 0611Z | 0.0 | 85 | 71 | 150/150 |
 | 1783 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 660.0 | 148.0 | INI 10 | 0.2 | 85 | 71 | 150/150 |
 | 1787 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 660.0 | 148.0 | INI 10 | 0.2 | 18 | 15 | 60/60 |
 | 1785 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 619.0 | 147.0 | INI SA6 | 0.3 | 18 | 15 | 60/60 |
@@ -135,7 +136,7 @@ Threats below are focused on the package route, CAP/SAD areas, and named data-ca
 ### Nearby Enemy Ground/Naval Units
 | ID | Team | Class | Category | Equipment | Grid X | Grid Y | Nearest anchor | Dist NM |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1779 | USSR | Air Defense | air defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | 642.0 | 145.0 | Panther 1 STRIKE STPT 6 @ 0542Z | 0.0 |
+| 1779 | USSR | Air Defense | air defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | 642.0 | 145.0 | Panther 1 STRIKE STPT 6 @ 0611Z | 0.0 |
 | 1783 | USSR | Air Defense | air defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | 660.0 | 148.0 | INI 10 | 0.2 |
 | 1787 | USSR | Air Defense | air defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | 660.0 | 148.0 | INI 10 | 0.2 |
 | 1785 | USSR | Air Defense | air defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | 619.0 | 147.0 | INI SA6 | 0.3 |
@@ -159,105 +160,105 @@ Location data is separated here so the main brief stays readable.
 ### PKG 7016 Flight Steerpoints
 | C/S | STPT | Action | Arrive (Z) | Grid X | Grid Y | Bullseye | Grid Z | Target/object |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Panther 1 | 0 | TAKEOFF | 0519Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Panther 1 | 2 | TIMING | 0524Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
-| Panther 1 | 3 | PUSH | 0536Z | 570.0 | 98.0 | BE 237/47 | 2200.0 |  |
-| Panther 1 | 6 | STRIKE | 0542Z | 642.0 | 145.0 | BE 270/1 | 1800.0 | unresolved 2035 |
-| Panther 1 | 7 | SPLIT | 0550Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
-| Panther 1 | 8 | LAND | 0555Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Panther 1 | 9 | REFUEL | 0555Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
-| Panther 1 | 10 | LAND | 0555Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Jaguar 4 | 0 | TAKEOFF | 0515Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jaguar 4 | 2 | TIMING | 0521Z | 507.0 | 123.0 | BE 261/74 | 2200.0 |  |
-| Jaguar 4 | 3 | PUSH | 0532Z | 569.0 | 98.0 | BE 238/47 | 2200.0 |  |
-| Jaguar 4 | 5 | SEAD | 0538Z | 642.0 | 145.0 | BE 270/1 | 2000.0 |  |
-| Jaguar 4 | 6 | SPLIT | 0546Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
-| Jaguar 4 | 7 | LAND | 0551Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jaguar 4 | 8 | REFUEL | 0551Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
-| Jaguar 4 | 9 | LAND | 0551Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Hawkeye 2 | 0 | TAKEOFF | 0516Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Hawkeye 2 | 2 | TIMING | 0521Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
-| Hawkeye 2 | 3 | PUSH | 0533Z | 570.0 | 97.0 | BE 237/47 | 2200.0 |  |
-| Hawkeye 2 | 6 | SPLIT | 0547Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
-| Hawkeye 2 | 7 | LAND | 0552Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Hawkeye 2 | 8 | REFUEL | 0552Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
-| Hawkeye 2 | 9 | LAND | 0552Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Jaguar 5 | 0 | TAKEOFF | 0517Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jaguar 5 | 2 | TIMING | 0522Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
-| Jaguar 5 | 3 | PUSH | 0534Z | 570.0 | 98.0 | BE 237/47 | 2200.0 |  |
-| Jaguar 5 | 6 | SPLIT | 0548Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
-| Jaguar 5 | 7 | LAND | 0553Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
-| Jaguar 5 | 8 | REFUEL | 0553Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
-| Jaguar 5 | 9 | LAND | 0553Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
-| Sawbuck 2 | 0 | TAKEOFF | 0519Z | 432.0 | 224.0 | BE 291/122 | 0.0 | Gunsan AB (RKJK) (objective 995) |
-| Sawbuck 2 | 3 | CAP | 0538Z | 611.0 | 113.0 | BE 225/24 | 2100.0 |  |
-| Sawbuck 2 | 4 | CAP | 0541Z | 642.0 | 145.0 | BE 270/1 | 2100.0 |  |
-| Sawbuck 2 | 6 | LAND | 0625Z | 432.0 | 224.0 | BE 291/122 | 0.0 | Gunsan AB (RKJK) (objective 995) |
-| Sawbuck 2 | 7 | REFUEL | 0625Z | 438.0 | 352.0 | BE 315/157 | 2000.0 |  |
-| Sawbuck 2 | 8 | LAND | 0625Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Panther 1 | 0 | TAKEOFF | 0549Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Panther 1 | 2 | TIMING | 0553Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
+| Panther 1 | 3 | PUSH | 0605Z | 570.0 | 98.0 | BE 237/47 | 2200.0 |  |
+| Panther 1 | 6 | STRIKE | 0611Z | 642.0 | 145.0 | BE 270/1 | 1800.0 | unresolved 2035 |
+| Panther 1 | 7 | SPLIT | 0619Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
+| Panther 1 | 8 | LAND | 0624Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Panther 1 | 9 | REFUEL | 0624Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
+| Panther 1 | 10 | LAND | 0624Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Jaguar 4 | 0 | TAKEOFF | 0545Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jaguar 4 | 2 | TIMING | 0550Z | 507.0 | 123.0 | BE 261/74 | 2200.0 |  |
+| Jaguar 4 | 3 | PUSH | 0601Z | 569.0 | 98.0 | BE 238/47 | 2200.0 |  |
+| Jaguar 4 | 5 | SEAD | 0607Z | 642.0 | 145.0 | BE 270/1 | 2000.0 |  |
+| Jaguar 4 | 6 | SPLIT | 0615Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
+| Jaguar 4 | 7 | LAND | 0620Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jaguar 4 | 8 | REFUEL | 0620Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
+| Jaguar 4 | 9 | LAND | 0620Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Hawkeye 2 | 0 | TAKEOFF | 0546Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Hawkeye 2 | 2 | TIMING | 0550Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
+| Hawkeye 2 | 3 | PUSH | 0602Z | 570.0 | 97.0 | BE 237/47 | 2200.0 |  |
+| Hawkeye 2 | 6 | SPLIT | 0616Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
+| Hawkeye 2 | 7 | LAND | 0621Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Hawkeye 2 | 8 | REFUEL | 0621Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
+| Hawkeye 2 | 9 | LAND | 0621Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Jaguar 5 | 0 | TAKEOFF | 0547Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jaguar 5 | 2 | TIMING | 0551Z | 505.0 | 129.0 | BE 263/75 | 2200.0 |  |
+| Jaguar 5 | 3 | PUSH | 0603Z | 570.0 | 98.0 | BE 237/47 | 2200.0 |  |
+| Jaguar 5 | 6 | SPLIT | 0617Z | 518.0 | 137.0 | BE 266/68 | 2100.0 |  |
+| Jaguar 5 | 7 | LAND | 0622Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
+| Jaguar 5 | 8 | REFUEL | 0622Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
+| Jaguar 5 | 9 | LAND | 0622Z | 410.0 | 124.0 | BE 265/126 | 0.0 | Muan Intl Airport (RKJB) (objective 3299) |
+| Sawbuck 2 | 0 | TAKEOFF | 0549Z | 432.0 | 224.0 | BE 291/122 | 0.0 | Gunsan AB (RKJK) (objective 995) |
+| Sawbuck 2 | 3 | CAP | 0607Z | 611.0 | 113.0 | BE 225/24 | 2100.0 |  |
+| Sawbuck 2 | 4 | CAP | 0610Z | 642.0 | 145.0 | BE 270/1 | 2100.0 |  |
+| Sawbuck 2 | 6 | LAND | 0654Z | 432.0 | 224.0 | BE 291/122 | 0.0 | Gunsan AB (RKJK) (objective 995) |
+| Sawbuck 2 | 7 | REFUEL | 0654Z | 438.0 | 352.0 | BE 315/157 | 2000.0 |  |
+| Sawbuck 2 | 8 | LAND | 0654Z | 448.0 | 138.0 | BE 268/105 | 0.0 | Cheongju Intl Airport (RKTU) (objective 997) |
 
 ### Linked Support Flight Coordinates
 | Role | C/S | STPT | Action | Arrive (Z) | Grid X | Grid Y | Bullseye | Grid Z | Target/object |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| AWACS | Sentry 1 | 0 | TAKEOFF | 0433Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
-| AWACS | Sentry 1 | 2 | TIMING | 0447Z | 437.0 | 300.0 | BE 307/139 | 2800.0 |  |
-| AWACS | Sentry 1 | 3 | PUSH | 0454Z | 450.0 | 288.0 | BE 307/130 | 2800.0 |  |
-| AWACS | Sentry 1 | 4 | ELINT | 0457Z | 450.0 | 248.0 | BE 298/118 | 2600.0 |  |
-| AWACS | Sentry 1 | 5 | ELINT | 0501Z | 487.0 | 280.0 | BE 311/111 | 2600.0 |  |
-| AWACS | Sentry 1 | 6 | SPLIT | 1005Z | 475.0 | 322.0 | BE 316/132 | 2700.0 |  |
-| AWACS | Sentry 1 | 7 | LAND | 1011Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
-| AWACS | Sentry 1 | 8 | REFUEL | 2342Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
-| AWACS | Sentry 1 | 9 | LAND | 2342Z | 477.0 | 395.0 | BE 326/162 | 0.0 | Seoul AB (RKSM) (objective 1484) |
-| TANKER | Copper 2 | 0 | TAKEOFF | 0549Z | 419.0 | 398.0 | BE 318/182 | 0.0 | Incheon Intl Airport (RKSI) (objective 3298) |
-| TANKER | Copper 2 | 2 | TIMING | 0611Z | 450.0 | 149.0 | BE 271/104 | 2400.0 |  |
-| TANKER | Copper 2 | 4 | TANKER | 0622Z | 457.0 | 90.0 | BE 254/105 | 2400.0 |  |
-| TANKER | Copper 2 | 5 | TANKER | 0630Z | 410.0 | 2.0 | BE 238/148 | 2400.0 |  |
-| TANKER | Copper 2 | 8 | LAND | 1157Z | 419.0 | 398.0 | BE 318/182 | 0.0 | Incheon Intl Airport (RKSI) (objective 3298) |
-| TANKER | Copper 2 | 9 | LAND | 2330Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
+| AWACS | Sentry 1 | 0 | TAKEOFF | 0502Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
+| AWACS | Sentry 1 | 2 | TIMING | 0516Z | 437.0 | 300.0 | BE 307/139 | 2800.0 |  |
+| AWACS | Sentry 1 | 3 | PUSH | 0523Z | 450.0 | 288.0 | BE 307/130 | 2800.0 |  |
+| AWACS | Sentry 1 | 4 | ELINT | 0526Z | 450.0 | 248.0 | BE 298/118 | 2600.0 |  |
+| AWACS | Sentry 1 | 5 | ELINT | 0530Z | 487.0 | 280.0 | BE 311/111 | 2600.0 |  |
+| AWACS | Sentry 1 | 6 | SPLIT | 1034Z | 475.0 | 322.0 | BE 316/132 | 2700.0 |  |
+| AWACS | Sentry 1 | 7 | LAND | 1041Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
+| AWACS | Sentry 1 | 8 | REFUEL | 0011Z | 398.0 | 309.0 | BE 304/159 | 2000.0 |  |
+| AWACS | Sentry 1 | 9 | LAND | 0011Z | 477.0 | 395.0 | BE 326/162 | 0.0 | Seoul AB (RKSM) (objective 1484) |
+| TANKER | Copper 2 | 0 | TAKEOFF | 0619Z | 419.0 | 398.0 | BE 318/182 | 0.0 | Incheon Intl Airport (RKSI) (objective 3298) |
+| TANKER | Copper 2 | 2 | TIMING | 0640Z | 450.0 | 149.0 | BE 271/104 | 2400.0 |  |
+| TANKER | Copper 2 | 4 | TANKER | 0651Z | 457.0 | 90.0 | BE 254/105 | 2400.0 |  |
+| TANKER | Copper 2 | 5 | TANKER | 0659Z | 410.0 | 2.0 | BE 238/148 | 2400.0 |  |
+| TANKER | Copper 2 | 8 | LAND | 1226Z | 419.0 | 398.0 | BE 318/182 | 0.0 | Incheon Intl Airport (RKSI) (objective 3298) |
+| TANKER | Copper 2 | 9 | LAND | 0000Z | 449.0 | 407.0 | BE 323/176 | 0.0 | Gimpo Intl Airport (RKSS) (objective 1486) |
 
 ### Weather Sample Coordinates
 | Area | Local time | FMAP Row | FMAP Col | Grid X | Grid Y | Conditions | Wind | Visibility km | Briefed cloud base | Raw cumulus field ft | Contrail |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Takeoff | 1419 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 336/4 kt | 59.9 | 38,000 ft | 4420 | 34,000 ft |
-| Target Area | 1434 | 50 | 31 | 540.8 | 153.6 | Sunny CLR | 315/5 kt | 59.9 | 38,000 ft | 3797 | 34,000 ft |
-| Landing | 1455 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 336/4 kt | 59.9 | 38,000 ft | 4420 | 34,000 ft |
+| Takeoff | 1449 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 336/4 kt | 59.9 | 38,000 ft | 4420 | 34,000 ft |
+| Target Area | 1507 | 50 | 31 | 540.8 | 153.6 | Sunny CLR | 315/5 kt | 59.9 | 38,000 ft | 3797 | 34,000 ft |
+| Landing | 1524 | 51 | 25 | 448.0 | 138.0 | Sunny CLR | 336/4 kt | 59.9 | 38,000 ft | 4420 | 34,000 ft |
 
 ### INI Planning Steerpoints
 | Kind | Label | Code | INI X ft | INI Y ft | Grid X | Grid Y | Map status | Bullseye | Nearest package route point |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| target | TGT 0 | 1 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0519Z 0.3 NM |
-| target | TGT 1 | 0 | 434597.3 | 1579310.4 | 481.4 | 132.5 | usable | BE 266/88 | Panther 1 TIMING STPT 2 @ 0524Z 12.9 NM |
-| target | TGT 2 | 8 | 424757.4 | 1658029.9 | 505.4 | 129.5 | usable | BE 264/75 | Panther 1 TIMING STPT 2 @ 0524Z 0.3 NM |
-| target | TGT 3 | 2 | 323078.0 | 1871228.6 | 570.4 | 98.5 | usable | BE 237/47 | Panther 1 PUSH STPT 3 @ 0536Z 0.3 NM |
-| target | TGT 4 | 0 | 401797.6 | 2015547.8 | 614.3 | 122.5 | usable | BE 232/20 | Sawbuck 2 CAP STPT 3 @ 0538Z 5.4 NM |
-| target | TGT 5 | 0 | 457557.2 | 2071307.4 | 631.3 | 139.5 | usable | BE 245/7 | Panther 1 STRIKE STPT 6 @ 0542Z 6.5 NM |
-| target | TGT 6 | 17 | 477237.1 | 2107387.2 | 642.3 | 145.5 | usable | BE 306/0 | Panther 1 STRIKE STPT 6 @ 0542Z 0.3 NM |
-| target | TGT 7 | 3 | 450997.2 | 1700669.6 | 518.4 | 137.5 | usable | BE 267/67 | Panther 1 SPLIT STPT 7 @ 0550Z 0.3 NM |
-| target | TGT 8 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0519Z 0.3 NM |
-| target | TGT 9 | 4 | 1015153.8 | 1307072.0 | 398.4 | 309.4 | usable | BE 304/159 | Panther 1 REFUEL STPT 9 @ 0555Z 0.3 NM |
-| target | TGT 10 | 7 | 408357.5 | 1346431.8 | 410.4 | 124.5 | usable | BE 265/126 | Panther 1 LAND STPT 10 @ 0555Z 0.3 NM |
-| target | TGT 11 | 7 | 736355.5 | 1418591.4 | 432.4 | 224.4 | usable | BE 291/122 | Sawbuck 2 TAKEOFF STPT 0 @ 0519Z 0.3 NM |
-| target | TGT 12 | 4 | 1015153.8 | 1307072.0 | 398.4 | 309.4 | usable | BE 304/159 | Panther 1 REFUEL STPT 9 @ 0555Z 0.3 NM |
-| target | TGT 13 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0519Z 0.3 NM |
+| target | TGT 0 | 1 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0549Z 0.3 NM |
+| target | TGT 1 | 0 | 434597.3 | 1579310.4 | 481.4 | 132.5 | usable | BE 266/88 | Panther 1 TIMING STPT 2 @ 0553Z 12.9 NM |
+| target | TGT 2 | 8 | 424757.4 | 1658029.9 | 505.4 | 129.5 | usable | BE 264/75 | Panther 1 TIMING STPT 2 @ 0553Z 0.3 NM |
+| target | TGT 3 | 2 | 323078.0 | 1871228.6 | 570.4 | 98.5 | usable | BE 237/47 | Panther 1 PUSH STPT 3 @ 0605Z 0.3 NM |
+| target | TGT 4 | 0 | 401797.6 | 2015547.8 | 614.3 | 122.5 | usable | BE 232/20 | Sawbuck 2 CAP STPT 3 @ 0607Z 5.4 NM |
+| target | TGT 5 | 0 | 457557.2 | 2071307.4 | 631.3 | 139.5 | usable | BE 245/7 | Panther 1 STRIKE STPT 6 @ 0611Z 6.5 NM |
+| target | TGT 6 | 17 | 477237.1 | 2107387.2 | 642.3 | 145.5 | usable | BE 306/0 | Panther 1 STRIKE STPT 6 @ 0611Z 0.3 NM |
+| target | TGT 7 | 3 | 450997.2 | 1700669.6 | 518.4 | 137.5 | usable | BE 267/67 | Panther 1 SPLIT STPT 7 @ 0619Z 0.3 NM |
+| target | TGT 8 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0549Z 0.3 NM |
+| target | TGT 9 | 4 | 1015153.8 | 1307072.0 | 398.4 | 309.4 | usable | BE 304/159 | Panther 1 REFUEL STPT 9 @ 0624Z 0.3 NM |
+| target | TGT 10 | 7 | 408357.5 | 1346431.8 | 410.4 | 124.5 | usable | BE 265/126 | Panther 1 LAND STPT 10 @ 0624Z 0.3 NM |
+| target | TGT 11 | 7 | 736355.5 | 1418591.4 | 432.4 | 224.4 | usable | BE 291/122 | Sawbuck 2 TAKEOFF STPT 0 @ 0549Z 0.3 NM |
+| target | TGT 12 | 4 | 1015153.8 | 1307072.0 | 398.4 | 309.4 | usable | BE 304/159 | Panther 1 REFUEL STPT 9 @ 0624Z 0.3 NM |
+| target | TGT 13 | 7 | 454277.2 | 1471071.0 | 448.4 | 138.5 | usable | BE 268/105 | Panther 1 TAKEOFF STPT 0 @ 0549Z 0.3 NM |
 | ppt | ORO |  | 5139024.0 | 2108082.0 | 642.5 | 1566.4 | out of theater; excluded from map crops |  |  |
-| ppt | 10 |  | 477053.2 | 2107703.2 | 642.4 | 145.4 | usable | BE 304/0 | Panther 1 STRIKE STPT 6 @ 0542Z 0.3 NM |
+| ppt | 10 |  | 477053.2 | 2107703.2 | 642.4 | 145.4 | usable | BE 304/0 | Panther 1 STRIKE STPT 6 @ 0611Z 0.3 NM |
 | ppt | 15 |  | 490476.2 | 2021947.5 | 616.3 | 149.5 | usable | BE 280/15 |  |
-| ppt | 10 |  | 486715.5 | 2165976.5 | 660.2 | 148.4 | usable | BE 079/9 | Panther 1 STRIKE STPT 6 @ 0542Z 10.0 NM |
+| ppt | 10 |  | 486715.5 | 2165976.5 | 660.2 | 148.4 | usable | BE 079/9 | Panther 1 STRIKE STPT 6 @ 0611Z 10.0 NM |
 | ppt | SA5 |  | 532862.0 | 2212552.2 | 674.4 | 162.4 | usable | BE 061/19 |  |
-| ppt | CRO |  | 390471.2 | 2038726.6 | 621.4 | 119.0 | usable | BE 220/18 | Sawbuck 2 CAP STPT 3 @ 0538Z 6.5 NM |
-| ppt | BLU |  | 450066.0 | 2076887.6 | 633.0 | 137.2 | usable | BE 232/7 | Panther 1 STRIKE STPT 6 @ 0542Z 6.4 NM |
-| ppt | SA6 |  | 483899.2 | 2031964.2 | 619.3 | 147.5 | usable | BE 276/13 | Panther 1 STRIKE STPT 6 @ 0542Z 12.3 NM |
+| ppt | CRO |  | 390471.2 | 2038726.6 | 621.4 | 119.0 | usable | BE 220/18 | Sawbuck 2 CAP STPT 3 @ 0607Z 6.5 NM |
+| ppt | BLU |  | 450066.0 | 2076887.6 | 633.0 | 137.2 | usable | BE 232/7 | Panther 1 STRIKE STPT 6 @ 0611Z 6.4 NM |
+| ppt | SA6 |  | 483899.2 | 2031964.2 | 619.3 | 147.5 | usable | BE 276/13 | Panther 1 STRIKE STPT 6 @ 0611Z 12.3 NM |
 | ppt | 10 |  | 598985.8 | 2254517.0 | 687.2 | 182.6 | usable | BE 050/31 |  |
-| ppt | TIG |  | 322750.0 | 1871245.2 | 570.4 | 98.4 | usable | BE 237/47 | Panther 1 PUSH STPT 3 @ 0536Z 0.3 NM |
+| ppt | TIG |  | 322750.0 | 1871245.2 | 570.4 | 98.4 | usable | BE 237/47 | Panther 1 PUSH STPT 3 @ 0605Z 0.3 NM |
 | ppt | WWO |  | 394908.8 | 2180357.8 | 664.6 | 120.4 | usable | BE 139/18 |  |
 | ppt | BAN |  | 5774994.5 | 2166003.8 | 660.2 | 1760.2 | out of theater; excluded from map crops |  |  |
-| ppt | BAN |  | 463551.8 | 2168588.2 | 661.0 | 141.3 | usable | BE 102/10 | Panther 1 STRIKE STPT 6 @ 0542Z 10.5 NM |
+| ppt | BAN |  | 463551.8 | 2168588.2 | 661.0 | 141.3 | usable | BE 102/10 | Panther 1 STRIKE STPT 6 @ 0611Z 10.5 NM |
 
 ### Strategic Air Defense Coordinates
 Air-defense rows use saved campaign battalion/unit grid coordinates and exclude embedded short-range point/base defenses. They are enemy strategic sites with active tracking radars.
 | ID | Team | Class | Equipment | Tracking radar | Grid X | Grid Y | Bullseye | Nearest package/INI anchor | Dist NM | Air range | Low-alt range |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | BE 270/1 | Panther 1 STRIKE STPT 6 @ 0542Z | 0.0 | 85 | 71 |
+| 1779 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 642.0 | 145.0 | BE 270/1 | Panther 1 STRIKE STPT 6 @ 0611Z | 0.0 | 85 | 71 |
 | 1783 | USSR | Air Defense | SA-10 (S-300P); Flap Lid; 54K6E CP; ZPU-2; KrAz T 255B | Flap Lid (slot 2, 1/1) | 660.0 | 148.0 | BE 080/9 | INI 10 | 0.2 | 85 | 71 |
 | 1787 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 660.0 | 148.0 | BE 080/9 | INI 10 | 0.2 | 18 | 15 |
 | 1785 | USSR | Air Defense | SA-6 (2K12); KrAz F 255B; Straight Flush; ACRV MT-LBu; Flat Face | Straight Flush (slot 3, 1/1) | 619.0 | 147.0 | BE 275/13 | INI SA6 | 0.3 | 18 | 15 |
@@ -276,11 +277,11 @@ Air-defense rows use saved campaign battalion/unit grid coordinates and exclude 
 Rows use current campaign-time positions. Enemy callsigns and package IDs are omitted.
 | Sector | Aircraft | Capability | Count | Grid X | Grid Y | Bullseye | Alt ft | Nearest package/INI anchor | Dist NM | Basis |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| W | MiG-27 | air contact | 2 | 639.0 | 145.0 | BE 270/2 | 9843 | Panther 1 STRIKE STPT 6 @ 0542Z | 1.6 | airborne now within 30 NM of target-area anchor |
-| NE | MiG-27 | air contact | 2 | 650.0 | 162.0 | BE 022/10 | 12080 | Panther 1 STRIKE STPT 6 @ 0542Z | 1.9 | airborne now; next leg vectors inside 30 NM by 0503Z |
+| W | MiG-27 | air contact | 2 | 639.0 | 145.0 | BE 270/2 | 9843 | Panther 1 STRIKE STPT 6 @ 0611Z | 1.6 | airborne now within 30 NM of target-area anchor |
+| NE | MiG-27 | air contact | 2 | 650.0 | 162.0 | BE 022/10 | 12080 | Panther 1 STRIKE STPT 6 @ 0611Z | 1.9 | airborne now; next leg vectors inside 30 NM by 0532Z |
 | W | Mi-8 | air contact | 2 | 613.0 | 147.0 | BE 274/16 | 4869 | INI SA6 | 3.4 | airborne now within 30 NM of target-area anchor |
 | NE | Mi-8 | air contact | 2 | 623.0 | 153.0 | BE 292/12 | 15000 | INI SA6 | 3.6 | airborne now within 30 NM of target-area anchor |
-| N | Ka-52K | air contact | 1 | 615.0 | 137.0 | BE 254/16 | 4902 | INI TGT 4 | 5.8 | airborne now; next leg vectors inside 30 NM by 0503Z |
+| N | Ka-52K | air contact | 1 | 615.0 | 137.0 | BE 254/16 | 4902 | INI TGT 4 | 5.8 | airborne now; next leg vectors inside 30 NM by 0533Z |
 | N | MiG-29S | fighter-capable | 2 | 637.0 | 159.0 | BE 337/8 | 21000 | INI TGT 6 | 7.8 | airborne now within 30 NM of target-area anchor |
 | N | Mi-28 | air contact | 2 | 655.0 | 170.0 | BE 026/15 | 6000 | INI 10 | 12.0 | airborne now within 30 NM of target-area anchor |
 | N | Mi-8 | air contact | 2 | 623.0 | 180.0 | BE 330/22 | 5394 | INI SA6 | 17.7 | airborne now within 30 NM of target-area anchor |

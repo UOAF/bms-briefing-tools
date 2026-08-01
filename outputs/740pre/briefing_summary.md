@@ -59,7 +59,7 @@
 ## CAM Decode
 - Full decode: `outputs\740pre\cam_decode.json`
 - Save version: `109`, class table entries: 5261
-- Campaign clock: campaign_time_ms=19745032, clock_base=1400
+- Campaign clock: campaign_time_ms=19745032, clock_base=1429
 - Objective deltas: 87
 - Units: Battalion=464, Brigade=100, Flight=258, Package=196, Squadron=47, TaskForce=32
 - Teams: XX, U.S., ROK, Japan, USSR, PRC, DPRK, NATO

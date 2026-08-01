@@ -59,6 +59,8 @@ ACTION_NAME_BY_CODE = {
 LOADOUT_STATION_COUNT = 16
 FLIGHT_SLOT_COUNT = 4
 LOADOUT_ENTRY_SIZE = 48
+DAY_MS = 24 * 60 * 60 * 1000
+DEFAULT_LOCAL_UTC_OFFSET_MINUTES = 540
 
 
 def safe_int(value: Any, default: int = 0) -> int:
@@ -66,6 +68,39 @@ def safe_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def hhmmss_from_ms(ms: int | None, *, suffix: str = "") -> str | None:
+    if ms is None:
+        return None
+    total_seconds = (int(ms) % DAY_MS) // 1000
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f"{hours:02d}{minutes:02d}{seconds:02d}{suffix}"
+
+
+def hhmm_from_ms(ms: int | None) -> str | None:
+    if ms is None:
+        return None
+    total_minutes = (int(ms) % DAY_MS) // 60000
+    return f"{total_minutes // 60:02d}{total_minutes % 60:02d}"
+
+
+def campaign_clock_item(cmp_record: Any, local_utc_offset_minutes: int = DEFAULT_LOCAL_UTC_OFFSET_MINUTES) -> dict[str, Any]:
+    current_time = field(cmp_record, "current_time")
+    current_time_ms = safe_int(current_time) if current_time is not None else None
+    current_z_ms = None if current_time_ms is None else current_time_ms % DAY_MS
+    current_local_ms = None if current_z_ms is None else (current_z_ms + local_utc_offset_minutes * 60000) % DAY_MS
+    return {
+        "campaign_time_ms": current_time_ms,
+        "clock_base_ms": current_local_ms,
+        "clock_base_hhmm": hhmm_from_ms(current_local_ms),
+        "current_time_z": hhmmss_from_ms(current_z_ms, suffix="Z"),
+        "current_time_local": hhmmss_from_ms(current_local_ms),
+        "local_utc_offset_minutes": local_utc_offset_minutes,
+        "clock_source": ".cmp current_time modulo day via pyopencam",
+    }
 
 
 def vuid(value: Any) -> dict[str, int | str]:
@@ -542,12 +577,7 @@ def decode_cam(cam_path: Path, theater_folder: Path, pyopencam_root: Path) -> di
             "class_table_entries": len(support.ct_by_number),
             "gaps": [],
         },
-        "campaign_clock": {
-            "campaign_time_ms": field(cmp_record, "current_time"),
-            "clock_base_ms": 50400000,
-            "clock_base_hhmm": "1400",
-            "current_time_z": None,
-        },
+        "campaign_clock": campaign_clock_item(cmp_record),
         "bullseye": bullseye,
         "unit_counts": {
             "Battalion": unit_counts.get("battalion", 0),

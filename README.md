@@ -459,6 +459,10 @@ Decoder policy:
 - Prefer `pyopencam` as the primary CAM parser for read-only briefing extraction.
   `scripts/pyopencam_provider.py` imports an external checkout/source directory
   and emits the canonical `cam_decode` shape directly from `.cam` files.
+- Campaign timing comes from `.cmp current_time`: the provider derives current
+  Zulu by taking campaign time modulo one day, then derives the local clock base
+  from the theater UTC offset. Do not hard-code a local clock base such as
+  `1400`.
 - Keep BMSUtils as a read-only compatibility fallback and regression oracle, not
   a write-back dependency.
 - Use `falcon-bms-tacview-converter` concepts for theater discovery,
