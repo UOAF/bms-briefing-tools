@@ -43,6 +43,8 @@ python .\scripts\synthesize_bms_briefing.py `
 
 For multiple player packages in one operation, synthesize package-specific folders for evidence and package tables, then render combined deck-facing products with repeated `--synthesis`. Promote the final root `player_briefing_combined.md`, `generated_briefing.md`, and numbered `briefing_images` as the unified operation.
 
+After regenerating package syntheses, explicitly re-sync the deck-facing root briefs. Package-specific markdown is evidence only; the root `player_briefing_combined.md` and `generated_briefing.md` are what the slide designer normally consumes. Do not let old hand-edited package tables survive after synthesis changes. Validate the root package composition table against the regenerated synthesis and BMS-equivalent timing before delivery.
+
 ## 3. Correlate Planner Intent
 
 Correlate the planner prompt with decoded data:
@@ -60,6 +62,8 @@ Correlate the planner prompt with decoded data:
 - INI/PPT marks, named marks, drawn lines, route labels, threat steerpoints, and bullseye.
 - Weather at takeoff, target, and landing: local time/day-night, conditions, cloud base, contrail layer, temp, visibility, wind.
 - Enemy situation around the actual target area.
+
+For timing-sensitive briefs, inspect `cam_decode.json` after extraction and confirm the decoded campaign clock fields are populated: `current_time_z`, `current_time_local`, `clock_base_hhmm`, and `clock_source`. Normal saves should synthesize without `clock_override`; use an override only as a documented fallback or regression check when extraction is missing/wrong. Package table `T/O` and `TOT/Tgt` values in the root player brief must match the regenerated synthesis, not stale markdown.
 
 If a decoded value conflicts with planner/in-game observation, investigate the root cause before accepting either one. Examples from prior missions:
 

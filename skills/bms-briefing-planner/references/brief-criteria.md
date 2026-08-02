@@ -44,7 +44,7 @@ Include for player packages:
 - Callsign.
 - Number and aircraft type.
 - Mission role.
-- Takeoff time and TOT/Tgt in Zulu. Use a `Z` suffix and label columns as `T/O (Z)` and `TOT (Z)`.
+- Takeoff time and BMS package-list `Tgt`/TOT in Zulu. Use a `Z` suffix and label columns as `T/O (Z)` and `TOT (Z)`.
 - Match BMS package-element timing semantics: derive `TOT` from the mission tactical waypoint where possible (`WP_STRIKE` for OCA/strike, `WP_SEAD` for SEAD, `WP_ESCORT` for escort, first `WP_CAP` for CAP) rather than blindly using raw package `time_on_target`.
 - Loadout summarized by useful weapons, sensors, tanks.
 - Laser codes where decoded/applicable.
@@ -124,7 +124,7 @@ Generate a weather map when the FMAP/weather data is available. If weather data 
 
 Use Zulu for mission execution timing:
 
-- Package composition T/O and TOT.
+- Package composition T/O and BMS-style TOT/Tgt.
 - Flight steerpoint/coordinate appendix arrival times.
 - AWACS/tanker station timing.
 - Active contact vector timing and other package deconfliction timing.
@@ -132,6 +132,8 @@ Use Zulu for mission execution timing:
 Use local time only for meteorology/day-night assessment. For KTO/Bear Trap style Korea missions, convert local mission HHMM to Zulu by subtracting 9 hours unless the campaign data provides a more specific UTC offset.
 
 Verify that extraction decoded the current save clock from `.cmp current_time`. Do not assume a fixed local base such as `1400`; derive current Zulu from campaign time modulo day and local time from the theater UTC offset. Use `clock_override` only as a fallback or regression check when extraction is demonstrably missing or wrong.
+
+If seconds are decoded or visible in BMS, preserve them in the transitional workup/source data for validation. Player-facing tables may use minute-level `HHMMZ` values, but they must be rounded or truncated consistently across flights. Keep clock-source proof in the workup; do not print parser/debug provenance in the player brief.
 
 ## Coordinates Criteria
 

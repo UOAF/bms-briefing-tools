@@ -23,6 +23,8 @@ Each map must answer a different question:
 
 If two maps show the same zoom level or same information density, one of them is wrong.
 
+The route-flow and enemy-air-origin concepts may be combined into one slide image when that improves the deck, but only if the combined image remains readable at slide size. If labels, arrows, and rings compete, crop tighter or split the concepts rather than shipping an unreadable overview.
+
 ## Route & Threat Map Criteria
 
 The route overview must:
@@ -55,6 +57,7 @@ The target map must:
 The target map should not:
 
 - Show friendly departure airbase labels.
+- Let full-route labels or support-track geometry dominate the target complex.
 - Let support tracks or origin airbases force an over-wide crop.
 - Over-label the map until terrain and tactical geometry disappear.
 
@@ -65,6 +68,7 @@ The objective map must:
 - Be the most zoomed-in view.
 - Use the same marker/threat content as the target map, but tighter.
 - Prioritize terrain, named objective marks, ADA sites/rings, and immediate prosecution geometry.
+- Constrain the crop with named objective anchors and immediate threats, not full ingress lines or support tracks.
 - Use smaller fonts than the target map.
 - Suppress or minimize flow labels if they obscure the objective.
 
@@ -73,6 +77,7 @@ The objective map should not:
 - Become a horizontal route ingress map.
 - Show the whole route from departure.
 - Show friendly departure airbase labels.
+- Lose the target map's essential markers/rings just because the crop changed.
 - Use route-overview font sizes.
 
 ## Visual Language
@@ -161,6 +166,7 @@ Objective area:
 
 - Use `--combined-crop-mode objective-area`.
 - Set an objective north bound and padding when the planner gives a useful anchor.
+- If the planner gives a tactical cutoff such as `10 NM north of SA-6` or `Crown eastward/northward to SA5`, encode that as explicit crop anchors/labels rather than relying on automatic route bounds.
 - When the objective close-up is cropped too tightly, use explicit crop labels around the tactical box rather than simply increasing margin. Example: `--combined-crop-labels CRO SA5 10W 10E BLU BAN WWO SA6` frames a Crown-to-SA5 target view without returning to the full target-area crop.
 - Use smaller label multipliers than target.
 - If flow labels obscure terrain, reduce label multipliers or render flow lines without text.

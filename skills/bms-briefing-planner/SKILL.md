@@ -78,6 +78,8 @@ Before final delivery:
 
 - Run syntax checks on touched Python scripts: `python -m py_compile scripts\*.py` or the specific files changed.
 - Run the relevant render/collection command again after changing renderer behavior.
+- Confirm extracted campaign clock data is present in `cam_decode.json` when timing appears in the brief: `current_time_z`, `current_time_local`, `clock_base_hhmm`, and `clock_source`.
+- Confirm root deck-facing brief files are synchronized with regenerated package synthesis, especially package composition `T/O (Z)` and `TOT (Z)` tables.
 - Open or preview every final map at slide-like size.
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.
