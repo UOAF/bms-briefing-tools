@@ -473,6 +473,113 @@ def texture_from_map(
     return colors
 
 
+def apply_texture_hillshade(
+    colors: np.ndarray,
+    elevations_ft: np.ndarray | None,
+    hillshade_strength: float,
+) -> np.ndarray:
+    if elevations_ft is None or hillshade_strength <= 0:
+        return colors
+    low = float(np.nanpercentile(elevations_ft, 2))
+    high = float(np.nanpercentile(elevations_ft, 98))
+    normalized = np.clip((elevations_ft - low) / max(high - low, 1.0), 0.0, 1.0)
+    shaded = LightSource(azdeg=315, altdeg=45).shade_rgb(colors[..., :3], normalized, blend_mode="overlay")
+    strength = max(0.0, min(1.0, hillshade_strength))
+    colors[..., :3] = colors[..., :3] * (1.0 - strength) + shaded * strength
+    return colors
+
+
+def texture_from_photoreal_tiles(
+    tile_dir: Path,
+    bounds: tuple[float, float, float, float],
+    shape: tuple[int, int],
+    *,
+    alpha: float,
+    elevations_ft: np.ndarray | None = None,
+    hillshade_strength: float = 0.0,
+    tile_grid_size: int = 32,
+    tile_origin: str = "top-left",
+    tile_index_base: int = 1,
+) -> np.ndarray:
+    """Sample BMS numeric photoreal tiles directly into the terrain mesh texture.
+
+    The 16K photoreal set is stored as a sparse 32x32 virtual theater mosaic
+    using numeric DDS names. This function only opens tiles intersecting the
+    current 3D crop and resizes each tile section into the final mesh texture,
+    avoiding a huge intermediate mosaic.
+    """
+    x_min, x_max, y_min, y_max = bounds
+    out_rows, out_cols = shape
+    out_image = Image.new("RGBA", (out_cols, out_rows), (186, 203, 196, 255))
+
+    probe = next(tile_dir.glob("*.dds"), None)
+    if probe is None:
+        raise FileNotFoundError(f"No DDS tiles found in {tile_dir}")
+    with Image.open(probe) as probe_image:
+        tile_px = probe_image.size[0]
+
+    grid_size = max(1, int(tile_grid_size))
+    total_px = tile_px * grid_size
+    crop_left = max(0.0, min(float(total_px), x_min / THEATER_GRID_SIZE * total_px))
+    crop_right = max(0.0, min(float(total_px), x_max / THEATER_GRID_SIZE * total_px))
+    crop_top = max(0.0, min(float(total_px), (THEATER_GRID_SIZE - y_max) / THEATER_GRID_SIZE * total_px))
+    crop_bottom = max(0.0, min(float(total_px), (THEATER_GRID_SIZE - y_min) / THEATER_GRID_SIZE * total_px))
+    if crop_right <= crop_left or crop_bottom <= crop_top:
+        raise ValueError(f"Invalid photoreal tile crop bounds: {bounds}")
+
+    col_start = max(0, int(math.floor(crop_left / tile_px)))
+    col_end = min(grid_size - 1, int(math.floor((crop_right - 0.001) / tile_px)))
+    row_start = max(0, int(math.floor(crop_top / tile_px)))
+    row_end = min(grid_size - 1, int(math.floor((crop_bottom - 0.001) / tile_px)))
+
+    def tile_index(row_from_top: int, col_from_left: int) -> int:
+        if tile_origin == "top-left":
+            storage_row = row_from_top
+        else:
+            storage_row = grid_size - 1 - row_from_top
+        return storage_row * grid_size + col_from_left + tile_index_base
+
+    for row in range(row_start, row_end + 1):
+        for col in range(col_start, col_end + 1):
+            tile_path = tile_dir / f"{tile_index(row, col)}.dds"
+            if not tile_path.is_file():
+                continue
+
+            tile_left = col * tile_px
+            tile_right = tile_left + tile_px
+            tile_top = row * tile_px
+            tile_bottom = tile_top + tile_px
+            inter_left = max(crop_left, tile_left)
+            inter_right = min(crop_right, tile_right)
+            inter_top = max(crop_top, tile_top)
+            inter_bottom = min(crop_bottom, tile_bottom)
+            if inter_right <= inter_left or inter_bottom <= inter_top:
+                continue
+
+            src_box = (
+                int(math.floor(inter_left - tile_left)),
+                int(math.floor(inter_top - tile_top)),
+                int(math.ceil(inter_right - tile_left)),
+                int(math.ceil(inter_bottom - tile_top)),
+            )
+            dst_box = (
+                int(math.floor((inter_left - crop_left) / (crop_right - crop_left) * out_cols)),
+                int(math.floor((inter_top - crop_top) / (crop_bottom - crop_top) * out_rows)),
+                int(math.ceil((inter_right - crop_left) / (crop_right - crop_left) * out_cols)),
+                int(math.ceil((inter_bottom - crop_top) / (crop_bottom - crop_top) * out_rows)),
+            )
+            dst_width = max(1, dst_box[2] - dst_box[0])
+            dst_height = max(1, dst_box[3] - dst_box[1])
+            with Image.open(tile_path) as tile_image:
+                crop = tile_image.convert("RGBA").crop(src_box)
+                out_image.paste(crop.resize((dst_width, dst_height), Image.Resampling.BICUBIC), dst_box[:2])
+
+    colors = np.asarray(out_image, dtype=float) / 255.0
+    colors = apply_texture_hillshade(colors, elevations_ft, hillshade_strength)
+    colors[..., 3] = alpha
+    return colors
+
+
 def terrain_facecolors(elevations_ft: np.ndarray) -> np.ndarray:
     low = float(np.nanpercentile(elevations_ft, 2))
     high = float(np.nanpercentile(elevations_ft, 98))
@@ -953,7 +1060,19 @@ def render(args: argparse.Namespace) -> None:
         z_exaggeration=args.z_exaggeration,
         center=(center_x, center_y),
     )
-    if args.map_source:
+    if args.photoreal_tile_dir:
+        facecolors = texture_from_photoreal_tiles(
+            args.photoreal_tile_dir,
+            bounds,
+            elevations_ft.shape,
+            alpha=args.map_texture_alpha,
+            elevations_ft=elevations_ft,
+            hillshade_strength=args.hillshade_strength,
+            tile_grid_size=args.photoreal_tile_grid_size,
+            tile_origin=args.photoreal_tile_origin,
+            tile_index_base=args.photoreal_tile_index_base,
+        )
+    elif args.map_source:
         facecolors = texture_from_map(
             args.map_source,
             bounds,
@@ -1266,7 +1385,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--package-id", type=int, nargs="+", required=True, help="Player package ID(s) to render.")
     parser.add_argument("--callsign", nargs="*", default=[], help="Optional callsign filter. Defaults to all flights in selected packages.")
     parser.add_argument("--heightmap", type=Path, required=True, help="BMS NewTerrain HeightMap.raw.")
-    parser.add_argument("--map-source", type=Path, help="Optional north-up theater chart/texture to drape over terrain.")
+    parser.add_argument("--map-source", type=Path, help="Optional north-up theater chart/texture to drape over terrain. Use Skyvector for normal briefing imagery.")
+    parser.add_argument("--photoreal-tile-dir", type=Path, help="Opt-in BMS numeric photoreal tile directory, such as NewTerrain/Photoreal/16K.")
+    parser.add_argument("--photoreal-tile-grid-size", type=int, default=32, help="Virtual row/column count for numeric photoreal tiles.")
+    parser.add_argument("--photoreal-tile-origin", choices=("bottom-left", "top-left"), default="top-left", help="Storage origin for numeric tile IDs.")
+    parser.add_argument("--photoreal-tile-index-base", type=int, default=1, help="First numeric tile ID in the photoreal tile set.")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--title", default="")
     parser.add_argument("--no-title", action="store_true")
