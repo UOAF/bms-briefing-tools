@@ -92,6 +92,38 @@ Use [brief-criteria.md](brief-criteria.md). The player brief should read like a 
 
 Use [image-qa.md](image-qa.md). Generate the numbered image pack and inspect slide-size previews. Rerender until the image answers its assigned question.
 
+When the planner asks for 3D target imagery, offer it as an optional add-on after the 2D mission-truth maps are stable. Use 3D to explain terrain, runway/target geometry, low-level ingress, and ADA placement; do not let it replace the route/threat/target/objective maps unless the user explicitly chooses it for the deck.
+
+3D render baseline:
+
+```powershell
+python .\scripts\render_bms_3d_target_area.py `
+  --synthesis ".\outputs\<prefix>\pkg<package-id>\briefing_synthesis.json" `
+  --cam-decode ".\outputs\<prefix>\cam_decode.json" `
+  --package-id <package-id> `
+  --heightmap "C:\Falcon BMS 4.38\Data\TerrData\Korea\NewTerrain\HeightMaps\HeightMap.raw" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
+  --crop-label BLU ORION 10W 10E SA6 `
+  --camp-obj-data "<campaign-dir>\CampObjData.XML" `
+  --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects" `
+  --show-objective-features `
+  --objective-feature-filter "Gimhae Intl Airport|Gimhae VOR" `
+  --objective-feature-mode runway-and-buildings `
+  --out ".\outputs\<prefix>\briefing_images\05_3d_objective_area_close_labels.png"
+```
+
+For broader ingress/target-area building context, do not render every objective feature blindly. Use an exclude filter for roads/bridges/clutter, a per-objective cap, and lower opacity/height:
+
+```powershell
+--objective-feature-exclude "Bridge|Overpass|Road|Highway|Exp|VOR|HAWK" `
+--objective-feature-max-per-objective 10 `
+--objective-feature-limit 520 `
+--objective-feature-alpha 0.58 `
+--objective-feature-height-scale 0.72
+```
+
+If the close-up contains irrelevant edge marks, suppress them with `--hide-mark-label <label>` instead of changing the crop until the target geometry is lost. Keep ADA pins, red ground squares, labels, and rings tied to decoded active-radar battalion coordinates, not just INI/PPT centers.
+
 ## 7. Install And Use F4Wx Weather
 
 When the user generates weather with F4Wx:

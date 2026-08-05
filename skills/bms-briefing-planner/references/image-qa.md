@@ -20,6 +20,7 @@ Each map must answer a different question:
 - Target Area Map: What is the package flow, named positions, enemy air axes, and SAM geometry near the target area?
 - Objective Area Map: What is happening immediately around the objective, at the highest useful zoom?
 - Weather Map: What weather patterns affect takeoff, target, landing, and route?
+- Optional 3D Target View: What terrain, runway/objective geometry, ingress corridor, and strategic ADA placement matter in the final attack area?
 
 If two maps show the same zoom level or same information density, one of them is wrong.
 
@@ -127,6 +128,7 @@ Use these gates before presenting images as final:
 | Target | Target complex, package flows, named marks, enemy origins, and ADA rings share one readable tactical view. | Same zoom as route map; departure bases labeled; airbase label font dominates terrain; enemy airbase marker is indistinguishable from generic threat marker. |
 | Objective | Most zoomed-in product; target/objective geometry is clear; labels are subordinate to terrain and tactical markers. | Shows full ingress route; uses target/route font sizes; flow labels cover the objective; key named marks or ADA rings are missing. |
 | Weather | Weather cells/patterns can be compared against route and target areas; takeoff/target/landing conditions are supported. | Weather map is decorative only; no relation to route/target points; missing data is printed as a player-facing apology. |
+| 3D Target | Terrain relief, ingress direction, runway/objective geometry, and ADA positions are understandable at slide size; optional buildings add context without hiding the target. | The camera/crop shows mostly background, terrain is flat, buildings overwhelm the target, or ADA pins/labels do not originate from the decoded radar position. |
 
 When a map fails, name the failed gate and rerender that product only when possible. Avoid regenerating the whole pack unless the underlying data changed.
 
@@ -184,6 +186,22 @@ Weather:
 - Draw a neutral grey dotted `PACKAGE AO` box around the player route from departure to target/INI work area. Exclude support tracks and recovery alternates from this AO box unless the user asks otherwise. Avoid cyan/green AO styling because it competes with weather cells.
 - Author weather labels for slide-scale viewing, not full-PNG inspection. Current baseline full-resolution sizes are route `36`, INI `54`, weather samples `72`, AO label `76`, and scale/north `52`; increase only if slide preview text is still unreadable.
 - Promote the deck-facing weather image as `04_weather_map.png`.
+
+3D target imagery:
+
+- Treat 3D imagery as optional. Offer it when terrain masking, runway/objective layout, low-level ingress, or target-area ADA geometry would help the flight understand the attack.
+- Use `scripts\render_bms_3d_target_area.py` with the BMS heightmap, Skyvector map texture, decoded package routes, and package synthesis files. Keep generated 3D variants in `briefing_images` with descriptive names such as `05_3d_objective_area_close_labels_*.png`; promote only the approved variant.
+- Use the same coordinate discipline as 2D maps: BMS 4.38 `3280.84 ft/grid`, decoded package routes, and decoded strategic ADA records. Do not place ADA pins from PPT/INI mark centers when an active tracking-radar battalion coordinate is available.
+- For SA-10/SA-6/SA-5 and similar systems, render rings and pins from the active radar-bearing air-defense record. The red pin, ground marker, label leader, and WEZ ring center should share that decoded coordinate. In oblique 3D, avoid lifting surface markers so far above terrain that they appear offset in screen space.
+- Use compact labels: `10W`, `10E`, `10S`, `6`, `5`, `BLU`, `ORION / Gimhae`. If edge or fallback marks clutter the close view, suppress them with renderer options rather than distorting the crop.
+- Preserve two useful families of 3D views when asked for target imagery:
+  - Context view: a wider BLU-to-objective/target-area perspective showing ingress terrain, target, and nearby strategic ADA geometry.
+  - Detail view: a tighter BLU-to-ORION or target-runway perspective showing runway/objective layout and immediate terrain.
+- For airbases, include runway and taxiway geometry plus actual buildings/shelters. Filter PAPI, lights, taxi signs, fences, vehicles, ground-support equipment, and unknown scatter so they do not become fake buildings.
+- Use actual objective/FED feature data for simplified buildings when available: `CampObjData.XML` plus `Data\TerrData\Objects\ObjectiveRelatedData` and feature names from `Falcon4_FCD.xml`. The actual BMS 3D model/texture pipeline is separate work; the current briefing renderer uses simplified geometry, not faithful BMS models.
+- If adding buildings along ingress and target area, cap the number of rendered features per objective and use lower opacity/height. This gives urban/industrial context without burying the target. Exclude bridges/roads/HAWK sites unless the user specifically asks for landmark or bridge context.
+- Use the cleaned feature mode as the default mental model: `runway-and-buildings` keeps runway/taxi geometry and real structures; `buildings` suppresses runway/taxi; `all` is diagnostic only.
+- Inspect 3D images visually after every render. Common fixes: adjust crop, camera distance/elevation/azimuth, terrain extra grid, label offsets, marker lift, feature opacity, per-objective cap, and hidden labels.
 
 ## Final Asset Hygiene
 
