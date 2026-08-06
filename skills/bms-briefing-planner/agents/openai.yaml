@@ -1,7 +1,7 @@
 interface:
   display_name: "BMS Briefing Planner"
-  short_description: "Falcon BMS briefs, maps, weather, and optional 3D target views"
-  default_prompt: "Use $bms-briefing-planner to create a Falcon BMS mission brief, slide-ready maps, and optional 3D target imagery from my campaign save, package IDs, and planner intent."
+  short_description: "Falcon BMS briefs, maps, weather, 3D views, and hidden hype videos"
+  default_prompt: "Use $bms-briefing-planner to create a Falcon BMS mission brief, slide-ready maps, optional 3D target imagery, and only when I ask for it, an over-the-top pre-sortie hype video from my campaign save, package IDs, and planner intent."
 
 policy:
   allow_implicit_invocation: true

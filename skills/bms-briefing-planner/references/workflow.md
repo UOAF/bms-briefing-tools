@@ -174,3 +174,52 @@ python .\scripts\collect_bms_image_pack.py ".\outputs\<prefix>"
 ```
 
 Do not export Claude/design bundles, commit, or push until explicitly prompted.
+
+## 9. Easter Egg: Morale/Hype Video
+
+This is not part of the normal briefing workflow. Only make a pre-sortie hype
+video when the user explicitly asks for a hype/video/Ace Combat style artifact,
+asks for something ridiculous, or is clearly frustrated after the serious brief
+and map assets are stable enough that a morale cut is the best next action.
+
+Use the current mission brief and numbered image pack as source truth. Do not
+reuse narration from a prior event. For best results, write a mission-specific
+JSON script in the output folder with short scene subtitles and a separate
+voice-line JSON file. Keep it theatrical, but do not introduce tactical facts
+that are not in the current brief or planner context.
+
+Render the silent video:
+
+```powershell
+python .\scripts\render_pre_sortie_video.py `
+  --brief ".\outputs\<prefix>\player_briefing_combined.md" `
+  --image-dir ".\outputs\<prefix>\briefing_images" `
+  --script ".\outputs\<prefix>\hype_video_script.json" `
+  --arcade-chaos `
+  --out ".\outputs\<prefix>\briefing_images\<prefix>_pre_sortie_hype_silent.mp4"
+```
+
+Add voice, music, and SFX. Prefer a user-provided/cleared music file when
+available; otherwise use generated SFX/music only. Keep voices spaced by the
+script's automatic placement and inspect `voice_placements.txt` if lines feel
+crowded.
+
+```powershell
+python .\scripts\add_pre_sortie_audio.py `
+  --video ".\outputs\<prefix>\briefing_images\<prefix>_pre_sortie_hype_silent.mp4" `
+  --voice-lines ".\outputs\<prefix>\hype_voice_lines.json" `
+  --music-file ".\assets\music\<cleared-track>.mp3" `
+  --voice-provider edge `
+  --keep-work ".\outputs\<prefix>\briefing_images\audio_stems_hype" `
+  --out ".\outputs\<prefix>\briefing_images\<prefix>_pre_sortie_hype.mp4"
+```
+
+If a platform needs a sub-10 MB file, make a separate compressed derivative
+instead of overwriting the source render:
+
+```powershell
+ffmpeg -y -i ".\outputs\<prefix>\briefing_images\<prefix>_pre_sortie_hype.mp4" `
+  -vf "scale=1280:-2" -c:v libx264 -b:v 1100k -preset slow `
+  -c:a aac -b:a 96k -movflags +faststart `
+  ".\outputs\<prefix>\briefing_images\<prefix>_pre_sortie_hype_under10mb.mp4"
+```

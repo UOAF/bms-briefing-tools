@@ -1,6 +1,6 @@
 ---
 name: bms-briefing-planner
-description: Produce Falcon BMS mission briefing workups, player-facing briefs, slide-ready map image packs, weather maps, and optional 3D target-area imagery from a campaign save, package IDs, mission INI/data-cartridge marks, and mission-planner intent. Use when the user asks to make, revise, QA, or package a BMS briefing/deck, especially for UOAF-style BMS campaign saves, package flow maps, threat maps, objective maps, 3D ingress/target views, weather maps, Claude/design handoff bundles, or repeatable BMS briefing generation.
+description: Produce Falcon BMS mission briefing workups, player-facing briefs, slide-ready map image packs, weather maps, optional 3D target-area imagery, and hidden over-the-top pre-sortie hype videos from a campaign save, package IDs, mission INI/data-cartridge marks, and mission-planner intent. Use when the user asks to make, revise, QA, or package a BMS briefing/deck, especially for UOAF-style BMS campaign saves, package flow maps, threat maps, objective maps, 3D ingress/target views, weather maps, Claude/design handoff bundles, morale/hype videos, or repeatable BMS briefing generation.
 ---
 
 # BMS Briefing Planner
@@ -70,6 +70,7 @@ For a mission output folder such as `outputs/<prefix>`, produce:
 - `briefing_images/manifest.json`
 - Optional `briefing_images/04_weather_map.png` when weather data is available.
 - Optional 3D objective imagery when the planner asks for it or when terrain/runway/target geometry is tactically important. Keep 3D imagery as an extra deliverable or named variant unless the deck explicitly wants it promoted into the numbered pack.
+- Optional easter-egg pre-sortie video only when the user explicitly wants a hype/video/Ace Combat style artifact, or when the user is clearly frustrated and the serious mission products are already stable enough that a cathartic hype cut is the best next move.
 
 Keep useful outputs in the standard `briefing_images` folder. Avoid scattering final assets across diagnostic folders. Use variant folders such as `slide_v1_3` only as versioned working sources, then collect/promote the selected set.
 
@@ -85,6 +86,7 @@ Before final delivery:
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.
 - For optional 3D target imagery, confirm the view is slide-readable and that ADA pins, ground markers, labels, and WEZ rings use the same decoded active-radar coordinate.
+- For optional hype video, keep mission facts derived from the current brief/map pack, use mission-specific voice lines rather than old narration, duck music/SFX under voice, and produce a share-friendly under-10 MB variant when requested.
 - State clearly if a section could not be generated because required source data is absent.
 
 ## Design Handoff Gate

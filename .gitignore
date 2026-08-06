@@ -5,7 +5,16 @@ __pycache__/
 outputs/*.decompiled.cs
 outputs/**/*.json
 outputs/**/*.png
+outputs/**/*.jpg
+outputs/**/*.jpeg
 outputs/**/*.pptx
 outputs/**/*.ndjson
+outputs/**/*.mp4
+outputs/**/*.wav
+outputs/**/*.mp3
+outputs/**/audio_stems*/
+outputs/**/ffmpeg_*passlog*
 outputs/**/claude_design_*/
 outputs/**/presentations/
+assets/music/*.mp3
+assets/music/*.wav
