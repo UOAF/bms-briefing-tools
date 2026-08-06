@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UOAF BMS Briefing Tool</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel mission">
+        <header>
+          <p class="eyebrow">UOAF</p>
+          <h1>BMS Briefing Tool</h1>
+          <p id="providerStatus" class="status">Checking providers...</p>
+        </header>
+
+        <div class="grid two">
+          <label>Campaign prefix<input id="prefix" placeholder="740pre" /></label>
+          <label>Event number<input id="event_number" placeholder="740" /></label>
+          <label>Operation name<input id="operation_name" placeholder="Glass Anvil" /></label>
+          <label>Package IDs<input id="package_ids" placeholder="7016, 7040" /></label>
+        </div>
+
+        <label>Campaign folder<input id="campaign_dir" placeholder="C:\Falcon BMS 4.38\Data\Campaign" /></label>
+        <label>BMS root<input id="bms_root" placeholder="C:\Falcon BMS 4.38" /></label>
+        <details>
+          <summary>Advanced paths</summary>
+          <label>Theater folder<input id="theater_folder" placeholder="Optional, usually campaign parent" /></label>
+          <label>Object folder<input id="object_dir" placeholder="Optional TerrData\Objects override" /></label>
+          <label>Map source<input id="map_source" placeholder="Optional 8_KTO_16k_Skyvector.png override" /></label>
+          <label>pyopencam root<input id="pyopencam_root" placeholder="Optional local pyopencam checkout" /></label>
+        </details>
+
+        <label>Planner intent<textarea id="planner_text" rows="10" placeholder="Describe the mission plan, packages, flight roles, named marks, comms, TACAN, priorities, fallback logic..."></textarea></label>
+
+        <div class="actions">
+          <select id="provider">
+            <option value="auto">Auto provider</option>
+            <option value="openai">OpenAI</option>
+            <option value="ollama">Ollama</option>
+            <option value="lmstudio">LM Studio</option>
+            <option value="offline-template">Offline template</option>
+          </select>
+          <button id="draftContext">Draft Context</button>
+          <button id="runWorkflow" class="primary">Run Workflow</button>
+        </div>
+      </section>
+
+      <section class="panel chat">
+        <header>
+          <p class="eyebrow">Planner Chat</p>
+          <h2>Capture Intent</h2>
+        </header>
+        <div id="chatLog" class="chatlog"></div>
+        <div class="chatbox">
+          <textarea id="chatInput" rows="3" placeholder="Ask what is missing, or paste a mission-planner correction..."></textarea>
+          <button id="sendChat">Send</button>
+        </div>
+      </section>
+
+      <section class="panel context">
+        <header>
+          <p class="eyebrow">Generated</p>
+          <h2>Mission Context JSON</h2>
+        </header>
+        <textarea id="contextJson" rows="18" spellcheck="false"></textarea>
+      </section>
+
+      <section class="panel logs">
+        <header>
+          <p class="eyebrow">Run</p>
+          <h2>Logs & Artifacts</h2>
+        </header>
+        <pre id="jobLogs"></pre>
+        <div id="artifacts" class="artifacts"></div>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

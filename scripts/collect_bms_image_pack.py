@@ -126,7 +126,7 @@ def candidate_rank(path: Path, source_dir: Path, candidates: tuple[str, ...]) ->
     for index, token in enumerate(candidates):
         if token in stem:
             relative_path = path.relative_to(source_dir)
-            root_penalty = -10000 - slide_variant_score(relative_path) if is_slide_variant_pack(relative_path) else (0 if path.parent == source_dir else 1)
+            root_penalty = 10000 + slide_variant_score(relative_path) if is_slide_variant_pack(relative_path) else (0 if path.parent == source_dir else 1)
             package_penalty = 1 if "\\pkg" in relative or "/pkg" in relative else 0
             return index, root_penalty, package_penalty, relative
     return len(candidates), 9, 9, relative

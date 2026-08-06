@@ -41,9 +41,43 @@ python .\scripts\synthesize_bms_briefing.py `
   --object-dir "C:\Falcon BMS 4.38\Data\TerrData\Objects"
 ```
 
-For multiple player packages in one operation, synthesize package-specific folders for evidence and package tables, then render combined deck-facing products with repeated `--synthesis`. Promote the final root `player_briefing_combined.md`, `generated_briefing.md`, and numbered `briefing_images` as the unified operation.
+For multiple player packages in one operation, synthesize package-specific folders for evidence and package tables, then build the combined root player brief:
+
+```powershell
+python .\scripts\build_combined_player_brief.py `
+  --out ".\outputs\<prefix>\generated_briefing.md" `
+  --copy-to ".\outputs\<prefix>\player_briefing_combined.md" `
+  --synthesis ".\outputs\<prefix>\briefing_synthesis.json" --package-id <primary-package-id> `
+  --synthesis ".\outputs\<prefix>\pkg<second-package-id>\briefing_synthesis.json" --package-id <second-package-id>
+```
+
+Then render combined deck-facing products with repeated `--synthesis`; promote the final root `player_briefing_combined.md`, `generated_briefing.md`, and numbered `briefing_images` as the unified operation.
 
 After regenerating package syntheses, explicitly re-sync the deck-facing root briefs. Package-specific markdown is evidence only; the root `player_briefing_combined.md` and `generated_briefing.md` are what the slide designer normally consumes. Do not let old hand-edited package tables survive after synthesis changes. Validate the root package composition table against the regenerated synthesis and BMS-equivalent timing before delivery.
+
+Use the guarded slide image pack renderer for current final assets:
+
+```powershell
+python .\scripts\render_bms_slide_image_pack.py `
+  --synthesis ".\outputs\<prefix>\briefing_synthesis.json" --package-id <primary-package-id> `
+  --synthesis ".\outputs\<prefix>\pkg<second-package-id>\briefing_synthesis.json" --package-id <second-package-id> `
+  --cam-decode ".\outputs\<prefix>\cam_decode.json" `
+  --campaign-dir "<campaign-dir>" `
+  --out-dir ".\outputs\<prefix>\briefing_images" `
+  --object-dir "<theater-folder>\TerrData\Objects" `
+  --camp-obj-data "<campaign-dir>\CampObjData.XML" `
+  --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png"
+```
+
+Finish with validation:
+
+```powershell
+python .\scripts\validate_bms_briefing_outputs.py ".\outputs\<prefix>" `
+  --package-id <primary-package-id> `
+  --package-id <second-package-id>
+```
+
+Do not rely on a fresh `manifest.json` alone as proof that images are current; it must point at the current canonical files, not stale `slide_v*` or package-specific paths.
 
 ## 3. Correlate Planner Intent
 

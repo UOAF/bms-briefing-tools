@@ -74,6 +74,12 @@ For a mission output folder such as `outputs/<prefix>`, produce:
 
 Keep useful outputs in the standard `briefing_images` folder. Avoid scattering final assets across diagnostic folders. Use variant folders such as `slide_v1_3` only as versioned working sources, then collect/promote the selected set.
 
+For normal local/community workflow runs, prefer the guarded scripts:
+
+- `scripts/build_combined_player_brief.py` after package-specific synthesis, so root `generated_briefing.md` and `player_briefing_combined.md` are synchronized and combined.
+- `scripts/render_bms_slide_image_pack.py` for the canonical numbered image pack, so final images are written directly into `briefing_images` instead of discovered from stale variant folders.
+- `scripts/validate_bms_briefing_outputs.py` before handoff, so raw planner transcript, unresolved decoder labels, stale `slide_v*` manifest sources, missing package IDs, and oversized key images fail the run.
+
 ## Required Validation
 
 Before final delivery:
@@ -82,6 +88,8 @@ Before final delivery:
 - Run the relevant render/collection command again after changing renderer behavior.
 - Confirm extracted campaign clock data is present in `cam_decode.json` when timing appears in the brief: `current_time_z`, `current_time_local`, `clock_base_hhmm`, and `clock_source`.
 - Confirm root deck-facing brief files are synchronized with regenerated package synthesis, especially package composition `T/O (Z)` and `TOT (Z)` tables.
+- Confirm the root player brief is not just the primary package. Multi-package player operations must mention every requested package ID in both `generated_briefing.md` and `player_briefing_combined.md`.
+- Confirm player-facing markdown does not contain raw transcript or decoder/meta phrases such as `Commander context`, `Unresolved target`, `No named tactical target listed`, or weather sidecar warnings.
 - Open or preview every final map at slide-like size.
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.

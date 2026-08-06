@@ -7,6 +7,8 @@ For the scalability plan and upstream parser/tooling assessment, see
 [`docs/scalable-tooling-strategy.md`](docs/scalable-tooling-strategy.md).
 For clean-machine setup and dependency checks, see
 [`docs/standalone-setup.md`](docs/standalone-setup.md).
+For the non-technical local web app with OpenAI/Ollama/LM Studio provider
+fallbacks, see [`docs/local-llm-app.md`](docs/local-llm-app.md).
 The Codex production workflow skill lives in
 [`skills/bms-briefing-planner`](skills/bms-briefing-planner); copy or symlink it
 into `$CODEX_HOME/skills/bms-briefing-planner` when setting up a new workstation.
@@ -84,6 +86,20 @@ That writes three briefing artifacts:
   correlation notes for human/Codex iteration.
 - `generated_briefing.md`: clean player-facing mission brief that omits
   development notes and missing-data chatter.
+
+For a multi-package player operation, synthesize each requested package, then
+write the root player-facing files from the package syntheses:
+
+```powershell
+python .\scripts\build_combined_player_brief.py `
+  --out .\outputs\<prefix>\generated_briefing.md `
+  --copy-to .\outputs\<prefix>\player_briefing_combined.md `
+  --synthesis .\outputs\<prefix>\briefing_synthesis.json --package-id <primary-package-id> `
+  --synthesis .\outputs\<prefix>\pkg<second-package-id>\briefing_synthesis.json --package-id <second-package-id>
+```
+
+The root `generated_briefing.md` and `player_briefing_combined.md` are the deck
+inputs. Package-specific markdown under `pkg####` is supporting evidence.
 
 The synthesizer resolves tactical waypoint targets to objectives, flights, packages,
 squadrons, and ground/naval units when the CAM exposes matching VU IDs. It also
@@ -226,20 +242,27 @@ Overlay readability can be tuned with `--route-opacity`, `--marker-opacity`,
 defaults are deliberately semi-transparent so dense target areas remain readable
 against the chart base.
 
-For deck work, prefer the slide-ready map-set renderer. It writes the standard
-overview, target-area, and objective-area PNGs at high resolution, expands each
-crop to a 16:9 map area, suppresses the footer so the map fills the slide, and
-keeps support tracks from forcing the package overview to zoom too far out:
+For deck work, prefer the guarded slide image pack renderer. It writes the
+canonical `briefing_images/01_*` through `04_*` products directly from the
+current synthesis inputs, records those files in `manifest.json`, and avoids
+accidentally promoting stale `slide_v*` variants:
 
 ```powershell
-python .\scripts\render_bms_map_set.py `
-  --synthesis .\outputs\738pre\briefing_synthesis.json `
+python .\scripts\render_bms_slide_image_pack.py `
+  --synthesis .\outputs\738pre\briefing_synthesis.json --package-id 1883 `
   --cam-decode .\outputs\738pre\cam_decode.json `
   --campaign-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign" `
+  --out-dir .\outputs\738pre\briefing_images `
+  --object-dir "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\TerrData\Objects" `
+  --camp-obj-data "C:\Falcon BMS 4.38\Data\Add-On UOAF 80s\Campaign\CampObjData.XML" `
   --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
-  --package-id 1883 `
-  --feet-per-grid 3280.84 `
-  --out-dir .\outputs\738pre
+  --feet-per-grid 3280.84
+```
+
+Validate player-facing outputs before handoff:
+
+```powershell
+python .\scripts\validate_bms_briefing_outputs.py .\outputs\738pre --package-id 1883
 ```
 
 Use the low-level renderer below when you need a custom crop, a footer for QA, or
