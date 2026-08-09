@@ -150,6 +150,35 @@ def decode_loadouts(raw: bytes, count: Any) -> list[dict[str, list[int]]]:
     return loadouts
 
 
+def record_loadouts(record: Any) -> tuple[int, list[dict[str, list[int]]]]:
+    """Decode flight loadouts from current or legacy pyopencam records."""
+
+    declared_count = safe_int(field(record, "loadouts"))
+    entries = field(record, "loadout_entries", ())
+    structured: list[dict[str, list[int]]] = []
+    if isinstance(entries, (list, tuple)):
+        for entry in entries:
+            if isinstance(entry, dict):
+                weapon_ids = entry.get("weapon_ids")
+                weapon_counts = entry.get("weapon_counts")
+            else:
+                weapon_ids = getattr(entry, "weapon_ids", None)
+                weapon_counts = getattr(entry, "weapon_counts", None)
+            if not isinstance(weapon_ids, (list, tuple)) or not isinstance(weapon_counts, (list, tuple)):
+                continue
+            structured.append(
+                {
+                    "weapon_ids": [safe_int(value) for value in weapon_ids],
+                    "weapon_counts": [safe_int(value) for value in weapon_counts],
+                }
+            )
+    if structured:
+        return declared_count or len(structured), structured
+
+    legacy = decode_loadouts(raw_bytes(record, "loadout_raw"), declared_count)
+    return declared_count, legacy
+
+
 def decode_laser_codes(raw: bytes) -> list[int]:
     if len(raw) < FLIGHT_SLOT_COUNT * 2:
         return []
@@ -304,8 +333,7 @@ def flight_item(record: Any, records_by_id: dict[tuple[int, int], Any], support:
     callsign_root = support.strings_by_id.get(2000 + callsign_id, "")
     callsign = f"{callsign_root} {callsign_num}".strip() if callsign_root and callsign_num else ""
     plane_stats = list(field(record, "plane_stats", ()))
-    loadout_count = safe_int(field(record, "loadouts"))
-    loadouts = decode_loadouts(raw_bytes(record, "loadout_raw"), loadout_count)
+    loadout_count, loadouts = record_loadouts(record)
     item.update(
         {
             "mission": mission_code,

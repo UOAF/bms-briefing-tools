@@ -92,6 +92,7 @@ Correlate the planner prompt with decoded data:
 - Package IDs and flights.
 - Event name/codename and how it should appear in the player-facing title.
 - Callsigns, aircraft count/type, role, takeoff, TOT, loadout, laser codes, TACAN. Display mission execution timing as Zulu in player-facing briefs; reserve local time for weather/daylight assessment.
+- Treat missing player loadouts as a decoder/integration failure until proven otherwise. Current pyopencam records expose serialized stores through structured `loadout_entries`; validate that every player flight synthesizes a useful `weapons_summary` instead of allowing `not listed` into the root brief.
 - Current save clock from extraction. The pyopencam provider should decode `.cmp current_time`, derive current Zulu from campaign time modulo day, and derive local time from the theater UTC offset. Use BMS UI clock screenshots only as a sanity check or `clock_override` fallback, not as the normal source.
 - Package-list target timing by role. Match BMS `Tgt` semantics from the tactical waypoint (`WP_STRIKE`/`WP_SEAD`/`WP_ESCORT`/first `WP_CAP`) instead of assuming raw package `time_on_target` is always display-equivalent.
 - Radio comm plan: TACTICAL 1/2 or package nets, ABM/AWACS net, primary/backup presets, check-in sequence, and comm priority. Store it in mission context as `comm_plan`; do not infer it from prior events unless the planner explicitly says to reuse it.

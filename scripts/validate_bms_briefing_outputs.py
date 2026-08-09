@@ -206,6 +206,32 @@ def validate_a2a_tacan(out_dir: Path, package_ids: list[int]) -> list[str]:
     return errors
 
 
+def validate_player_loadouts(out_dir: Path, package_ids: list[int]) -> list[str]:
+    errors: list[str] = []
+    for package_id in package_ids:
+        path = out_dir / f"pkg{package_id}" / "briefing_synthesis.json"
+        if not path.is_file():
+            errors.append(f"Missing synthesis for player-loadout validation: {path}")
+            continue
+        synthesis = json.loads(path.read_text(encoding="utf-8"))
+        package = next(
+            (item for item in synthesis.get("packages") or [] if int(item.get("package_id") or 0) == package_id),
+            None,
+        )
+        if not package:
+            errors.append(f"{path} does not contain package {package_id} for player-loadout validation.")
+            continue
+        for flight in package.get("flights") or []:
+            callsign = str(flight.get("callsign") or f"flight {flight.get('camp_id')}").strip()
+            summary = str(flight.get("weapons_summary") or "").strip().lower()
+            source = str((flight.get("weapons") or {}).get("source") or "").strip().lower()
+            if not summary or summary == "not listed" or source == "not listed":
+                errors.append(
+                    f"Package {package_id} {callsign} has no decoded loadout; player briefs must not ship with 'not listed' weapons."
+                )
+    return errors
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("out_dir", type=Path, help="Mission output directory, e.g. outputs/740pre.")
@@ -223,6 +249,7 @@ def main() -> None:
     errors.extend(validate_manifest(out_dir, args.max_image_mb))
     errors.extend(validate_weather_targets(out_dir, args.package_id))
     errors.extend(validate_a2a_tacan(out_dir, args.package_id))
+    errors.extend(validate_player_loadouts(out_dir, args.package_id))
     if errors:
         for error in errors:
             print(f"ERROR: {error}")

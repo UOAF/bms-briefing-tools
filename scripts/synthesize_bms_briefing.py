@@ -3238,7 +3238,7 @@ def append_friendly_package_composition(lines: list[str], package: dict[str, Any
     lines.append("### Friendly Package Composition")
     lines.append(f"- Support: {package_support_summary(package)}")
     lines.append("")
-    lines.append("| C/S | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Target/Area | Remarks |")
+    lines.append("| C/S | Aircraft | Role | Loadout / A/C | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Target/Area | Remarks |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for flight in package.get("flights", []):
         aircraft = f"{flight.get('aircraft_count') or ''}x {flight.get('aircraft_type') or flight.get('aircraft_class') or ''}".strip()

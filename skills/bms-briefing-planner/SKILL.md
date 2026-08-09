@@ -94,6 +94,7 @@ Before final delivery:
 - Confirm each weather `Target Area` sample resolves to the planner-defined primary target anchors when `weather_target_labels` are present; reject a loose centroid of unrelated PPTs.
 - Confirm root deck-facing brief files are synchronized with regenerated package synthesis, especially package composition `T/O (Z)` and `TOT (Z)` tables.
 - Confirm every player flight has the deterministic four-ship A-A TACAN assignment for its package and flight order; `not assigned` is a validation failure.
+- Confirm every player flight has a decoded loadout summary; `not listed` weapons are a validation failure. If pyopencam reports an empty loadout, inspect its current structured `loadout_entries` before concluding the save lacks stores.
 - Confirm the root player brief is not just the primary package. Multi-package player operations must mention every requested package ID in both `generated_briefing.md` and `player_briefing_combined.md`.
 - Confirm player-facing markdown does not contain raw transcript or decoder/meta phrases such as `Commander context`, `Unresolved target`, `No named tactical target listed`, or weather sidecar warnings.
 - Open or preview every final map at slide-like size.
