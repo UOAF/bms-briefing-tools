@@ -26,7 +26,8 @@ import numpy as np
 from matplotlib.colors import LightSource
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import proj3d
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL.PngImagePlugin import PngInfo
 
 from bms_projection import feet_per_campaign_grid, source_feet_to_campaign_grid
 
@@ -53,6 +54,70 @@ FLOW_COLOR_NAMES = {
     "amber": "#ffd166",
     "yellow": "#ffd166",
     "red": "#ff4242",
+}
+
+VIEW_PRESETS: dict[str, dict[str, Any]] = {
+    # Recovered from the accepted Event 740 terrain-emphasis views. This is the
+    # briefing default: close, edge-to-edge terrain with enough exaggeration to
+    # explain masking without turning ridgelines into walls.
+    "attack-geometry": {
+        "margin_grid": 5.1,
+        "view_extra_grid": 0.0,
+        "terrain_extra_grid": 26.0,
+        "mesh_size": 430,
+        "z_exaggeration": 2.55,
+        "vertical_box_aspect": 9.2,
+        "box_x_scale": 2.65,
+        "box_y_scale": 1.98,
+        "camera_elev": 41.0,
+        "camera_azim": -58.0,
+        "camera_distance": 2.42,
+        "map_texture_alpha": 1.0,
+        "hillshade_strength": 0.48,
+        "background_color": "#b7cce0",
+        "ring_alpha": 0.22,
+        "ring_linewidth": 1.05,
+        "ring_pad_nm": 5.0,
+        "pin_height_ft": 3600.0,
+        "marker_lift_ft": 90.0,
+        "label_font_size": 11.0,
+        "label_alpha": 0.9,
+        "label_box_alpha": 0.6,
+        "marker_alpha": 0.8,
+        "ad_marker_alpha": 0.8,
+        "ad_label_leader_alpha": 0.3,
+        "mark_size": 50.0,
+        "ad_size": 85.0,
+    },
+    "diagnostic": {
+        "margin_grid": 8.0,
+        "view_extra_grid": 0.0,
+        "terrain_extra_grid": 0.0,
+        "mesh_size": 230,
+        "z_exaggeration": 1.8,
+        "vertical_box_aspect": 5.0,
+        "box_x_scale": 1.0,
+        "box_y_scale": 1.0,
+        "camera_elev": 42.0,
+        "camera_azim": -62.0,
+        "camera_distance": 8.0,
+        "map_texture_alpha": 0.94,
+        "hillshade_strength": 0.0,
+        "background_color": "#071012",
+        "ring_alpha": 0.58,
+        "ring_linewidth": 1.7,
+        "ring_pad_nm": 12.0,
+        "pin_height_ft": 5500.0,
+        "marker_lift_ft": 1100.0,
+        "label_font_size": 11.0,
+        "label_alpha": 1.0,
+        "label_box_alpha": 0.88,
+        "marker_alpha": 1.0,
+        "ad_marker_alpha": 0.92,
+        "ad_label_leader_alpha": 0.0,
+        "mark_size": 62.0,
+        "ad_size": 100.0,
+    },
 }
 
 
@@ -209,6 +274,25 @@ def collect_named_marks(
     overrides = mission_context.get("map_mark_overrides") or []
     all_flights = [flight for package in packages for flight in package.get("flights", [])]
     for override in overrides:
+        explicit_x = override.get("grid_x")
+        explicit_y = override.get("grid_y")
+        if explicit_x is not None and explicit_y is not None:
+            label = str(override.get("label") or "").strip()
+            add_mark(label, explicit_x, explicit_y, override.get("radius_nm"), str(override.get("kind") or "mark"))
+            selected = next(
+                (
+                    mark
+                    for mark in reversed(marks)
+                    if normalize_label(mark.get("label")) == normalize_label(label)
+                    and abs(safe_float(mark.get("grid_x")) - safe_float(explicit_x)) < 0.05
+                    and abs(safe_float(mark.get("grid_y")) - safe_float(explicit_y)) < 0.05
+                ),
+                None,
+            )
+            if selected:
+                selected["name"] = str(override.get("name") or selected.get("name") or "")
+                selected["overridden"] = True
+            continue
         from_label = normalize_label(override.get("from_ppt_label"))
         candidates = [mark for mark in marks if normalize_label(mark.get("source_label")) == from_label]
         if not candidates:
@@ -237,6 +321,30 @@ def collect_named_marks(
         selected["name"] = str(override.get("name") or selected.get("name") or "")
         selected["overridden"] = True
 
+    def factor_family(label: Any) -> str:
+        compact = normalize_label(label).removeprefix("SA")
+        for family in ("17", "11", "10", "6", "5", "3", "2"):
+            if compact.startswith(family):
+                return family
+        return ""
+
+    overridden = [mark for mark in marks if mark.get("overridden")]
+    if overridden:
+        marks = [
+            mark
+            for mark in marks
+            if mark.get("overridden")
+            or not factor_family(mark.get("label"))
+            or not any(
+                factor_family(mark.get("label")) == factor_family(override.get("label"))
+                and math.hypot(
+                    safe_float(mark.get("grid_x")) - safe_float(override.get("grid_x")),
+                    safe_float(mark.get("grid_y")) - safe_float(override.get("grid_y")),
+                )
+                <= 2.5
+                for override in overridden
+            )
+        ]
     return marks
 
 
@@ -271,9 +379,18 @@ def sam_short_label(air_defense: dict[str, Any], marks: list[dict[str, Any]]) ->
     grid_x = safe_float(air_defense.get("grid_x"))
     grid_y = safe_float(air_defense.get("grid_y"))
     if "SA-10" in equipment or "S-300" in equipment:
-        candidates = [mark for mark in marks if normalize_label(mark.get("label")) in {"10W", "10E", "10S", "10"}]
+        candidates = [
+            mark
+            for mark in marks
+            if normalize_label(mark.get("label")) in {"10W", "10E", "10S", "10A", "10B", "10C", "10"}
+        ]
         if candidates:
-            candidates.sort(key=lambda mark: math.hypot(safe_float(mark["grid_x"]) - grid_x, safe_float(mark["grid_y"]) - grid_y))
+            candidates.sort(
+                key=lambda mark: (
+                    math.hypot(safe_float(mark["grid_x"]) - grid_x, safe_float(mark["grid_y"]) - grid_y),
+                    0 if mark.get("overridden") else 1,
+                )
+            )
             return str(candidates[0].get("label") or "10")
         return "10"
     for token, label in [
@@ -1034,6 +1151,184 @@ def route_points_for_callsign(
     return xs, ys, zs
 
 
+def friendly_approach_source(
+    routes: list[dict[str, Any]],
+    view_bounds: tuple[float, float, float, float],
+    center_x: float,
+    center_y: float,
+) -> tuple[float, float] | None:
+    """Return a representative pre-entry point for the selected friendly routes."""
+    candidates: list[tuple[float, float]] = []
+    for route in routes:
+        waypoints = list(route.get("waypoints") or [])
+        if not waypoints:
+            continue
+        inside = [
+            index
+            for index, waypoint in enumerate(waypoints)
+            if point_in_bounds(safe_float(waypoint.get("grid_x")), safe_float(waypoint.get("grid_y")), view_bounds)
+        ]
+        if inside:
+            first_inside = min(inside)
+            source_index = max(0, first_inside - 1)
+            source = waypoints[source_index]
+        else:
+            source = min(
+                waypoints,
+                key=lambda waypoint: (safe_float(waypoint.get("grid_x")) - center_x) ** 2
+                + (safe_float(waypoint.get("grid_y")) - center_y) ** 2,
+            )
+        candidates.append((safe_float(source.get("grid_x")), safe_float(source.get("grid_y"))))
+    if not candidates:
+        return None
+    return (
+        float(np.median([point[0] for point in candidates])),
+        float(np.median([point[1] for point in candidates])),
+    )
+
+
+def compass_sector(dx_east: float, dy_north: float) -> str:
+    bearing = (math.degrees(math.atan2(dx_east, dy_north)) + 360.0) % 360.0
+    sectors = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+    return sectors[int((bearing + 22.5) // 45.0) % 8]
+
+
+def projected_vector(ax: Any, dx: float, dy: float, dz: float = 0.0) -> tuple[float, float]:
+    """Project a world vector into screen coordinates with positive y upward."""
+    x0, y0, _ = proj3d.proj_transform(0.0, 0.0, 0.0, ax.get_proj())
+    x1, y1, _ = proj3d.proj_transform(dx, dy, dz, ax.get_proj())
+    p0 = np.asarray(ax.transData.transform((x0, y0)), dtype=float)
+    p1 = np.asarray(ax.transData.transform((x1, y1)), dtype=float)
+    vector = p1 - p0
+    length = float(np.linalg.norm(vector))
+    if length < 1e-6:
+        return (0.0, 1.0)
+    return (float(vector[0] / length), float(vector[1] / length))
+
+
+def overlay_font(size: int, bold: bool = True) -> ImageFont.ImageFont:
+    candidates = [
+        Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
+        Path("C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf"),
+    ]
+    for path in candidates:
+        if path.is_file():
+            return ImageFont.truetype(str(path), size=size)
+    return ImageFont.load_default()
+
+
+def transform_overlay_vector(
+    vector: tuple[float, float],
+    width: int,
+    height: int,
+    post_crop: list[int] | tuple[int, int, int, int] | None,
+) -> tuple[float, float]:
+    dx, dy_up = vector
+    if post_crop:
+        left, top, right, bottom = post_crop
+        dx *= width / max(float(right - left), 1.0)
+        dy_up *= height / max(float(bottom - top), 1.0)
+    length = math.hypot(dx, dy_up)
+    if length < 1e-6:
+        return (0.0, -1.0)
+    return (dx / length, -dy_up / length)  # Pillow y increases downward.
+
+
+def draw_attack_geometry_overlays(
+    path: Path,
+    *,
+    north_vector: tuple[float, float],
+    east_vector: tuple[float, float],
+    friendly_vector: tuple[float, float] | None,
+    friendly_sector: str | None,
+    friendly_label: str,
+    post_crop: list[int] | tuple[int, int, int, int] | None,
+    show_compass: bool,
+    show_friendly: bool,
+    view_preset: str,
+) -> None:
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    draw = ImageDraw.Draw(image, "RGBA")
+    font = overlay_font(max(20, round(height * 0.022)))
+    small_font = overlay_font(max(16, round(height * 0.017)))
+
+    if show_compass:
+        nx, ny = transform_overlay_vector(north_vector, width, height, post_crop)
+        ex, ey = transform_overlay_vector(east_vector, width, height, post_crop)
+        base = (width * 0.905, height * 0.84)
+        radius = height * 0.075
+        draw.ellipse(
+            (base[0] - radius * 1.05, base[1] - radius * 1.05, base[0] + radius * 1.05, base[1] + radius * 1.05),
+            fill=(4, 13, 16, 148),
+            outline=(239, 246, 242, 210),
+            width=max(2, round(height * 0.002)),
+        )
+        north_tip = (base[0] + nx * radius, base[1] + ny * radius)
+        east_tip = (base[0] + ex * radius * 0.78, base[1] + ey * radius * 0.78)
+        draw.line((base, north_tip), fill=(255, 255, 255, 245), width=max(4, round(height * 0.004)))
+        draw.polygon(
+            [
+                north_tip,
+                (north_tip[0] - nx * radius * 0.18 - ny * radius * 0.09, north_tip[1] - ny * radius * 0.18 + nx * radius * 0.09),
+                (north_tip[0] - nx * radius * 0.18 + ny * radius * 0.09, north_tip[1] - ny * radius * 0.18 - nx * radius * 0.09),
+            ],
+            fill=(255, 255, 255, 245),
+        )
+        draw.line((base, east_tip), fill=(150, 207, 224, 230), width=max(2, round(height * 0.0025)))
+        draw.text((north_tip[0] + nx * 8, north_tip[1] + ny * 8), "N", font=font, anchor="mm", fill=(255, 255, 255, 255))
+        draw.text((east_tip[0] + ex * 8, east_tip[1] + ey * 8), "E", font=small_font, anchor="mm", fill=(180, 229, 239, 255))
+
+    if show_friendly and friendly_vector is not None and friendly_sector:
+        fx, fy = transform_overlay_vector(friendly_vector, width, height, post_crop)
+        # Put the origin callout on the frame edge in the actual projected
+        # source direction, then point inward toward the target complex.
+        center = np.asarray((width * 0.50, height * 0.52), dtype=float)
+        direction = np.asarray((fx, fy), dtype=float)
+        edge_scale = min(
+            (width * 0.42) / max(abs(direction[0]), 0.05),
+            (height * 0.38) / max(abs(direction[1]), 0.05),
+        )
+        start = center + direction * edge_scale
+        end = start - direction * height * 0.105
+        line_width = max(5, round(height * 0.005))
+        draw.line((tuple(start), tuple(end)), fill=(43, 226, 126, 245), width=line_width)
+        arrow = height * 0.026
+        perp = np.asarray((-direction[1], direction[0]))
+        draw.polygon(
+            [tuple(end), tuple(end + direction * arrow + perp * arrow * 0.46), tuple(end + direction * arrow - perp * arrow * 0.46)],
+            fill=(43, 226, 126, 250),
+        )
+        label = f"{friendly_label}\nFROM {friendly_sector}"
+        bbox = draw.multiline_textbbox((0, 0), label, font=small_font, spacing=2, align="center")
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        text_center = start - direction * (height * 0.025)
+        pad = max(8, round(height * 0.009))
+        draw.rounded_rectangle(
+            (
+                text_center[0] - text_width / 2 - pad,
+                text_center[1] - text_height / 2 - pad,
+                text_center[0] + text_width / 2 + pad,
+                text_center[1] + text_height / 2 + pad,
+            ),
+            radius=pad,
+            fill=(3, 20, 14, 205),
+            outline=(43, 226, 126, 245),
+            width=max(2, round(height * 0.002)),
+        )
+        draw.multiline_text(tuple(text_center), label, font=small_font, anchor="mm", spacing=2, align="center", fill=(226, 255, 238, 255))
+
+    pnginfo = PngInfo()
+    pnginfo.add_text("bms_3d_profile", view_preset)
+    pnginfo.add_text("bms_3d_compass", "projected-north-east" if show_compass else "disabled")
+    pnginfo.add_text(
+        "bms_3d_friendly_approach",
+        f"{friendly_label}|{friendly_sector}" if show_friendly and friendly_sector else "disabled",
+    )
+    image.save(path, pnginfo=pnginfo)
+
+
 def render(args: argparse.Namespace) -> None:
     syntheses = [load_json(Path(path)) for path in args.synthesis]
     package_ids = {safe_int(item) for item in args.package_id}
@@ -1052,6 +1347,22 @@ def render(args: argparse.Namespace) -> None:
     bounds = expand_bounds(view_bounds, args.terrain_extra_grid)
     center_x = (view_bounds[0] + view_bounds[1]) / 2.0
     center_y = (view_bounds[2] + view_bounds[3]) / 2.0
+    if args.friendly_origin_grid:
+        friendly_source = (safe_float(args.friendly_origin_grid[0]), safe_float(args.friendly_origin_grid[1]))
+    else:
+        friendly_source = friendly_approach_source(routes, view_bounds, center_x, center_y)
+    if friendly_source is None and not args.no_friendly_approach:
+        raise SystemExit(
+            "Unable to derive friendly approach direction from selected package routes. "
+            "Provide --cam-decode/--friendly-origin-grid or use --no-friendly-approach for a diagnostic-only render."
+        )
+    friendly_world_vector: tuple[float, float] | None = None
+    friendly_sector: str | None = None
+    if friendly_source is not None:
+        friendly_dx = friendly_source[0] - center_x
+        friendly_dy = friendly_source[1] - center_y
+        friendly_world_vector = (friendly_dx * GRID_NM, friendly_dy * GRID_NM)
+        friendly_sector = compass_sector(friendly_dx, friendly_dy)
 
     x_nm, y_nm, z_kft, elevations_ft = read_heightmap_crop(
         args.heightmap,
@@ -1239,7 +1550,16 @@ def render(args: argparse.Namespace) -> None:
         normalized_mark_label = normalize_label(label)
         if normalized_mark_label in args.hide_mark_label:
             continue
-        if normalized_mark_label.isdigit() or normalized_mark_label in {"10W", "10E", "10S", "SA6", "SA5"}:
+        if normalized_mark_label.isdigit() or normalized_mark_label in {
+            "10W",
+            "10E",
+            "10S",
+            "10A",
+            "10B",
+            "10C",
+            "SA6",
+            "SA5",
+        }:
             continue
         color = "#2ee878" if normalize_label(label) != "ORION" else "#f5f6f0"
         marker = "D" if normalize_label(label) != "ORION" else "s"
@@ -1344,6 +1664,13 @@ def render(args: argparse.Namespace) -> None:
     ax.set_zlim(z_floor, max(z_max + pin_height + 0.7, 2.0))
     ax.set_box_aspect((max(view_x_max - view_x_min, 1.0) * args.box_x_scale, max(view_y_max - view_y_min, 1.0) * args.box_y_scale, args.vertical_box_aspect))
     ax.set_axis_off()
+    north_vector = projected_vector(ax, 0.0, 1.0)
+    east_vector = projected_vector(ax, 1.0, 0.0)
+    friendly_screen_vector = (
+        projected_vector(ax, friendly_world_vector[0], friendly_world_vector[1])
+        if friendly_world_vector is not None
+        else None
+    )
     for x, y, z, text, color, edge in projected_labels:
         xp, yp, _ = proj3d.proj_transform(x, y, z, ax.get_proj())
         ax.annotate(
@@ -1375,7 +1702,36 @@ def render(args: argparse.Namespace) -> None:
         cropped.save(args.out)
     if args.fill_background:
         fill_render_background(args.out, args.background_color, args.fill_background_threshold)
+    draw_attack_geometry_overlays(
+        args.out,
+        north_vector=north_vector,
+        east_vector=east_vector,
+        friendly_vector=friendly_screen_vector,
+        friendly_sector=friendly_sector,
+        friendly_label=args.friendly_approach_label,
+        post_crop=args.post_crop,
+        show_compass=not args.no_compass,
+        show_friendly=not args.no_friendly_approach,
+        view_preset=args.view_preset,
+    )
     print(f"Wrote {args.out}")
+
+
+def apply_view_preset(args: argparse.Namespace) -> argparse.Namespace:
+    preset = VIEW_PRESETS[args.view_preset]
+    for key, value in preset.items():
+        if getattr(args, key) is None:
+            setattr(args, key, value)
+    if args.post_crop is None and args.view_preset == "attack-geometry":
+        # Normalized form of the accepted Event 740 close framing. Scale with
+        # output resolution so the preset remains 16:9-safe.
+        args.post_crop = [
+            round(args.width * 0.21875),
+            round(args.height * 0.29333),
+            round(args.width * 0.78125),
+            round(args.height * 0.82222),
+        ]
+    return args
 
 
 def parse_args() -> argparse.Namespace:
@@ -1391,27 +1747,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--photoreal-tile-origin", choices=("bottom-left", "top-left"), default="top-left", help="Storage origin for numeric tile IDs.")
     parser.add_argument("--photoreal-tile-index-base", type=int, default=1, help="First numeric tile ID in the photoreal tile set.")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--view-preset",
+        choices=tuple(VIEW_PRESETS),
+        default="attack-geometry",
+        help="3D camera/render profile. The default attack-geometry preset reproduces the accepted Event 740 close terrain treatment.",
+    )
     parser.add_argument("--title", default="")
     parser.add_argument("--no-title", action="store_true")
     parser.add_argument("--no-footer", action="store_true")
     parser.add_argument("--crop-label", nargs="+", default=["CRO", "BLU", "SA6", "10W", "10E", "SA5", "WWO", "BAN"], help="Named marks/ADA labels used to frame the crop.")
-    parser.add_argument("--margin-grid", type=float, default=8.0)
-    parser.add_argument("--view-extra-grid", type=float, default=0.0, help="Add visible map around the tactical crop without changing which overlays are included.")
-    parser.add_argument("--terrain-extra-grid", type=float, default=0.0, help="Render extra terrain outside the tactical crop so oblique views can fill the frame.")
-    parser.add_argument("--mesh-size", type=int, default=230)
+    parser.add_argument("--margin-grid", type=float, default=None)
+    parser.add_argument("--view-extra-grid", type=float, default=None, help="Add visible map around the tactical crop without changing which overlays are included.")
+    parser.add_argument("--terrain-extra-grid", type=float, default=None, help="Render extra terrain outside the tactical crop so oblique views can fill the frame.")
+    parser.add_argument("--mesh-size", type=int, default=None)
     parser.add_argument("--width", type=int, default=2400)
     parser.add_argument("--height", type=int, default=1350)
     parser.add_argument("--dpi", type=int, default=150)
-    parser.add_argument("--z-exaggeration", type=float, default=1.8)
-    parser.add_argument("--vertical-box-aspect", type=float, default=5.0)
-    parser.add_argument("--box-x-scale", type=float, default=1.0)
-    parser.add_argument("--box-y-scale", type=float, default=1.0)
-    parser.add_argument("--camera-elev", type=float, default=42.0)
-    parser.add_argument("--camera-azim", type=float, default=-62.0)
-    parser.add_argument("--camera-distance", type=float, default=8.0, help="Matplotlib 3D camera distance. Smaller values zoom in; <=0 leaves default.")
-    parser.add_argument("--map-texture-alpha", type=float, default=0.94)
-    parser.add_argument("--hillshade-strength", type=float, default=0.0, help="Blend hillshade into the draped map texture. 0 disables it; 1 is strongest.")
-    parser.add_argument("--background-color", default="#071012")
+    parser.add_argument("--z-exaggeration", type=float, default=None)
+    parser.add_argument("--vertical-box-aspect", type=float, default=None)
+    parser.add_argument("--box-x-scale", type=float, default=None)
+    parser.add_argument("--box-y-scale", type=float, default=None)
+    parser.add_argument("--camera-elev", type=float, default=None)
+    parser.add_argument("--camera-azim", type=float, default=None)
+    parser.add_argument("--camera-distance", type=float, default=None, help="Matplotlib 3D camera distance. Smaller values zoom in; <=0 leaves default.")
+    parser.add_argument("--map-texture-alpha", type=float, default=None)
+    parser.add_argument("--hillshade-strength", type=float, default=None, help="Blend hillshade into the draped map texture. 0 disables it; 1 is strongest.")
+    parser.add_argument("--background-color", default=None)
     parser.add_argument("--fill-background", action="store_true", help="Replace the solid render background with an enlarged terrain/map underlay after cropping.")
     parser.add_argument("--fill-background-threshold", type=float, default=45.0)
     parser.add_argument("--show-individual-routes", action="store_true", help="Draw each selected flight path instead of relying only on aggregate ingress lines.")
@@ -1424,6 +1786,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ingress-marker-alpha", type=float, default=0.55)
     parser.add_argument("--ingress-lift-ft", type=float, default=1700.0)
     parser.add_argument("--ingress-route-pad-grid", type=float, default=4.0)
+    parser.add_argument("--friendly-origin-grid", nargs=2, type=float, metavar=("GRID_X", "GRID_Y"), help="Override the derived friendly pre-entry origin used by the attack-direction pointer.")
+    parser.add_argument("--friendly-approach-label", default="FRIENDLY PACKAGE", help="Label shown on the friendly approach pointer.")
+    parser.add_argument("--no-friendly-approach", action="store_true", help="Diagnostic opt-out only: suppress the required friendly approach pointer.")
+    parser.add_argument("--no-compass", action="store_true", help="Diagnostic opt-out only: suppress the required 3D compass.")
     parser.add_argument("--ad-label-offset", action="append", default=[], type=lambda item: item.split("=", 1), help="Override ADA label offset as LABEL=dx,dy in map NM.")
     parser.add_argument("--mark-label-offset", action="append", default=[], type=lambda item: item.split("=", 1), help="Override named mark label offset as LABEL=dx,dy in map NM.")
     parser.add_argument("--hide-mark-label", action="append", default=[], help="Suppress a named mark label/marker from the 3D overlay, e.g. BAN.")
@@ -1445,22 +1811,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--route-linewidth", type=float, default=3.0)
     parser.add_argument("--route-lift-ft", type=float, default=1200.0)
     parser.add_argument("--route-pad-grid", type=float, default=8.0)
-    parser.add_argument("--ring-alpha", type=float, default=0.58)
-    parser.add_argument("--ring-linewidth", type=float, default=1.7)
-    parser.add_argument("--ring-pad-nm", type=float, default=12.0)
-    parser.add_argument("--pin-height-ft", type=float, default=5500.0)
-    parser.add_argument("--marker-lift-ft", type=float, default=1100.0)
-    parser.add_argument("--label-font-size", type=float, default=11.0)
-    parser.add_argument("--label-alpha", type=float, default=1.0)
-    parser.add_argument("--label-box-alpha", type=float, default=0.88)
-    parser.add_argument("--marker-alpha", type=float, default=1.0)
-    parser.add_argument("--ad-marker-alpha", type=float, default=0.92)
-    parser.add_argument("--ad-label-leader-alpha", type=float, default=0.0)
-    parser.add_argument("--mark-size", type=float, default=62.0)
-    parser.add_argument("--ad-size", type=float, default=100.0)
+    parser.add_argument("--ring-alpha", type=float, default=None)
+    parser.add_argument("--ring-linewidth", type=float, default=None)
+    parser.add_argument("--ring-pad-nm", type=float, default=None)
+    parser.add_argument("--pin-height-ft", type=float, default=None)
+    parser.add_argument("--marker-lift-ft", type=float, default=None)
+    parser.add_argument("--label-font-size", type=float, default=None)
+    parser.add_argument("--label-alpha", type=float, default=None)
+    parser.add_argument("--label-box-alpha", type=float, default=None)
+    parser.add_argument("--marker-alpha", type=float, default=None)
+    parser.add_argument("--ad-marker-alpha", type=float, default=None)
+    parser.add_argument("--ad-label-leader-alpha", type=float, default=None)
+    parser.add_argument("--mark-size", type=float, default=None)
+    parser.add_argument("--ad-size", type=float, default=None)
     parser.add_argument("--tight", action="store_true", help="Use tight bbox cropping instead of preserving the exact output frame.")
     parser.add_argument("--post-crop", nargs=4, type=int, metavar=("LEFT", "TOP", "RIGHT", "BOTTOM"), help="Crop the rendered frame, then resize back to output dimensions.")
-    args = parser.parse_args()
+    args = apply_view_preset(parser.parse_args())
     args.ad_label_offset = {key: value for key, value in args.ad_label_offset if key and value}
     args.mark_label_offset = {key: value for key, value in args.mark_label_offset if key and value}
     args.hide_mark_label = {normalize_label(item) for item in args.hide_mark_label if item}

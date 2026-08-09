@@ -88,6 +88,8 @@ def main() -> None:
         "scripts/render_bms_map_set.py",
         "scripts/render_bms_enemy_air_threat_map.py",
         "scripts/render_bms_weather_map.py",
+        "scripts/render_bms_slide_image_pack.py",
+        "scripts/validate_bms_briefing_outputs.py",
         "scripts/pyopencam_adapter.py",
         "scripts/pyopencam_provider.py",
         "scripts/ab_test_cam_decoders.py",

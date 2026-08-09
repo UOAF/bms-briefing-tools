@@ -92,6 +92,8 @@ Use consistent visual semantics:
 - Offshore/non-airbase enemy origins: separate marker such as red diamond or arrow-source marker.
 - Friendly departure bases on route map: friendly-colored airbase marker/label.
 
+Standard 2D briefing maps are north-up. Do not draw a compass or north arrow on them; that convention is assumed and the edge ornament wastes slide space. Retain the distance scale. If a special 2D product is rotated away from north-up, its orientation indicator must be intentionally sized and placed for slide readability. Oblique 3D target views still require their projected N/E compass because screen direction no longer implies map direction.
+
 Use compact labels on slide maps:
 
 - `SA-10 West`, `SA-10 East`, `SA-10 South` -> `10W`, `10E`, `10S`.
@@ -100,6 +102,7 @@ Use compact labels on slide maps:
 - `Su-33`, `Su-35S`, `Su-39` -> `S33`, `S35S`, `S39`.
 - Drop `Offshore group` when the aircraft label is enough.
 - If multiple PPTs share a generic label such as `10`, use mission-context mark overrides tied to a callsign/action or explicit grid so destroyed/irrelevant historical targets do not reappear on the map.
+- Merge raw INI/PPT marks with planner overrides by canonical tactical label (`SA5` and `5` are the same marker), with the planner override winning. When an approved threat marker labels a radar site, retain the WEZ ring but suppress the redundant ring-center text label.
 
 ## Readability Checks
 
@@ -128,9 +131,18 @@ Use these gates before presenting images as final:
 | Target | Target complex, package flows, named marks, enemy origins, and ADA rings share one readable tactical view. | Same zoom as route map; departure bases labeled; airbase label font dominates terrain; enemy airbase marker is indistinguishable from generic threat marker. |
 | Objective | Most zoomed-in product; target/objective geometry is clear; labels are subordinate to terrain and tactical markers. | Shows full ingress route; uses target/route font sizes; flow labels cover the objective; key named marks or ADA rings are missing. |
 | Weather | Weather cells/patterns can be compared against route and target areas; takeoff/target/landing conditions are supported. | Weather map is decorative only; no relation to route/target points; missing data is printed as a player-facing apology. |
-| 3D Target | Terrain relief, ingress direction, runway/objective geometry, and ADA positions are understandable at slide size; optional buildings add context without hiding the target. | The camera/crop shows mostly background, terrain is flat, buildings overwhelm the target, or ADA pins/labels do not originate from the decoded radar position. |
+| 3D Target | Terrain fills the 16:9 frame; relief, attack direction, objective geometry, and ADA positions are understandable at slide size; projected N/E compass and friendly approach pointer are visible; optional buildings add context without hiding the target. | Any flat/black side gutter remains; compass or friendly-origin pointer is absent; approach cannot be inferred; terrain is flat; buildings overwhelm the target; or ADA pins/labels do not originate from the decoded radar position. |
 
 When a map fails, name the failed gate and rerender that product only when possible. Avoid regenerating the whole pack unless the underlying data changed.
+
+## Asset Preservation Gate
+
+- Treat the current canonical image set and user-supplied reference snips as immutable evidence during iteration.
+- Render a candidate to staging/diagnostics first, visually inspect it, then promote only the approved product.
+- Use `render_bms_slide_image_pack.py --product route|target|objective|weather` for a one-product correction. Never invoke a full-pack rebuild for a weather-only or 3D-only issue.
+- Keep automatic predecessors under `_image_history/<UTC timestamp>`. Do not delete prior canonical images merely because a new candidate exists.
+- A targeted render must leave non-selected canonical image hashes unchanged. Verify this when a user has already approved the rest of the set.
+- Preserve source/reference 3D images and screen snips. Derive new variants from them or their recorded preset; do not replace or remove the originals.
 
 ## Common Fixes
 
@@ -170,6 +182,7 @@ Objective area:
 - Set an objective north bound and padding when the planner gives a useful anchor.
 - If the planner gives a tactical cutoff such as `10 NM north of SA-6` or `Crown eastward/northward to SA5`, encode that as explicit crop anchors/labels rather than relying on automatic route bounds.
 - When the objective close-up is cropped too tightly, use explicit crop labels around the tactical box rather than simply increasing margin. Example: `--combined-crop-labels CRO SA5 10W 10E BLU BAN WWO SA6` frames a Crown-to-SA5 target view without returning to the full target-area crop.
+- Once the planner approves explicit objective bounds, record the labels as mission-context `map_objective_crop_labels`; the canonical pack renderer should reuse them automatically rather than reverting to its generic objective crop.
 - Use smaller label multipliers than target.
 - If flow labels obscure terrain, reduce label multipliers or render flow lines without text.
 - Treat route labels on objective maps as optional. The objective map may rely on the slide legend or sidebar text for flow names if labels block the prosecution area.
@@ -182,14 +195,23 @@ Weather:
 - For F4Wx sequences, keep `WeatherMapsUpdates` synchronized with the root `<prefix>.fmap` starting frame.
 - If the user wants Weather Commander comparison, render a full-Korea weather map as a diagnostic, then return to package-cropped weather for the deck.
 - Sample weather at takeoff, target, and landing points; do not infer one area from another when FMAP cells differ.
+- Place `TGT` at the package's explicit `weather_target_labels` when present. Visually cross-check it against the objective map before promotion. Fail the map if `TGT` is outside the primary target complex or its basis says it is a centroid of unrelated PPTs despite explicit planner anchors.
 - Use a chunky enough weather overlay for the cells to read as an actual weather product on slides; `--weather-alpha 112` is the current baseline.
 - Draw a neutral grey dotted `PACKAGE AO` box around the player route from departure to target/INI work area. Exclude support tracks and recovery alternates from this AO box unless the user asks otherwise. Avoid cyan/green AO styling because it competes with weather cells.
-- Author weather labels for slide-scale viewing, not full-PNG inspection. Current baseline full-resolution sizes are route `36`, INI `54`, weather samples `72`, AO label `76`, and scale/north `52`; increase only if slide preview text is still unreadable.
+- Show route geometry for geographic context, but suppress individual tactical waypoint and INI labels on the weather product; those belong on the target/objective maps. Keep at most one readable callsign-bearing label per support orbit.
+- Author weather labels as compact map annotations, not headline banners. Use two-line sample callouts (`TGT 10A/5` plus a short condition/visibility/wind line), stagger them away from their markers, and keep terrain visible between them. Current baseline full-resolution sizes are route `36`, INI `54`, weather samples `42`, AO label `44`, and scale `52`; increase only if slide preview text is unreadable.
+- Lay out multi-line weather callouts from the fonts' visible glyph bounds, with a positive gap between lines; reject any title/detail overlap or clipped ascenders/descenders. Clamp route and support labels—including tanker labels—inside the image with a visible margin rather than allowing text boxes to cross the crop edge. Draw the AO wash/frame beneath routes and labels. Deduplicate repeated support-orbit action waypoints into one callsign-bearing track label placed near the orbit midpoint.
 - Promote the deck-facing weather image as `04_weather_map.png`.
+- Preserve the primary package's established flight-plan crop even when consolidated multi-package arrows are drawn. Additional player packages and support tracks are overlays, not crop inputs.
+- Render consolidated player-flow arrows and their short role labels on a separate layer at 20% opacity. Keep weather samples and AWACS/tanker tracks at normal contrast.
+- Tag new PNGs with crop basis, crop bounds, player-route opacity, and support-crop behavior; validation should reject non-16:9 maps, weather route opacity above 21%, or support-expanded weather crops.
 
 3D target imagery:
 
 - Treat 3D imagery as optional. Offer it when terrain masking, runway/objective layout, low-level ingress, or target-area ADA geometry would help the flight understand the attack.
+- Treat every player-facing 3D image as an attack-geometry product, not a decorative terrain render. It must answer four questions without accompanying prose: where is north, where are friendlies coming from, what terrain shapes the attack, and where are the factor threats/targets.
+- Use `--view-preset attack-geometry` by default. This is the durable Event 740 framing preset: close, edge-to-edge 16:9 terrain, readable hillshade/relief, projected N/E compass, and a friendly approach pointer derived from decoded selected-package routes. Use `--friendly-origin-grid` only when route derivation cannot express the planner's intended attack origin.
+- Do not use `--no-compass` or `--no-friendly-approach` for a deliverable. Those switches exist only for diagnostic isolation. If route derivation fails, the render must stop and require an explicit friendly origin rather than quietly omitting attack direction.
 - Use `scripts\render_bms_3d_target_area.py` with the BMS heightmap, Skyvector map texture, decoded package routes, and package synthesis files. Skyvector is the default 3D briefing texture because it is more readable on slides. Keep generated 3D variants in `briefing_images` with descriptive names such as `05_3d_objective_area_close_labels_*.png`; promote only the approved variant.
 - Use the same coordinate discipline as 2D maps: BMS 4.38 `3280.84 ft/grid`, decoded package routes, and decoded strategic ADA records. Do not place ADA pins from PPT/INI mark centers when an active tracking-radar battalion coordinate is available.
 - For SA-10/SA-6/SA-5 and similar systems, render rings and pins from the active radar-bearing air-defense record. The red pin, ground marker, label leader, and WEZ ring center should share that decoded coordinate. In oblique 3D, avoid lifting surface markers so far above terrain that they appear offset in screen space.
@@ -202,13 +224,13 @@ Weather:
 - Use actual objective/FED feature data for simplified buildings when available: `CampObjData.XML` plus `Data\TerrData\Objects\ObjectiveRelatedData` and feature names from `Falcon4_FCD.xml`. The actual BMS 3D model/texture pipeline is separate work; the current briefing renderer uses simplified geometry, not faithful BMS models.
 - If adding buildings along ingress and target area, cap the number of rendered features per objective and use lower opacity/height. This gives urban/industrial context without burying the target. Exclude bridges/roads/HAWK sites unless the user specifically asks for landmark or bridge context.
 - Use the cleaned feature mode as the default mental model: `runway-and-buildings` keeps runway/taxi geometry and real structures; `buildings` suppresses runway/taxi; `all` is diagnostic only.
-- Inspect 3D images visually after every render. Common fixes: adjust crop, camera distance/elevation/azimuth, terrain extra grid, label offsets, marker lift, feature opacity, per-objective cap, and hidden labels.
+- Inspect 3D images visually after every render at slide size. Reject the render if it has black/flat gutters, a cropped compass/pointer, an ambiguous friendly-origin sector, or if terrain/targets cannot be understood without zooming. Prefer fixing target anchors or an explicit friendly origin before hand-tuning camera/crop values.
 
 ## Final Asset Hygiene
 
 After choosing a variant:
 
-1. Run `python .\scripts\collect_bms_image_pack.py .\outputs\<prefix>`.
+1. Use the guarded pack renderer to promote only approved products. Use the collector only for legacy/imported variants.
 2. Confirm `briefing_images/manifest.json` references the selected variant folder.
 3. Confirm only the useful deliverable images are in `briefing_images`.
 4. Create optional slide-size preview images for human review, but do not treat previews as canonical deliverables.

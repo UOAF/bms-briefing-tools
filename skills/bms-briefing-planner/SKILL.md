@@ -41,12 +41,15 @@ Minimum intake:
 - Player package ID or package IDs.
 - Player flights/callsigns and their intended roles.
 - Radio frequency plan: TACTICAL nets, ABM/AWACS net, preset numbers, backup nets, check-in flow, and comm priority when known.
-- A-A TACAN plan or generation pattern for player flights, when provided. Keep per-ship A-A TACAN separate from tanker/package TACAN.
+- A-A TACAN for player flights. Apply the deterministic package-block scheme by default: package 1 uses flight bases 15-19, package 2 uses 25-29, and each four-ship flight uses `baseX / (base+63)X / (base+63)Y / baseY`. Keep per-ship A-A TACAN separate from tanker/package TACAN.
 - Named INI/data-cartridge marks and their tactical meaning.
 - Commander intent, priorities, alternates, fallback logic, and deconfliction notes.
+- Explicit `weather_target_labels` for each player package when the tactical target is represented by planner marks rather than a decoded campaign target. Use the mission-essential target complex, not a centroid of route, CAP, IP, or support marks.
 - Any deck/design constraints, but do not generate the design handoff until requested.
 
 If the user narrates corrections after an initial render, incorporate them as planner intent and update the mission-context file. Do not hard-code those facts into reusable code.
+
+Normalize tactical aliases before writing or mapping: one physical threat/target gets one current-mission label. Do not show both raw and planner aliases such as `SA5` and `5`, or a prior-event name and its current phase name. Use named tactical points in the main brief; keep flight-relative steerpoint numbers in appendices.
 
 Player-facing briefs should use bullseye references for AWACS/tanker/support
 tracks whenever bullseye data is available. Keep raw grid coordinates for those
@@ -86,14 +89,21 @@ Before final delivery:
 
 - Run syntax checks on touched Python scripts: `python -m py_compile scripts\*.py` or the specific files changed.
 - Run the relevant render/collection command again after changing renderer behavior.
+- Rerender only the failed/requested product during image iteration. The guarded pack renderer must stage candidates before promotion and preserve every changed canonical predecessor under `_image_history`; never delete approved images or regenerate unrelated maps for a weather-only/3D-only correction.
 - Confirm extracted campaign clock data is present in `cam_decode.json` when timing appears in the brief: `current_time_z`, `current_time_local`, `clock_base_hhmm`, and `clock_source`.
+- Confirm each weather `Target Area` sample resolves to the planner-defined primary target anchors when `weather_target_labels` are present; reject a loose centroid of unrelated PPTs.
 - Confirm root deck-facing brief files are synchronized with regenerated package synthesis, especially package composition `T/O (Z)` and `TOT (Z)` tables.
+- Confirm every player flight has the deterministic four-ship A-A TACAN assignment for its package and flight order; `not assigned` is a validation failure.
 - Confirm the root player brief is not just the primary package. Multi-package player operations must mention every requested package ID in both `generated_briefing.md` and `player_briefing_combined.md`.
 - Confirm player-facing markdown does not contain raw transcript or decoder/meta phrases such as `Commander context`, `Unresolved target`, `No named tactical target listed`, or weather sidecar warnings.
 - Open or preview every final map at slide-like size.
+- Keep the weather map operationally legible: when mission-context `map_flow_groups` exist, reuse those consolidated package-flow arrows instead of drawing every player flight plan. Draw all individual flight routes only when consolidated flow is unavailable or explicitly disabled.
+- Render weather-map player routes and their route labels at 20% opacity by default so they provide geographic context without competing with weather cells and weather-sample callouts. Keep support tracks and weather annotations on separate layers.
+- Show decoded AWACS and tanker routes consistently on the weather map. Deduplicate support assets shared across packages and retain readable callsign/role labels, but never let outlying support tracks expand or otherwise change the established player-route crop.
+- Treat standard 2D briefing maps as north-up and omit the compass by default. Preserve the distance scale. Use an orientation graphic only for a deliberately rotated/nonstandard 2D product or an oblique 3D view.
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.
-- For optional 3D target imagery, confirm the view is slide-readable and that ADA pins, ground markers, labels, and WEZ rings use the same decoded active-radar coordinate.
+- For optional 3D target imagery, use the renderer's `attack-geometry` preset unless the planner asks for another style. Confirm edge-to-edge terrain, a readable N/E compass, a friendly-package approach pointer derived from decoded routes, and ADA pins/ground markers/labels/WEZ rings tied to the same decoded active-radar coordinate.
 - For optional hype video, keep mission facts derived from the current brief/map pack, use mission-specific voice lines rather than old narration, duck music/SFX under voice, and produce a share-friendly under-10 MB variant when requested.
 - State clearly if a section could not be generated because required source data is absent.
 
