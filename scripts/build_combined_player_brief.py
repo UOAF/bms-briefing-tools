@@ -178,7 +178,7 @@ def player_tacan_cell(flight: dict[str, Any], package_index: int, flight_index: 
 
 def append_package_composition(lines: list[str], packages: list[dict[str, Any]]) -> None:
     lines.append("## Friendly Package Composition")
-    lines.append("| C/S | PKG | Aircraft | Role | Weapons | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Target/Area | Remarks |")
+    lines.append("| C/S | PKG | Aircraft | Role | Loadout / A/C | Laser | A-A TACAN | TACAN | T/O (Z) | TOT (Z) | Target/Area | Remarks |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for package_index, package in enumerate(packages):
         for flight_index, flight in enumerate(package.get("flights") or []):

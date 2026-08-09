@@ -10,6 +10,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+
+from pyopencam_provider import record_loadouts
 
 
 REQUIRED_IMPORTS = {
@@ -54,6 +57,18 @@ def check_script_help(script: Path) -> bool:
     return status(script.name, result.returncode == 0, detail)
 
 
+def check_structured_loadout_adapter() -> bool:
+    record = {
+        "loadouts": 1,
+        "loadout_entries": (
+            SimpleNamespace(weapon_ids=(0, 101, 202), weapon_counts=(0, 2, 4)),
+        ),
+    }
+    count, loadouts = record_loadouts(record)
+    ok = count == 1 and loadouts == [{"weapon_ids": [0, 101, 202], "weapon_counts": [0, 2, 4]}]
+    return status("pyopencam structured loadouts", ok, "adapter preserved IDs/counts" if ok else repr(loadouts))
+
+
 def default_presentations_skill_dir() -> Path:
     home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or "")
     return home / ".codex" / "plugins" / "cache" / "openai-primary-runtime" / "presentations" / "26.506.11943" / "skills" / "presentations"
@@ -77,6 +92,7 @@ def main() -> None:
     checks.append(status("Python", sys.version_info >= (3, 10), sys.version.split()[0]))
     for module, package in REQUIRED_IMPORTS.items():
         checks.append(check_import(module, package))
+    checks.append(check_structured_loadout_adapter())
 
     checks.append(check_command("node", "Node.js", required=False))
     checks.append(check_command("powershell", "PowerShell", required=False))
