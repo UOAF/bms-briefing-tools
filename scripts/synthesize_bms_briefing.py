@@ -12,6 +12,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from bms_a2a_tacan import package_assignments
+
 from bms_weather import FMap, time_of_day_label
 from bms_projection import feet_per_campaign_grid, source_feet_to_campaign_grid
 
@@ -1756,7 +1758,44 @@ def main_landing_waypoint(flight_summaries: list[dict[str, Any]]) -> dict[str, A
     return first_waypoint_with_action(flight_summaries, "WP_LAND")
 
 
-def target_area_point(plan_correlation: dict[str, Any], flight_summaries: list[dict[str, Any]]) -> dict[str, Any] | None:
+def target_area_point(
+    plan_correlation: dict[str, Any],
+    flight_summaries: list[dict[str, Any]],
+    package_context: dict[str, Any] | None = None,
+    mission_context: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    package_context = package_context or {}
+    mission_context = mission_context or {}
+    requested_labels = package_context.get("weather_target_labels") or package_context.get("primary_target_labels") or []
+    if isinstance(requested_labels, str):
+        requested_labels = [requested_labels]
+
+    def target_label(value: Any) -> str:
+        normalized = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+        return normalized.removeprefix("SA")
+
+    overrides = mission_context.get("map_mark_overrides") or []
+    override_by_label = {
+        target_label(item.get("label")): item
+        for item in overrides
+        if isinstance(item, dict) and item.get("grid_x") is not None and item.get("grid_y") is not None
+    }
+    explicit_points: list[tuple[str, float, float]] = []
+    for label in requested_labels:
+        item = override_by_label.get(target_label(label))
+        if item:
+            explicit_points.append((str(item.get("label") or label), safe_float(item.get("grid_x")), safe_float(item.get("grid_y"))))
+    if explicit_points:
+        return {
+            "action": "TARGET_AREA",
+            "arrive_hhmm": None,
+            "arrive_local_hhmm": None,
+            "grid_x": round(sum(item[1] for item in explicit_points) / len(explicit_points), 1),
+            "grid_y": round(sum(item[2] for item in explicit_points) / len(explicit_points), 1),
+            "anchor_labels": [item[0] for item in explicit_points],
+            "basis": "Planner-defined primary weather target anchors " + ", ".join(item[0] for item in explicit_points),
+        }
+
     excluded_labels = {"GRD", "GUARDPOST", "GUARD POST", "BAR", "BARRIER"}
     grids: list[tuple[float, float]] = []
     labels: list[str] = []
@@ -1815,6 +1854,8 @@ def package_weather_summary(
     fmap_error: str | None,
     flight_summaries: list[dict[str, Any]],
     plan_correlation: dict[str, Any],
+    package_context: dict[str, Any] | None = None,
+    mission_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not fmap:
         return {
@@ -1825,7 +1866,7 @@ def package_weather_summary(
 
     time_window = package_time_window(flight_summaries)
     takeoff = first_waypoint_with_action(flight_summaries, "WP_TAKEOFF")
-    target = target_area_point(plan_correlation, flight_summaries)
+    target = target_area_point(plan_correlation, flight_summaries, package_context, mission_context)
     landing = main_landing_waypoint(flight_summaries)
     sample_defs = [
         ("Takeoff", takeoff, time_window.get("takeoff_local")),
@@ -1845,6 +1886,8 @@ def package_weather_summary(
             if point.get("callsign")
             else action_label(point.get("action"))
         )
+        if point.get("anchor_labels"):
+            sample["anchor_labels"] = list(point.get("anchor_labels") or [])
         samples.append(sample)
     return {
         "available": True,
@@ -2371,7 +2414,11 @@ def synthesize(
         package_id = int(package.get("camp_id") or 0)
         package_context = context_by_package.get(package_id, {})
         contract_by_callsign = context_contract_map(package_context)
-        a2a_tacan_by_callsign = context_a2a_tacan_map(package_context)
+        callsigns = [str(flight.get("callsign") or "").strip() for flight in flights]
+        a2a_tacan_by_callsign = package_assignments(mission_context or {}, package_id, callsigns)
+        # Explicit per-flight values remain a supported mission-specific
+        # override, but the deterministic scheme fills every omitted flight.
+        a2a_tacan_by_callsign.update(context_a2a_tacan_map(package_context))
         attach_plan = focus_package_id is None or package_id == focus_package_id or package_id in mentions
         package_planning_points = planning_points if attach_plan else []
         flight_summaries: list[dict[str, Any]] = []
@@ -2491,7 +2538,19 @@ def synthesize(
                     bullseye,
                 )
             )
-        weather = package_weather_summary(fmap, fmap_path, fmap_error, flight_summaries, plan_correlation) if attach_plan else {}
+        weather = (
+            package_weather_summary(
+                fmap,
+                fmap_path,
+                fmap_error,
+                flight_summaries,
+                plan_correlation,
+                package_context,
+                mission_context,
+            )
+            if attach_plan
+            else {}
+        )
         package_summaries.append(
             {
                 "package_id": package_id,

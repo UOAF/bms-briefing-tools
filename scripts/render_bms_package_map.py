@@ -504,10 +504,20 @@ def draw_text_box(
     bg: tuple[int, int, int, int] = (7, 12, 14, 210),
     pad: int = 3,
     anchor: str = "la",
+    bounds: tuple[int, int] | None = None,
+    margin: int = 6,
 ) -> tuple[int, int, int, int]:
     x, y = xy
     bbox = draw.textbbox((x, y), text, font=font, anchor=anchor)
     box = (bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad)
+    if bounds is not None:
+        width, height = bounds
+        shift_x = max(0, margin - box[0]) - max(0, box[2] - (width - margin))
+        shift_y = max(0, margin - box[1]) - max(0, box[3] - (height - margin))
+        x += shift_x
+        y += shift_y
+        bbox = draw.textbbox((x, y), text, font=font, anchor=anchor)
+        box = (bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad)
     draw.rounded_rectangle(box, radius=3, fill=color_alpha(bg, bg[3] if len(bg) > 3 else 255, LABEL_OPACITY))
     draw.text((x, y), text, font=font, fill=fill, anchor=anchor)
     return box
@@ -837,6 +847,8 @@ def draw_flights(
     flights: list[tuple[dict[str, Any], list[dict[str, Any]]]],
     flight_colors: dict[str, tuple[int, int, int]],
     label_font: ImageFont.ImageFont,
+    *,
+    show_labels: bool = True,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     label_actions = {"TIMING", "PUSH", "SAD", "CAP", "SPLIT", "STRIKE", "BOMB", "SEAD"}
@@ -859,14 +871,22 @@ def draw_flights(
                 outline=marker_color((8, 10, 10), 220),
                 width=1,
             )
-            if action in label_actions or waypoint.get("map_context"):
+            if show_labels and (action in label_actions or waypoint.get("map_context")):
                 label = (
                     str(waypoint.get("index"))
                     if waypoint.get("map_context")
                     else f"{waypoint.get('index')} {short_action_label(action)}"
                 )
                 anchor = "la" if label_dx >= 0 else "ra"
-                draw_text_box(draw, (xy[0] + label_dx, xy[1] + label_dy), label, label_font, fill=color, anchor=anchor)
+                draw_text_box(
+                    draw,
+                    (xy[0] + label_dx, xy[1] + label_dy),
+                    label,
+                    label_font,
+                    fill=color,
+                    anchor=anchor,
+                    bounds=overlay.size,
+                )
 
 
 def draw_support_flights(
@@ -874,16 +894,20 @@ def draw_support_flights(
     projector: Projector,
     support_flights: list[tuple[dict[str, Any], list[dict[str, Any]]]],
     label_font: ImageFont.ImageFont,
+    *,
+    edge_label_margin: int = 6,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     for index, (flight, waypoints) in enumerate(support_flights):
         role = str(flight.get("role") or flight.get("mission") or "SUPPORT").upper()
+        callsign = str(flight.get("callsign") or "").strip()
         color = SUPPORT_COLORS.get(role, (220, 220, 220))
         points = [projector.grid(wp.get("grid_x"), wp.get("grid_y")) for wp in waypoints]
         if len(points) >= 2:
             draw_dashed_line(draw, points, route_color((0, 0, 0), 165), width=8, dash=12, gap=7)
             draw_dashed_line(draw, points, route_color(color, 230), width=4, dash=12, gap=7)
             draw_arrowhead(draw, points[-2], points[-1], route_color(color, 240), size=12)
+        factor_label_points: list[tuple[float, float]] = []
         for waypoint, xy in zip(waypoints, points):
             action = str(waypoint.get("action_short") or action_label(waypoint.get("action")))
             radius = 4
@@ -893,11 +917,29 @@ def draw_support_flights(
                 outline=marker_color((8, 10, 10), 220),
                 width=1,
             )
-            if action in {"TANKER", "ELINT", "AWACS", "JAM", "CAP"} or waypoint.get("map_context"):
-                label = str(waypoint.get("index")) if waypoint.get("map_context") else f"{role} {waypoint.get('index')}"
-                dx = 10 if index % 2 == 0 else -10
-                anchor = "la" if dx >= 0 else "ra"
-                draw_text_box(draw, (xy[0] + dx, xy[1] - 10), label, label_font, fill=color, anchor=anchor)
+            if action in {"TANKER", "ELINT", "AWACS", "JAM", "CAP"}:
+                factor_label_points.append(xy)
+
+        # A support orbit can contain two or more identical action waypoints.
+        # Label the track once at their midpoint instead of printing a clipped
+        # fragment at every endpoint.
+        if factor_label_points:
+            first = factor_label_points[0]
+            last = factor_label_points[-1]
+            label_xy = ((first[0] + last[0]) / 2, (first[1] + last[1]) / 2)
+            dx = 14 if index % 2 == 0 else -14
+            anchor = "la" if dx >= 0 else "ra"
+            label = f"{role} {callsign}" if callsign else role
+            draw_text_box(
+                draw,
+                (label_xy[0] + dx, label_xy[1] - 14),
+                label,
+                label_font,
+                fill=color,
+                anchor=anchor,
+                bounds=overlay.size,
+                margin=edge_label_margin,
+            )
 
 
 def draw_scale_and_north(
@@ -905,6 +947,8 @@ def draw_scale_and_north(
     crop: tuple[int, int, int, int],
     scale: int,
     font: ImageFont.ImageFont,
+    *,
+    show_north: bool = False,
 ) -> None:
     draw = ImageDraw.Draw(overlay, "RGBA")
     width, height = overlay.size
@@ -917,10 +961,14 @@ def draw_scale_and_north(
     draw.line((x1 + scale_grid, y - 6, x1 + scale_grid, y + 6), fill=(244, 246, 235, 220), width=2)
     draw.text((x1, y - 26), f"{scale_nm} NM", font=font, fill=TEXT)
 
-    nx = width - 38
-    ny = 34
-    draw.polygon([(nx, ny - 22), (nx - 8, ny + 8), (nx + 8, ny + 8)], fill=(244, 246, 235, 225))
-    draw.text((nx, ny + 12), "N", font=font, fill=TEXT, anchor="mm")
+    # All standard 2D briefing maps are rendered north-up. Repeating a tiny
+    # north arrow at the image edge adds clutter without resolving ambiguity.
+    # Keep the opt-in for diagnostic/nonstandard products only.
+    if show_north:
+        nx = width - 38
+        ny = 34
+        draw.polygon([(nx, ny - 22), (nx - 8, ny + 8), (nx + 8, ny + 8)], fill=(244, 246, 235, 225))
+        draw.text((nx, ny + 12), "N", font=font, fill=TEXT, anchor="mm")
 
 
 def draw_footer(

@@ -245,7 +245,8 @@ against the chart base.
 For deck work, prefer the guarded slide image pack renderer. It writes the
 canonical `briefing_images/01_*` through `04_*` products directly from the
 current synthesis inputs, records those files in `manifest.json`, and avoids
-accidentally promoting stale `slide_v*` variants:
+accidentally promoting stale `slide_v*` variants. Candidates are staged before
+promotion and changed predecessors are archived under `_image_history`:
 
 ```powershell
 python .\scripts\render_bms_slide_image_pack.py `
@@ -258,6 +259,11 @@ python .\scripts\render_bms_slide_image_pack.py `
   --map-source "C:\Falcon BMS 4.38\Docs\05 Maps\8_KTO_16k_Skyvector.png" `
   --feet-per-grid 3280.84
 ```
+
+For an iterative correction, add `--product route`, `target`, `objective`, or
+`weather`. Only that product is rendered and promoted; non-selected canonical
+image hashes remain unchanged. Do not rebuild the whole pack for a weather-only
+fix.
 
 Validate player-facing outputs before handoff:
 

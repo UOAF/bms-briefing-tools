@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
+from PIL.PngImagePlugin import PngInfo
 
 from render_bms_package_map import (
     MAP_GRID_SIZE,
@@ -612,7 +613,73 @@ def compact_named_label(label: Any) -> str:
         return "10S"
     if upper in {"SA6", "SA6MARK"}:
         return "6"
+    if upper.startswith("SA") and any(char.isdigit() for char in upper[2:]):
+        return compact_sam_label(text)
     return text
+
+
+def canonical_named_position_key(label: Any) -> str:
+    """Treat raw `SA5` and planner `5` labels as one tactical marker."""
+    return normalized_marker_label(compact_named_label(label))
+
+
+def tactical_factor_family(label: Any) -> str:
+    compact = canonical_named_position_key(label).removeprefix("SA")
+    for family in ("17", "11", "10", "6", "5", "3", "2"):
+        if compact.startswith(family):
+            return family
+    return ""
+
+
+def merge_named_positions(
+    raw_positions: list[dict[str, Any]],
+    override_positions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge map marks with planner overrides taking precedence."""
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for position in override_positions:
+        key = canonical_named_position_key(position.get("label"))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        merged.append(position)
+    for position in raw_positions:
+        key = canonical_named_position_key(position.get("label"))
+        if not key or key in seen:
+            continue
+        family = tactical_factor_family(position.get("label"))
+        if family and any(
+            tactical_factor_family(override.get("label")) == family
+            and math.hypot(
+                safe_float(position.get("grid_x")) - safe_float(override.get("grid_x")),
+                safe_float(position.get("grid_y")) - safe_float(override.get("grid_y")),
+            )
+            <= 2.5
+            for override in override_positions
+        ):
+            continue
+        seen.add(key)
+        merged.append(position)
+    return merged
+
+
+def co_located_factor_marker(
+    air_defense: dict[str, Any],
+    named_positions: list[dict[str, Any]],
+    max_distance_grid: float = 2.5,
+) -> bool:
+    factor_keys = {"2", "3", "5", "6", "10", "10A", "10B", "10C", "10W", "10E", "10S", "11", "17"}
+    for position in named_positions:
+        if canonical_named_position_key(position.get("label")) not in factor_keys:
+            continue
+        distance = math.hypot(
+            safe_float(air_defense.get("grid_x")) - safe_float(position.get("grid_x")),
+            safe_float(air_defense.get("grid_y")) - safe_float(position.get("grid_y")),
+        )
+        if distance <= max_distance_grid:
+            return True
+    return False
 
 
 def normalized_label(value: Any) -> str:
@@ -733,7 +800,10 @@ def draw_low_opacity_air_defense_rings(
         box = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
         draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
         draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
-        if point_inside_image(center, overlay.width, overlay.height, 16):
+        if point_inside_image(center, overlay.width, overlay.height, 16) and not co_located_factor_marker(
+            air_defense,
+            named_positions or [],
+        ):
             label = contextual_air_defense_label(air_defense, named_positions or [], compact_labels)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
 
@@ -860,10 +930,26 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     object_catalog = load_object_catalog(args.object_dir) if args.object_dir else {}
     airbase_objectives = load_airbase_objectives(args, object_catalog)
     origins, anchors = collect_air_threat_origins(cam_decode, packages, object_catalog, args.radius_nm, airbase_objectives)
+    mission_context = mission_context_from_syntheses(syntheses)
+    excluded_origins = [
+        normalized_label(value)
+        for value in mission_context.get("map_excluded_air_origins") or []
+        if normalized_label(value)
+    ]
+    if excluded_origins:
+        origins = [
+            origin
+            for origin in origins
+            if not any(token in normalized_label(origin.get("name")) for token in excluded_origins)
+        ]
     if not origins:
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
     flow_groups = package_flow_groups(packages, syntheses) if include_flow else []
-    named_positions = (named_position_points(packages) + sa10_named_positions(syntheses, packages)) if include_flow else []
+    named_positions = (
+        merge_named_positions(named_position_points(packages), sa10_named_positions(syntheses, packages))
+        if include_flow
+        else []
+    )
     objective_positions = objective_crop_points(syntheses, packages, named_positions) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
 
@@ -1021,7 +1107,12 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     output = Image.alpha_composite(map_image, overlay)
     out = output_path or args.out
     out.parent.mkdir(parents=True, exist_ok=True)
-    output.convert("RGB").save(out)
+    pnginfo = PngInfo()
+    pnginfo.add_text("bms_map_product", args.combined_title if include_flow else args.title)
+    pnginfo.add_text("bms_crop_bounds", json.dumps(list(crop)))
+    pnginfo.add_text("bms_north_up", "true")
+    pnginfo.add_text("bms_aspect_ratio", args.aspect_ratio or "native")
+    output.convert("RGB").save(out, pnginfo=pnginfo)
     return out
 
 
@@ -1146,7 +1237,7 @@ def contextual_air_defense_label(
     if is_sa10:
         for position in named_positions:
             label = compact_named_label(position.get("label"))
-            if normalized_label(label) not in {"10W", "10E", "10S"}:
+            if normalized_label(label) not in {"10W", "10E", "10S", "10A", "10B", "10C"}:
                 continue
             distance = math.hypot(
                 safe_float(air_defense.get("grid_x")) - safe_float(position.get("grid_x")),
@@ -1285,7 +1376,10 @@ def context_package_flow_groups(
         return []
 
     flights = flight_map(packages)
-    named_positions = [*named_position_points(packages), *context_map_mark_overrides(syntheses, packages)]
+    named_positions = merge_named_positions(
+        named_position_points(packages),
+        context_map_mark_overrides(syntheses, packages),
+    )
     named_lookup = {normalized_label(point.get("label")): point for point in named_positions}
     groups: list[dict[str, Any]] = []
     for spec in flow_specs:
@@ -1513,6 +1607,12 @@ def draw_named_positions(
         "10W": (-18, -34, "ra"),
         "10E": (15, -28, "la"),
         "10S": (14, 20, "la"),
+        "10A": (15, 20, "la"),
+        "10B": (15, -28, "la"),
+        "10C": (15, 30, "la"),
+        "11": (-15, 22, "ra"),
+        "IP1": (15, 22, "la"),
+        "IP2": (15, -22, "la"),
         "6": (14, 22, "la"),
         "JEW": (14, -11, "la"),
         "CRO": (14, 16, "la"),
@@ -1584,7 +1684,7 @@ def draw_package_flow_map(args: argparse.Namespace) -> Path | None:
         package_ids = package_ids * len(syntheses)
     packages = [find_package(synthesis, package_id) for synthesis, package_id in zip(syntheses, package_ids)]
     flow_groups = package_flow_groups(packages, syntheses)
-    named_positions = named_position_points(packages) + sa10_named_positions(syntheses, packages)
+    named_positions = merge_named_positions(named_position_points(packages), sa10_named_positions(syntheses, packages))
     crop_items = [
         point
         for group in flow_groups

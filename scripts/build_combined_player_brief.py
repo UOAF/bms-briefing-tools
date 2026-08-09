@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from bms_a2a_tacan import flight_summary as deterministic_a2a_tacan_summary
+
 import synthesize_bms_briefing as synth
 
 
@@ -35,7 +37,7 @@ def clean_text(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
-    if len(text) > 380:
+    if len(text) > 800:
         return ""
     if any(re.search(pattern, text, re.I) for pattern in RAW_TRANSCRIPT_PATTERNS):
         return ""
@@ -48,6 +50,18 @@ def markdown_cell(value: Any) -> str:
 
 def number_cell(value: Any, digits: int = 1) -> str:
     return synth.number_cell(value, digits)
+
+
+def player_anchor(value: Any) -> str:
+    text = clean_text(value)
+    if not text:
+        return "target area"
+    text = re.sub(r"\s+STPT\s+\d+\s+@\s+\d{4}Z", " area", text, flags=re.I)
+    text = re.sub(r"^INI\s+TGT\s+\d+$", "target area", text, flags=re.I)
+    text = re.sub(r"^INI\s+10$", "SA-10 complex", text, flags=re.I)
+    text = re.sub(r"^INI\s+SA5$", "SA-5 area", text, flags=re.I)
+    text = re.sub(r"^INI\s+JEW$", "Jewel", text, flags=re.I)
+    return text
 
 
 def operation_title(syntheses: list[dict[str, Any]], prefix: str) -> str:
@@ -95,28 +109,35 @@ def mission_summary(packages: list[dict[str, Any]]) -> str:
     )
 
 
-def append_game_plan(lines: list[str], packages: list[dict[str, Any]]) -> None:
+def append_game_plan(lines: list[str], synthesis: dict[str, Any], packages: list[dict[str, Any]]) -> None:
+    context = synthesis.get("mission_context") or {}
     lines.append("## Game Plan")
-    lines.append(mission_summary(packages))
+    history = clean_text((context.get("campaign_history") or {}).get("player_facing_summary"))
+    intent = clean_text(context.get("commander_intent"))
+    if history:
+        lines.append(f"**Situation.** {history}")
+        lines.append("")
+    lines.append(intent or mission_summary(packages))
     lines.append("")
     for package in packages:
         lines.append(f"### PKG {package.get('package_id')} - {package.get('mission') or 'Package'}")
-        plan = clean_text(package.get("plan_interpretation"))
-        target = package_target_summary(package)
-        lines.append(f"- Target focus: {target}")
-        if plan:
-            lines.append(f"- DTC/route read: {plan}")
-        context = package.get("human_context") or {}
+        package_context = package.get("human_context") or {}
+        briefing_read = clean_text(package_context.get("briefing_read"))
+        if briefing_read:
+            lines.append(briefing_read)
+        else:
+            lines.append(f"Target focus: {package_target_summary(package)}")
+        lines.append("")
         for key, label in (
             ("route_note", "Route"),
             ("fallback_logic", "Fallback"),
             ("deconfliction", "Deconfliction"),
         ):
-            item = clean_text(context.get(key))
+            item = clean_text(package_context.get(key))
             if item:
                 lines.append(f"- {label}: {item}")
         contracts = []
-        for contract in [*(context.get("sad_contracts") or []), *(context.get("strike_contracts") or []), *(context.get("cap_contracts") or [])]:
+        for contract in [*(package_context.get("sad_contracts") or []), *(package_context.get("strike_contracts") or []), *(package_context.get("cap_contracts") or [])]:
             if not isinstance(contract, dict):
                 continue
             callsign = clean_text(contract.get("callsign"))
@@ -127,11 +148,18 @@ def append_game_plan(lines: list[str], packages: list[dict[str, Any]]) -> None:
             lines.append("- Planner contracts: " + "; ".join(contracts))
         lines.append("")
 
+    gates = context.get("deconfliction") or []
+    if gates:
+        lines.append("### Execution Gates")
+        for gate in gates:
+            item = clean_text(gate)
+            if item:
+                lines.append(f"- {item}")
+        lines.append("")
+
 
 def fallback_a2a_tacan(package_index: int, flight_index: int) -> str:
-    low = 15 + package_index * 10 + flight_index
-    high = 78 + package_index * 10 + flight_index
-    return f"{low}X / {high}X / {high}Y / {low}Y"
+    return deterministic_a2a_tacan_summary(package_index, flight_index)
 
 
 def flight_a2a_tacan(flight: dict[str, Any], package_index: int, flight_index: int) -> str:
@@ -145,7 +173,7 @@ def player_tacan_cell(flight: dict[str, Any], package_index: int, flight_index: 
     value = clean_text(flight.get("tacan_summary"))
     if value and value.lower() != "not assigned":
         return value
-    return flight_a2a_tacan(flight, package_index, flight_index)
+    return "not assigned"
 
 
 def append_package_composition(lines: list[str], packages: list[dict[str, Any]]) -> None:
@@ -224,9 +252,17 @@ def append_combined_bullseye(lines: list[str], synthesis: dict[str, Any], packag
         return
     lines.append("## Bullseye")
     lines.append(f"- Bullseye: grid {number_cell(bullseye.get('grid_x'), 1)} / {number_cell(bullseye.get('grid_y'), 1)}")
+    context = synthesis.get("mission_context") or {}
     refs: list[str] = []
+    for position in context.get("map_mark_overrides") or []:
+        if position.get("grid_x") is None or position.get("grid_y") is None:
+            continue
+        label = clean_text(position.get("label") or position.get("name"))
+        if label:
+            refs.append(f"{label} {synth.bullseye_reference(synthesis, position)}")
     for package in packages:
         refs.extend(synth.bullseye_brief_refs(synthesis, package))
+    refs = [ref for ref in refs if not ref.startswith("10 BE") and not ref.startswith("SA5 BE")]
     refs = list(dict.fromkeys(refs))
     if refs:
         lines.append("- Named references: " + "; ".join(refs[:16]))
@@ -250,7 +286,9 @@ def append_combined_support(lines: list[str], packages: list[dict[str, Any]]) ->
     lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for item in support_rows:
         aircraft = f"{item.get('aircraft_count') or ''}x {item.get('aircraft_type') or item.get('aircraft_class') or ''}".strip()
-        station = clean_text(item.get("station_summary")) or synth.bullseye_reference({"bullseye": {}}, item)
+        station_raw = clean_text(item.get("station_summary"))
+        bullseye_points = re.findall(r"BE\s+\d{3}/\d+", station_raw)
+        station = " to ".join(dict.fromkeys(bullseye_points)) or synth.bullseye_reference({"bullseye": {}}, item)
         lines.append(
             "| {role} | {callsign} | {aircraft} | {tot} | {station} | {tacan} | {weapons} |".format(
                 role=markdown_cell(item.get("role")),
@@ -362,7 +400,7 @@ def append_combined_enemy(lines: list[str], packages: list[dict[str, Any]]) -> N
                     radar=markdown_cell(synth.tracking_radar_cell(unit)),
                     grid_x=number_cell(unit.get("grid_x"), 1),
                     grid_y=number_cell(unit.get("grid_y"), 1),
-                    anchor=markdown_cell(synth.enemy_anchor_cell(unit)),
+                    anchor=markdown_cell(player_anchor(synth.enemy_anchor_cell(unit))),
                     dist=number_cell(unit.get("distance_nm"), 1),
                     air=markdown_cell(unit.get("air_range")),
                     low=markdown_cell(unit.get("low_air_range")),
@@ -383,7 +421,7 @@ def append_combined_enemy(lines: list[str], packages: list[dict[str, Any]]) -> N
                     op=markdown_cell(synth.operational_cell(base)),
                     grid_x=number_cell(base.get("grid_x"), 1),
                     grid_y=number_cell(base.get("grid_y"), 1),
-                    anchor=markdown_cell(synth.enemy_anchor_cell(base)),
+                    anchor=markdown_cell(player_anchor(synth.enemy_anchor_cell(base))),
                     dist=number_cell(base.get("distance_nm"), 1),
                 )
             )
@@ -401,7 +439,7 @@ def append_combined_enemy(lines: list[str], packages: list[dict[str, Any]]) -> N
                     aircraft=markdown_cell(contact.get("aircraft_type")),
                     capability=markdown_cell(contact.get("capability")),
                     count=markdown_cell(contact.get("aircraft_count")),
-                    anchor=markdown_cell(synth.enemy_anchor_cell(contact)),
+                    anchor=markdown_cell(player_anchor(synth.enemy_anchor_cell(contact))),
                     distance=number_cell(contact.get("distance_nm"), 1),
                     basis=markdown_cell(contact.get("basis")),
                 )
@@ -409,12 +447,21 @@ def append_combined_enemy(lines: list[str], packages: list[dict[str, Any]]) -> N
         lines.append("")
 
 
-def append_map_products(lines: list[str]) -> None:
+def append_map_products(lines: list[str], image_dir: Path | None = None) -> None:
     lines.append("## Map Products")
-    lines.append("- `briefing_images/01_route_threat_map.png` - route/threat overview from player departure bases to the target area.")
-    lines.append("- `briefing_images/02_target_area_map.png` - target-area flow, named anchors, enemy air axes, and strategic rings.")
-    lines.append("- `briefing_images/03_objective_area_map.png` - close objective view for target prosecution details.")
-    lines.append("- `briefing_images/04_weather_map.png` - weather overlay for the package AO when weather data is available.")
+    manifest_path = image_dir / "manifest.json" if image_dir else None
+    if manifest_path and manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for item in manifest if isinstance(manifest, list) else manifest.get("images", []):
+            name = str(item.get("name") or "").strip()
+            description = str(item.get("description") or "briefing map product.").strip()
+            if name and (image_dir / name).is_file():
+                lines.append(f"- `briefing_images/{name}` - {description}")
+    else:
+        lines.append("- `briefing_images/01_route_threat_map.png` - route/threat overview from player departure bases to the target area.")
+        lines.append("- `briefing_images/02_target_area_map.png` - target-area flow, named anchors, enemy air axes, and strategic rings.")
+        lines.append("- `briefing_images/03_objective_area_map.png` - close objective view for target prosecution details.")
+        lines.append("- `briefing_images/04_weather_map.png` - weather overlay for the package AO when weather data is available.")
     lines.append("")
 
 
@@ -454,14 +501,14 @@ def build_brief(syntheses: list[dict[str, Any]], package_ids: list[int], out_pat
     packages = [selected_package(synthesis, package_id) for synthesis, package_id in zip(syntheses, package_ids)]
     root = combined_synthesis(syntheses[0], packages)
     lines: list[str] = [f"# {operation_title(syntheses, root.get('prefix') or 'mission')}", ""]
-    append_game_plan(lines, packages)
+    append_game_plan(lines, root, packages)
     append_package_composition(lines, packages)
     append_combined_weather(lines, packages)
     append_combined_bullseye(lines, root, packages)
     append_combined_support(lines, packages)
     append_combined_comm(lines, syntheses, packages)
     append_combined_enemy(lines, packages)
-    append_map_products(lines)
+    append_map_products(lines, out_path.parent / "briefing_images")
     append_coordinate_appendix(lines, root, packages)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

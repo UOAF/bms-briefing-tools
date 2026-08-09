@@ -170,7 +170,7 @@ def copy_slide_set(source_dir: Path, out_dir: Path, clean: bool) -> list[dict[st
         item = {
             "name": product["name"],
             "description": product["description"],
-            "source": str(source.relative_to(source_dir)),
+            "source": product["name"],
         }
         manifest.append(item)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
