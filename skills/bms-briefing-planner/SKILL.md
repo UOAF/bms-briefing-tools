@@ -1,6 +1,6 @@
 ---
 name: bms-briefing-planner
-description: Produce Falcon BMS mission briefing workups, player-facing briefs, slide-ready map image packs, weather maps, optional 3D target-area imagery, and hidden over-the-top pre-sortie hype videos from a campaign save, package IDs, mission INI/data-cartridge marks, and mission-planner intent. Use when the user asks to make, revise, QA, or package a BMS briefing/deck, especially for UOAF-style BMS campaign saves, package flow maps, threat maps, objective maps, 3D ingress/target views, weather maps, Claude/design handoff bundles, morale/hype videos, or repeatable BMS briefing generation.
+description: "Produce and publish Falcon BMS mission briefings: campaign workups, player briefs, slide-ready maps, weather and optional 3D imagery, mission-file uploads, UOAF signup sheets, Discord-ready announcements and branded event banners, plus optional hidden pre-sortie hype videos. Use when the user asks to make, revise, QA, package, or publish a BMS event from a campaign save, package IDs, mission INI/data-cartridge marks, and planner intent."
 ---
 
 # BMS Briefing Planner
@@ -16,7 +16,8 @@ Use this skill as a briefing production workflow:
 3. Build a transitional workup that preserves evidence.
 4. Produce a clean player-facing brief.
 5. Render and QA the numbered image pack.
-6. Wait for explicit user approval before generating Claude/design bundles, committing, or pushing.
+6. When explicitly requested, publish the community event package: mission files, signup sheet, Discord post, and branded banner.
+7. Wait for explicit user approval before generating Claude/design bundles, committing, or pushing.
 
 Default package scope: when the mission maker identifies more than one human
 or player package, treat those packages as one unified operation and one
@@ -29,6 +30,8 @@ but the root mission brief and deck-facing image pack should be combined.
 - Read [workflow.md](references/workflow.md) before running a new mission from campaign data.
 - Read [brief-criteria.md](references/brief-criteria.md) before drafting or revising player-facing brief text.
 - Read [image-qa.md](references/image-qa.md) before rendering, rerendering, or judging briefing images.
+- Read [community-publishing.md](references/community-publishing.md) before uploading mission files, creating an event signup sheet, changing its sharing permissions, or preparing the Discord announcement/banner.
+- Read [event-banner-criteria.md](references/event-banner-criteria.md) before generating, editing, or approving a UOAF event banner.
 
 ## Planner Intake
 
@@ -74,6 +77,7 @@ For a mission output folder such as `outputs/<prefix>`, produce:
 - Optional `briefing_images/04_weather_map.png` when weather data is available.
 - Optional 3D objective imagery when the planner asks for it or when terrain/runway/target geometry is tactically important. Keep 3D imagery as an extra deliverable or named variant unless the deck explicitly wants it promoted into the numbered pack.
 - Optional easter-egg pre-sortie video only when the user explicitly wants a hype/video/Ace Combat style artifact, or when the user is clearly frustrated and the serious mission products are already stable enough that a cathartic hype cut is the best next move.
+- Optional `community_publish/community_publish_plan.json`, `community_publish/discord_post.txt`, and a current-event UOAF-branded banner when the user explicitly asks to prepare or publish the community event.
 
 Keep useful outputs in the standard `briefing_images` folder. Avoid scattering final assets across diagnostic folders. Use variant folders such as `slide_v1_3` only as versioned working sources, then collect/promote the selected set.
 
@@ -105,6 +109,9 @@ Before final delivery:
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.
 - Confirm the guarded manifest hashes match every canonical image and that no unmanifested candidate/check PNG remains in `briefing_images`.
+- For community publishing, confirm every inventoried prefix file exists in the event folder, the signup sheet reflects only current player packages, the prior pilot entries are blank, its INI and briefing links resolve to current-event files, and link sharing is verified as `anyone`/`writer` before reporting success.
+- Confirm the Discord timestamp is calculated from the actual event date and UTC briefing time; never copy a timestamp from a prior announcement.
+- Confirm event banners meet the subtle-realism criteria: credible terrain and target scale, restrained atmosphere, no neon weapon effects, no HUD overlays, and no oversized or glowing ground targets unless the user explicitly requests a stylized exception.
 - Confirm current maps carry source/context/profile provenance. If an approved crop or style is mission-specific, it must live in mission-context `map_render_profiles`, never as an event-specific constant in renderer code.
 - For optional 3D target imagery, use the renderer's `attack-geometry` preset unless the planner asks for another style. Confirm edge-to-edge terrain, a readable N/E compass, a friendly-package approach pointer derived from decoded routes, and ADA pins/ground markers/labels/WEZ rings tied to the same decoded active-radar coordinate.
 - For optional hype video, keep mission facts derived from the current brief/map pack, use mission-specific voice lines rather than old narration, duck music/SFX under voice, and produce a share-friendly under-10 MB variant when requested.

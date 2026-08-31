@@ -231,6 +231,12 @@ Collect final images:
 python .\scripts\collect_bms_image_pack.py ".\outputs\<prefix>"
 ```
 
+When the user explicitly asks to prepare or publish the community event, read
+[community-publishing.md](community-publishing.md). Generate the checksummed
+mission-file inventory, signup-sheet package rows, calculated Discord timestamp,
+and post draft with `scripts/prepare_bms_community_publish.py`, then perform and
+verify the Drive/Sheets/banner steps described there.
+
 Do not export Claude/design bundles, commit, or push until explicitly prompted.
 
 ## 9. Easter Egg: Morale/Hype Video

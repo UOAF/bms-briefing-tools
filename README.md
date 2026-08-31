@@ -43,8 +43,32 @@ Default workflow:
 2. Generate and review the briefing markdown.
 3. Render and review briefing maps.
 4. Iterate on mission context, briefing text, threat logic, and maps.
-5. Export a Claude design handoff bundle only when explicitly requested for
+5. When explicitly requested, publish the community event: upload the exact
+   prefix-scoped mission bundle, copy and adapt the prior signup sheet, verify
+   anyone-with-link editing, and return a Discord post plus UOAF event banner.
+6. Export a Claude design handoff bundle only when explicitly requested for
    final deck production.
+
+Prepare the auditable community-publishing plan before making Drive changes:
+
+```powershell
+python .\scripts\prepare_bms_community_publish.py `
+  --campaign-dir "C:\Falcon BMS 4.38\Data\Campaign" `
+  --prefix 744pre `
+  --output-dir .\outputs\744pre\community_publish `
+  --synthesis .\outputs\744pre\briefing_synthesis.json `
+  --package-id 6939 --package-id 6957 `
+  --event-number 744 --operation-name "Broken Quiver" `
+  --event-date 2026-09-05 --briefing-time 1800 --marshal-time 1745 `
+  --theater KTO --bms-version 4.38.1 `
+  --mission-objectives "Suppress the Pohang air-defense network and protect the Daegu interdiction effort."
+```
+
+This helper makes no network writes. It creates a checksummed upload inventory,
+structured package/flight rows for the signup sheet, and a Discord announcement
+whose Unix timestamp is calculated from the supplied UTC event time. The
+installed BMS Briefing Planner skill uses that plan to carry out and verify the
+Google Drive/Sheets and banner workflow.
 
 Example:
 
