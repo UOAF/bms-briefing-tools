@@ -136,7 +136,28 @@ def raw_bytes(record: Any, name: str) -> bytes:
     return bytes(value) if isinstance(value, (bytes, bytearray)) else b""
 
 
-def decode_loadouts(raw: bytes, count: Any) -> list[dict[str, list[int]]]:
+def loadout_item(weapon_ids: list[Any], weapon_counts: list[Any]) -> dict[str, Any]:
+    """Preserve the CAM's ordered attachment slots alongside legacy arrays."""
+
+    ids = [safe_int(value) for value in weapon_ids]
+    counts = [safe_int(value) for value in weapon_counts]
+    slot_count = max(len(ids), len(counts))
+    store_slots = []
+    for bms_slot in range(slot_count):
+        weapon_id = ids[bms_slot] if bms_slot < len(ids) else 0
+        count = counts[bms_slot] if bms_slot < len(counts) else 0
+        store_slots.append(
+            {
+                "bms_slot": bms_slot,
+                "weapon_id": weapon_id,
+                "count": count,
+                "occupied": weapon_id > 0 and count > 0,
+            }
+        )
+    return {"weapon_ids": ids, "weapon_counts": counts, "store_slots": store_slots}
+
+
+def decode_loadouts(raw: bytes, count: Any) -> list[dict[str, Any]]:
     loadout_count = safe_int(count)
     loadouts: list[dict[str, list[int]]] = []
     for index in range(loadout_count):
@@ -146,16 +167,16 @@ def decode_loadouts(raw: bytes, count: Any) -> list[dict[str, list[int]]]:
             break
         weapon_ids = list(struct.unpack("<" + ("H" * LOADOUT_STATION_COUNT), chunk[:32]))
         weapon_counts = list(chunk[32:48])
-        loadouts.append({"weapon_ids": weapon_ids, "weapon_counts": weapon_counts})
+        loadouts.append(loadout_item(weapon_ids, weapon_counts))
     return loadouts
 
 
-def record_loadouts(record: Any) -> tuple[int, list[dict[str, list[int]]]]:
+def record_loadouts(record: Any) -> tuple[int, list[dict[str, Any]]]:
     """Decode flight loadouts from current or legacy pyopencam records."""
 
     declared_count = safe_int(field(record, "loadouts"))
     entries = field(record, "loadout_entries", ())
-    structured: list[dict[str, list[int]]] = []
+    structured: list[dict[str, Any]] = []
     if isinstance(entries, (list, tuple)):
         for entry in entries:
             if isinstance(entry, dict):
@@ -166,12 +187,7 @@ def record_loadouts(record: Any) -> tuple[int, list[dict[str, list[int]]]]:
                 weapon_counts = getattr(entry, "weapon_counts", None)
             if not isinstance(weapon_ids, (list, tuple)) or not isinstance(weapon_counts, (list, tuple)):
                 continue
-            structured.append(
-                {
-                    "weapon_ids": [safe_int(value) for value in weapon_ids],
-                    "weapon_counts": [safe_int(value) for value in weapon_counts],
-                }
-            )
+            structured.append(loadout_item(list(weapon_ids), list(weapon_counts)))
     if structured:
         return declared_count or len(structured), structured
 
