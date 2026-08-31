@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_utc": "2026-08-31T14:05:01.870106+00:00",
+  "generated_utc": "2026-08-31T16:21:36.011755+00:00",
   "package_ids": [
     6939,
     6957
@@ -10,30 +10,30 @@
       "name": "01_route_threat_map.png",
       "description": "High-level package overview from origin airbases to the target area, with route flow and threats.",
       "source": "01_route_threat_map.png",
-      "sha256": "33d6088e2ca0aa91c30f80d5537519691cadec2046028610f550894f953c83ea",
+      "sha256": "f2c8e20081b65c947b42bfc990ee74236c124b2d61f7b77dcdc835a156e25e10",
       "width": 2700,
       "height": 1530,
-      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "rendered_utc": "2026-08-31T16:21:36.011755+00:00",
       "product_key": "route"
     },
     {
       "name": "02_target_area_map.png",
       "description": "Target-area package flow, named positions, enemy air axes, and strategic rings.",
       "source": "02_target_area_map.png",
-      "sha256": "9b41017083123a426e618687b532f4a5897fc41ab2cfc620188287dcfbe15518",
+      "sha256": "bed0d619881f020fc81214f3896782e2feb6154f6162668a3314bdb9e1f287ff",
       "width": 1764,
       "height": 990,
-      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "rendered_utc": "2026-08-31T16:21:36.011755+00:00",
       "product_key": "target"
     },
     {
       "name": "03_objective_area_map.png",
       "description": "Close objective-area map for target prosecution details.",
       "source": "03_objective_area_map.png",
-      "sha256": "532f2ffdef4340d9cd65b65b64c452da75a469470ff76c40247480d2ac4ebd7b",
+      "sha256": "09239acdb6419bf5fe30d4ebdca28ea6ec78215296afecbafd2b43a8c82f60dd",
       "width": 2240,
       "height": 1260,
-      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "rendered_utc": "2026-08-31T16:21:36.011755+00:00",
       "product_key": "objective"
     },
     {

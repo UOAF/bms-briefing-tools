@@ -38,6 +38,7 @@ from synthesize_bms_briefing import (
     active_squadron,
     action_label,
     build_airbase_objective_refs,
+    bullseye_reference,
     compass_sector,
     enemy_category,
     enemy_owner_ids,
@@ -608,7 +609,10 @@ def label_text(origin: dict[str, Any]) -> str:
     aircraft = ", ".join(origin.get("aircraft") or [])
     if len(aircraft) > 42:
         aircraft = aircraft[:39].rstrip() + "..."
-    return f"{origin.get('name')} | {aircraft}"
+    name = str(origin.get("name") or "Origin")
+    if name.lower().startswith("offshore group") and origin.get("bullseye_ref"):
+        name = f"{name} {origin['bullseye_ref']}"
+    return f"{name} | {aircraft}"
 
 
 def compact_aircraft_name(name: str) -> str:
@@ -768,21 +772,53 @@ def compact_label_text(origin: dict[str, Any]) -> str:
     shown = compact_aircraft_list(origin.get("aircraft") or [])
     name = str(origin.get("name") or "").strip()
     if name.lower().startswith("offshore group"):
-        return shown or "Offshore"
+        parts = [shown or "Offshore"]
+        if origin.get("bullseye_ref"):
+            parts.append(str(origin["bullseye_ref"]))
+        return " | ".join(parts)
     origin_name_short = compact_origin_name(name)
     return f"{origin_name_short} ({shown})" if shown else origin_name_short
 
 
 def is_airbase_origin(origin: dict[str, Any]) -> bool:
     name = str(origin.get("name") or "").lower()
-    return bool(origin.get("airbase_id")) or not name.startswith("offshore group")
+    # Carrier/naval squadrons can carry a campaign base identifier even though
+    # their origin is not a land airbase. The resolved offshore identity wins.
+    if name.startswith("offshore group"):
+        return False
+    return bool(origin.get("airbase_id")) or bool(name)
 
 
 def origin_name(grid_x: float, grid_y: float, airbase_name: str | None) -> str:
     if airbase_name:
         return airbase_name
     # Most non-airbase fighter origins in naval scenarios are carrier or offshore groups.
-    return f"Offshore group {grid_x:.0f}/{grid_y:.0f}"
+    # Raw campaign-grid coordinates are not a valid bullseye call and must not
+    # be placed in the display name. The renderer adds a calculated BE reference
+    # after all origins have been correlated with the current synthesis.
+    return "Offshore group"
+
+
+def add_origin_bullseye_references(
+    origins: list[dict[str, Any]],
+    syntheses: list[dict[str, Any]],
+) -> None:
+    bullseye = next(
+        (
+            synthesis.get("bullseye")
+            for synthesis in syntheses
+            if (synthesis.get("bullseye") or {}).get("grid_x") is not None
+            and (synthesis.get("bullseye") or {}).get("grid_y") is not None
+        ),
+        None,
+    )
+    if not bullseye:
+        return
+    reference_source = {"bullseye": bullseye}
+    for origin in origins:
+        reference = bullseye_reference(reference_source, origin)
+        if reference:
+            origin["bullseye_ref"] = reference
 
 
 def edge_label_position(point: tuple[float, float], width: int, height: int) -> tuple[tuple[float, float], str]:
@@ -1659,6 +1695,7 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     object_catalog = load_object_catalog(args.object_dir) if args.object_dir else {}
     airbase_objectives = load_airbase_objectives(args, object_catalog)
     origins, anchors = collect_air_threat_origins(cam_decode, packages, object_catalog, args.radius_nm, airbase_objectives)
+    add_origin_bullseye_references(origins, syntheses)
     mission_context = mission_context_from_syntheses(syntheses)
     excluded_origins = [
         normalized_label(value)
