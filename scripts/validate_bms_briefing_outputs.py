@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 from PIL import Image
 
 from bms_a2a_tacan import flight_summary as deterministic_a2a_tacan_summary
+from bms_milstd2525 import validate_symbol_contract
 
 
 REQUIRED_IMAGES = (
@@ -38,6 +40,27 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def sha256_json(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def manifest_images(payload: object) -> list[dict[str, object]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        return [item for item in payload.get("images") or [] if isinstance(item, dict)]
+    return []
+
+
 def validate_brief(path: Path, package_ids: list[int]) -> list[str]:
     errors: list[str] = []
     text = read_text(path)
@@ -56,7 +79,8 @@ def validate_manifest(out_dir: Path, max_image_mb: float) -> list[str]:
     manifest_path = image_dir / "manifest.json"
     if not manifest_path.exists():
         return [f"Missing image manifest: {manifest_path}"]
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = manifest_images(payload)
     by_name = {item.get("name"): item for item in manifest if isinstance(item, dict)}
     for name in REQUIRED_IMAGES:
         path = image_dir / name
@@ -65,6 +89,9 @@ def validate_manifest(out_dir: Path, max_image_mb: float) -> list[str]:
         if not path.exists():
             errors.append(f"Missing briefing image {path}.")
             continue
+        expected_hash = str((by_name.get(name) or {}).get("sha256") or "")
+        if expected_hash and sha256_file(path) != expected_hash:
+            errors.append(f"{name} does not match its manifest SHA-256.")
         size_mb = path.stat().st_size / (1024 * 1024)
         if size_mb > max_image_mb:
             errors.append(f"{name} is {size_mb:.1f} MB, above {max_image_mb:.1f} MB.")
@@ -83,6 +110,11 @@ def validate_manifest(out_dir: Path, max_image_mb: float) -> list[str]:
             if name in {"01_route_threat_map.png", "02_target_area_map.png", "03_objective_area_map.png", "04_weather_map.png"}:
                 if abs((width / max(height, 1)) - (16 / 9)) > 0.03:
                     errors.append(f"{name} is {width}x{height}; standard slide maps must remain 16:9 without stretching.")
+                if isinstance(payload, dict) and int(payload.get("schema_version") or 0) >= 2:
+                    if metadata.get("bms_pack_schema") != "2":
+                        errors.append(f"{name} lacks current guarded-pack provenance metadata.")
+                    if not metadata.get("bms_rendered_utc") or not metadata.get("bms_render_context_sha256"):
+                        errors.append(f"{name} lacks render time or mission-context provenance.")
             if name == "04_weather_map.png" and metadata.get("bms_map_product") == "Weather Map":
                 if metadata.get("bms_crop_basis") != "primary-package-flight-plans":
                     errors.append("Weather map crop is not pinned to primary-package flight-plan bounds.")
@@ -112,6 +144,91 @@ def validate_manifest(out_dir: Path, max_image_mb: float) -> list[str]:
                 errors.append(f"{name} is missing a route-derived friendly approach pointer.")
             if abs((width / max(height, 1)) - (16 / 9)) > 0.03:
                 errors.append(f"{name} is {width}x{height}, not a slide-safe 16:9 frame.")
+            command_metadata = metadata.get("bms_3d_command_json")
+            provenance_status = str(item.get("provenance_status") or "")
+            if not command_metadata and provenance_status != "approved-existing-no-command-metadata":
+                errors.append(f"{name} lacks reproducible 3D command metadata or an explicit approved-legacy provenance status.")
+            if metadata.get("bms_3d_background_fill") == "true":
+                errors.append(f"{name} uses post-render background fill; final 3D terrain must reach the frame natively.")
+    listed = {str(item.get("name") or "") for item in manifest}
+    for path in image_dir.glob("*.png"):
+        if path.name not in listed:
+            errors.append(f"Unmanifested PNG in canonical briefing_images: {path.name}. Move candidates/checks to diagnostics.")
+    return errors
+
+
+def validate_brief_sync(out_dir: Path) -> list[str]:
+    generated = out_dir / "generated_briefing.md"
+    combined = out_dir / "player_briefing_combined.md"
+    if generated.is_file() and combined.is_file() and sha256_file(generated) != sha256_file(combined):
+        return ["generated_briefing.md and player_briefing_combined.md are not synchronized."]
+    return []
+
+
+def validate_decoder_and_freshness(out_dir: Path, package_ids: list[int]) -> list[str]:
+    errors: list[str] = []
+    cam_decode_path = out_dir / "cam_decode.json"
+    if not cam_decode_path.is_file():
+        return [f"Missing CAM decode: {cam_decode_path}"]
+    cam_decode = json.loads(cam_decode_path.read_text(encoding="utf-8"))
+    provider = cam_decode.get("provider") or {}
+    if str(provider.get("name") or "").lower() != "pyopencam":
+        errors.append("Canonical briefing decode is not from pyopencam.")
+    clock = cam_decode.get("campaign_clock") or {}
+    for field in ("current_time_z", "current_time_local", "clock_base_hhmm", "clock_source"):
+        if not clock.get(field):
+            errors.append(f"CAM campaign clock is missing {field}.")
+    cam_path_value = provider.get("cam_path")
+    cam_path = Path(cam_path_value) if cam_path_value else None
+    if cam_path and cam_path.is_file() and cam_decode_path.stat().st_mtime + 1 < cam_path.stat().st_mtime:
+        errors.append(f"cam_decode.json is older than campaign save {cam_path}.")
+
+    root_synthesis = out_dir / "briefing_synthesis.json"
+    syntheses = [root_synthesis, *(out_dir / f"pkg{package_id}" / "briefing_synthesis.json" for package_id in package_ids)]
+    syntheses = [path for path in syntheses if path.is_file()]
+    if not syntheses:
+        errors.append("No briefing_synthesis.json is available for freshness validation.")
+    else:
+        newest_input = cam_decode_path.stat().st_mtime
+        context = (json.loads(root_synthesis.read_text(encoding="utf-8")).get("mission_context") or {}) if root_synthesis.is_file() else {}
+        prefix = str(context.get("campaign_prefix") or out_dir.name)
+        context_path = Path.cwd() / "inputs" / f"{prefix}-player-packages-context.json"
+        if context_path.is_file():
+            newest_input = max(newest_input, context_path.stat().st_mtime)
+        for path in syntheses:
+            if path.stat().st_mtime + 1 < newest_input:
+                errors.append(f"{path} is older than CAM/context inputs.")
+        newest_synthesis = max(path.stat().st_mtime for path in syntheses)
+        for name in ("generated_briefing.md", "player_briefing_combined.md"):
+            path = out_dir / name
+            if path.is_file() and path.stat().st_mtime + 1 < newest_synthesis:
+                errors.append(f"{name} is older than briefing synthesis.")
+    return errors
+
+
+def validate_render_profile_hashes(out_dir: Path) -> list[str]:
+    errors: list[str] = []
+    synthesis_path = out_dir / "briefing_synthesis.json"
+    if not synthesis_path.is_file():
+        return errors
+    synthesis = json.loads(synthesis_path.read_text(encoding="utf-8"))
+    context = synthesis.get("mission_context") or {}
+    profiles = context.get("map_render_profiles") or {}
+    context_hash = sha256_json(context)
+    image_dir = out_dir / "briefing_images"
+    for key, name in (("route", "01_route_threat_map.png"), ("target", "02_target_area_map.png"), ("objective", "03_objective_area_map.png"), ("weather", "04_weather_map.png")):
+        path = image_dir / name
+        if not path.is_file():
+            continue
+        with Image.open(path) as image:
+            metadata = image.info
+        if metadata.get("bms_pack_schema") != "2":
+            continue
+        if metadata.get("bms_render_context_sha256") != context_hash:
+            errors.append(f"{name} was rendered from a different mission-context revision.")
+        expected_profile_hash = sha256_json(profiles.get(key) or {})
+        if metadata.get("bms_render_profile_sha256") != expected_profile_hash:
+            errors.append(f"{name} was rendered from a different {key} map profile.")
     return errors
 
 
@@ -246,7 +363,11 @@ def main() -> None:
     errors: list[str] = []
     for name in ("generated_briefing.md", "player_briefing_combined.md"):
         errors.extend(validate_brief(out_dir / name, args.package_id))
+    errors.extend(validate_brief_sync(out_dir))
+    errors.extend(validate_decoder_and_freshness(out_dir, args.package_id))
     errors.extend(validate_manifest(out_dir, args.max_image_mb))
+    errors.extend(validate_render_profile_hashes(out_dir))
+    errors.extend(validate_symbol_contract())
     errors.extend(validate_weather_targets(out_dir, args.package_id))
     errors.extend(validate_a2a_tacan(out_dir, args.package_id))
     errors.extend(validate_player_loadouts(out_dir, args.package_id))

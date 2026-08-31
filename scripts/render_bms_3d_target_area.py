@@ -10,9 +10,12 @@ briefing slides, not as a replacement for the checked 2D package maps.
 from __future__ import annotations
 
 import argparse
+from collections import deque
+import hashlib
 import json
 import math
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -24,12 +27,19 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LightSource
+from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnnotationBbox, DrawingArea
+
+from bms_milstd2525 import canonical_unit_kind, unit_glyph_primitives
+from matplotlib.patches import Arc, Ellipse, Polygon, Rectangle
+from matplotlib.text import Text
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import proj3d
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from PIL.PngImagePlugin import PngInfo
 
 from bms_projection import feet_per_campaign_grid, source_feet_to_campaign_grid
+from render_bms_enemy_air_threat_map import collect_objective_battalions
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -55,6 +65,115 @@ FLOW_COLOR_NAMES = {
     "yellow": "#ffd166",
     "red": "#ff4242",
 }
+
+
+def mil2525_unit_artist(class_name: str, affiliation: str, size: float, alpha: float = 0.60) -> DrawingArea:
+    """Build a screen-facing MIL-STD-2525-style battalion symbol."""
+    width = float(size)
+    height = float(size) + 13.0
+    area = DrawingArea(width, height, 0, 0)
+    friendly = affiliation.lower() == "friendly"
+    edge = "#3287ff" if friendly else "#ee2828"
+    fill = "#deeeff" if friendly else "#ffe1e1"
+    # Keep terrain subtly visible through the frame, but never through the
+    # actual tactical glyph.  A too-transparent white fill made the draped
+    # imagery look like noisy/corrupted icon art at slide scale.
+    # At briefing scale, anything below this reads as a broken tile rather
+    # than controlled transparency over the draped terrain.
+    frame_alpha = max(0.90, min(1.0, alpha))
+    ink = (16 / 255.0, 16 / 255.0, 16 / 255.0, 0.98)
+    cx = width / 2.0
+    cy = size * 0.46
+    frame_w = size * (0.92 if friendly else 0.82)
+    frame_h = size * (0.58 if friendly else 0.82)
+    if friendly:
+        area.add_artist(Rectangle((cx - frame_w / 2, cy - frame_h / 2), frame_w, frame_h, facecolor=fill, edgecolor=edge, linewidth=2.2, alpha=frame_alpha))
+    else:
+        area.add_artist(Polygon([(cx, cy + frame_h / 2), (cx + frame_w / 2, cy), (cx, cy - frame_h / 2), (cx - frame_w / 2, cy)], closed=True, facecolor=fill, edgecolor=edge, linewidth=2.2, alpha=frame_alpha))
+    area.add_artist(Text(cx, size + 1.0, "II", color=edge, fontsize=max(8, size * 0.22), weight="bold", ha="center", va="bottom", alpha=0.98))
+
+    symbol_w = frame_w * (0.58 if friendly else 0.48)
+    symbol_h = frame_h * (0.58 if friendly else 0.48)
+    def line(x1: float, y1: float, x2: float, y2: float, linewidth: float = 1.8) -> None:
+        area.add_artist(Line2D([x1, x2], [y1, y2], color=ink, linewidth=linewidth))
+    for primitive in unit_glyph_primitives(class_name):
+        values = primitive.values
+        if primitive.kind == "line":
+            line(
+                cx + values[0] * symbol_w,
+                cy + values[1] * symbol_h,
+                cx + values[2] * symbol_w,
+                cy + values[3] * symbol_h,
+            )
+        elif primitive.kind in {"ellipse", "filled_ellipse"}:
+            x1, y1, x2, y2 = values
+            area.add_artist(
+                Ellipse(
+                    (cx + (x1 + x2) * symbol_w / 2, cy + (y1 + y2) * symbol_h / 2),
+                    (x2 - x1) * symbol_w,
+                    (y2 - y1) * symbol_h,
+                    fill=primitive.kind == "filled_ellipse",
+                    facecolor=ink if primitive.kind == "filled_ellipse" else "none",
+                    edgecolor=ink,
+                    linewidth=1.9,
+                )
+            )
+        elif primitive.kind == "filled_polygon":
+            points = [
+                (cx + values[index] * symbol_w, cy + values[index + 1] * symbol_h)
+                for index in range(0, len(values), 2)
+            ]
+            area.add_artist(Polygon(points, closed=True, facecolor=ink, edgecolor=ink))
+        elif primitive.kind == "arc":
+            x1, y1, x2, y2, theta1, theta2 = values
+            area.add_artist(
+                Arc(
+                    (cx + (x1 + x2) * symbol_w / 2, cy + (y1 + y2) * symbol_h / 2),
+                    (x2 - x1) * symbol_w,
+                    (y2 - y1) * symbol_h,
+                    theta1=theta1,
+                    theta2=theta2,
+                    edgecolor=ink,
+                    linewidth=1.9,
+                )
+            )
+        elif primitive.kind in {"text_e", "text_s"}:
+            area.add_artist(
+                Text(
+                    cx,
+                    cy,
+                    "E" if primitive.kind == "text_e" else "S",
+                    color=ink,
+                    fontsize=max(10, size * 0.28),
+                    weight="bold",
+                    ha="center",
+                    va="center",
+                )
+            )
+    if canonical_unit_kind(class_name) == "headquarters":
+        staff_x = cx - frame_w / 2
+        staff_y = cy - frame_h / 2
+        line(staff_x, staff_y, staff_x, max(1.0, staff_y - frame_h * 0.62), 2.2)
+    return area
+
+
+def mil2525_ip_artist(label: str, size: float, alpha: float = 0.76) -> DrawingArea:
+    """Build a friendly control-point/IP graphic rather than a generic map pin."""
+    width = max(float(size) * 1.28, 44.0)
+    height = max(float(size) * 0.82, 31.0)
+    area = DrawingArea(width, height, 0, 0)
+    edge = "#3287ff"
+    ink = "#071012"
+    frame_h = height * 0.57
+    area.add_artist(
+        Rectangle(
+            (width * 0.08, height * 0.31), width * 0.84, frame_h,
+            facecolor="#deeeff", edgecolor=edge, linewidth=2.0, alpha=alpha,
+        )
+    )
+    area.add_artist(Text(width / 2, height * 0.60, "IP", color=ink, fontsize=max(8, size * 0.20), weight="bold", ha="center", va="center", alpha=alpha))
+    area.add_artist(Text(width / 2, height * 0.12, label.removeprefix("IP "), color=edge, fontsize=max(7, size * 0.17), weight="bold", ha="center", va="center", alpha=alpha))
+    return area
 
 VIEW_PRESETS: dict[str, dict[str, Any]] = {
     # Recovered from the accepted Event 740 terrain-emphasis views. This is the
@@ -606,6 +725,16 @@ def apply_texture_hillshade(
     return colors
 
 
+def wash_texture(colors: np.ndarray, amount: float) -> np.ndarray:
+    """Lift a dense photoreal texture toward the established pale briefing treatment."""
+    amount = max(0.0, min(1.0, amount))
+    if amount <= 0:
+        return colors
+    result = colors.copy()
+    result[..., :3] = result[..., :3] * (1.0 - amount) + np.array([0.86, 0.88, 0.82]) * amount
+    return result
+
+
 def texture_from_photoreal_tiles(
     tile_dir: Path,
     bounds: tuple[float, float, float, float],
@@ -715,14 +844,44 @@ def parse_hex_color(value: str) -> tuple[int, int, int]:
         return 0, 0, 0
 
 
-def fill_render_background(path: Path, background_color: str, threshold: float) -> None:
+def fill_render_background(path: Path, background_color: str, threshold: float, blur_radius: float = 7.0) -> None:
     image = Image.open(path).convert("RGB")
     pixels = np.asarray(image, dtype=np.int32)
     color = np.asarray(parse_hex_color(background_color), dtype=np.int32)
     distance = np.sqrt(np.sum((pixels - color) ** 2, axis=2))
-    mask = distance <= max(0.0, threshold)
-    if not np.any(mask):
+    candidates = distance <= max(0.0, threshold)
+    if not np.any(candidates):
         return
+
+    # Only replace the solid canvas connected to an image edge.  Treating all
+    # background-coloured pixels as empty also captured the pale fill inside
+    # friendly MIL-STD symbols, which then acquired terrain-texture artifacts.
+    mask = np.zeros(candidates.shape, dtype=bool)
+    queue: deque[tuple[int, int]] = deque()
+    height, width = candidates.shape
+    for x in range(width):
+        if candidates[0, x]:
+            queue.append((0, x))
+        if candidates[height - 1, x]:
+            queue.append((height - 1, x))
+    for y in range(1, height - 1):
+        if candidates[y, 0]:
+            queue.append((y, 0))
+        if candidates[y, width - 1]:
+            queue.append((y, width - 1))
+    while queue:
+        y, x = queue.popleft()
+        if mask[y, x] or not candidates[y, x]:
+            continue
+        mask[y, x] = True
+        if y > 0:
+            queue.append((y - 1, x))
+        if y + 1 < height:
+            queue.append((y + 1, x))
+        if x > 0:
+            queue.append((y, x - 1))
+        if x + 1 < width:
+            queue.append((y, x + 1))
 
     valid_rows, valid_cols = np.where(~mask)
     if len(valid_rows) == 0 or len(valid_cols) == 0:
@@ -736,7 +895,7 @@ def fill_render_background(path: Path, background_color: str, threshold: float) 
     width, height = image.size
     scale = max(width / max(source.width, 1), height / max(source.height, 1))
     fill_size = (max(width, int(source.width * scale) + 2), max(height, int(source.height * scale) + 2))
-    fill = source.resize(fill_size, Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(radius=7))
+    fill = source.resize(fill_size, Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(radius=max(0.0, blur_radius)))
     fill = fill.crop(((fill.width - width) // 2, (fill.height - height) // 2, (fill.width + width) // 2, (fill.height + height) // 2))
 
     output = np.asarray(image).copy()
@@ -870,10 +1029,19 @@ def feature_style(name: str, mode: str = "runway-and-buildings") -> dict[str, An
         if mode == "buildings" and not ("tower" in text):
             return None
         return {"length_nm": 0.055, "width_nm": 0.055, "height_ft": 145, "color": "#ffd6a5", "alpha": 0.70}
+    if "hotel" in text or "city hall" in text:
+        # Town/city object layouts otherwise look unnaturally sparse: their
+        # distinctive tall civic/commercial structures are named separately
+        # from generic buildings in the BMS feature catalog.
+        return {"length_nm": 0.15, "width_nm": 0.11, "height_ft": 92, "color": "#e8cf99", "alpha": 0.68}
     if any(token in text for token in ("hangar", "shelter", "warehouse", "terminal", "depot", "plant", "factory", "maintenance", "technical", "rffs")):
         return {"length_nm": 0.17, "width_nm": 0.11, "height_ft": 55, "color": "#f2c078", "alpha": 0.58}
     if any(token in text for token in ("building", "apartment", "barracks", "office", "admin", "storage", "squad")):
         return {"length_nm": 0.11, "width_nm": 0.08, "height_ft": 45, "color": "#e8d9b5", "alpha": 0.50}
+    if "house" in text:
+        return {"length_nm": 0.072, "width_nm": 0.052, "height_ft": 28, "color": "#dbc8a2", "alpha": 0.44}
+    if "construction" in text:
+        return {"length_nm": 0.13, "width_nm": 0.10, "height_ft": 36, "color": "#cfb67e", "alpha": 0.46}
     if any(token in text for token in ("revetment", "bunker", "ammo", "fuel", "tank")):
         if mode == "buildings":
             return None
@@ -998,6 +1166,7 @@ def draw_objective_features(
     z_exaggeration: float,
     alpha_scale: float,
     height_scale: float,
+    footprint_scale: float,
 ) -> None:
     for feature in features:
         grid_x = safe_float(feature.get("grid_x"))
@@ -1009,8 +1178,8 @@ def draw_objective_features(
             x,
             y,
             ground_z,
-            length_nm=safe_float(feature.get("length_nm"), 0.08),
-            width_nm=safe_float(feature.get("width_nm"), 0.06),
+            length_nm=safe_float(feature.get("length_nm"), 0.08) * footprint_scale,
+            width_nm=safe_float(feature.get("width_nm"), 0.06) * footprint_scale,
             height_kft=height_kft,
             heading_deg=safe_float(feature.get("heading")),
         )
@@ -1035,6 +1204,56 @@ def sample_elevation_ft(heightmap_path: Path, grid_x: float, grid_y: float) -> f
 def point_in_bounds(grid_x: float, grid_y: float, bounds: tuple[float, float, float, float], pad: float = 0.0) -> bool:
     x_min, x_max, y_min, y_max = bounds
     return x_min - pad <= grid_x <= x_max + pad and y_min - pad <= grid_y <= y_max + pad
+
+
+def clip_polygon_to_bounds(points: list[tuple[float, float]], bounds: tuple[float, float, float, float]) -> list[tuple[float, float]]:
+    """Clip a tactical polygon to the visible BMS grid rectangle."""
+    x_min, x_max, y_min, y_max = bounds
+    result = list(points)
+    for axis, threshold, keep_greater in ((0, x_min, True), (0, x_max, False), (1, y_min, True), (1, y_max, False)):
+        if not result:
+            break
+        clipped: list[tuple[float, float]] = []
+        previous = result[-1]
+        previous_inside = previous[axis] >= threshold if keep_greater else previous[axis] <= threshold
+        for current in result:
+            current_inside = current[axis] >= threshold if keep_greater else current[axis] <= threshold
+            if current_inside != previous_inside:
+                delta = current[axis] - previous[axis]
+                if abs(delta) > 1e-9:
+                    t = (threshold - previous[axis]) / delta
+                    clipped.append((previous[0] + t * (current[0] - previous[0]), previous[1] + t * (current[1] - previous[1])))
+            if current_inside:
+                clipped.append(current)
+            previous, previous_inside = current, current_inside
+        result = clipped
+    return result
+
+
+def clip_segment_to_bounds(
+    start: tuple[float, float], end: tuple[float, float], bounds: tuple[float, float, float, float]
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    """Clip one BMS line segment without inventing a crop-edge closing line."""
+    x_min, x_max, y_min, y_max = bounds
+    x0, y0 = start
+    x1, y1 = end
+    dx, dy = x1 - x0, y1 - y0
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, x0 - x_min), (dx, x_max - x0), (-dy, y0 - y_min), (dy, y_max - y0)):
+        if abs(p) < 1e-9:
+            if q < 0:
+                return None
+            continue
+        r = q / p
+        if p < 0:
+            if r > t1:
+                return None
+            t0 = max(t0, r)
+        else:
+            if r < t0:
+                return None
+            t1 = min(t1, r)
+    return ((x0 + t0 * dx, y0 + t0 * dy), (x0 + t1 * dx, y0 + t1 * dy))
 
 
 def find_mark(marks: list[dict[str, Any]], label: str) -> dict[str, Any] | None:
@@ -1329,6 +1548,44 @@ def draw_attack_geometry_overlays(
     image.save(path, pnginfo=pnginfo)
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def tag_3d_provenance(
+    path: Path,
+    *,
+    args: argparse.Namespace,
+    mission_context: dict[str, Any],
+    overlay_bounds: tuple[float, float, float, float],
+    terrain_bounds: tuple[float, float, float, float],
+    unit_count: int,
+    feature_count: int,
+) -> None:
+    with Image.open(path) as source:
+        image = source.copy()
+        pnginfo = PngInfo()
+        for key, value in source.info.items():
+            if isinstance(value, str):
+                pnginfo.add_text(key, value)
+    context_payload = json.dumps(mission_context, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    pnginfo.add_text("bms_3d_command_json", json.dumps(sys.argv[1:], ensure_ascii=False))
+    pnginfo.add_text("bms_3d_overlay_bounds", json.dumps([round(value, 3) for value in overlay_bounds]))
+    pnginfo.add_text("bms_3d_terrain_bounds", json.dumps([round(value, 3) for value in terrain_bounds]))
+    pnginfo.add_text("bms_3d_unit_count", str(unit_count))
+    pnginfo.add_text("bms_3d_feature_count", str(feature_count))
+    pnginfo.add_text("bms_3d_context_sha256", hashlib.sha256(context_payload).hexdigest())
+    pnginfo.add_text("bms_3d_cam_decode_sha256", sha256_file(args.cam_decode) if args.cam_decode and args.cam_decode.is_file() else "")
+    pnginfo.add_text("bms_3d_map_source", str(args.map_source.resolve()) if args.map_source else "")
+    pnginfo.add_text("bms_3d_background_fill", "true" if args.fill_background else "false")
+    pnginfo.add_text("bms_3d_projection", "orthographic" if args.orthographic else "perspective")
+    image.save(path, optimize=True, compress_level=9, pnginfo=pnginfo)
+
+
 def render(args: argparse.Namespace) -> None:
     syntheses = [load_json(Path(path)) for path in args.synthesis]
     package_ids = {safe_int(item) for item in args.package_id}
@@ -1342,7 +1599,11 @@ def render(args: argparse.Namespace) -> None:
     add_orion_target(packages, marks)
     air_defenses = collect_air_defenses(packages, marks, mission_context)
     routes = build_routes(packages, raw_flights, allowed_callsigns)
-    overlay_bounds = bounds_from_labels(args.crop_label, marks, air_defenses, routes, args.margin_grid)
+    overlay_bounds = (
+        (args.crop_grid_bounds[0], args.crop_grid_bounds[2], args.crop_grid_bounds[1], args.crop_grid_bounds[3])
+        if args.crop_grid_bounds
+        else bounds_from_labels(args.crop_label, marks, air_defenses, routes, args.margin_grid)
+    )
     view_bounds = expand_bounds(overlay_bounds, args.view_extra_grid)
     bounds = expand_bounds(view_bounds, args.terrain_extra_grid)
     center_x = (view_bounds[0] + view_bounds[1]) / 2.0
@@ -1394,6 +1655,7 @@ def render(args: argparse.Namespace) -> None:
         )
     else:
         facecolors = terrain_facecolors(elevations_ft)
+    facecolors = wash_texture(facecolors, args.texture_wash)
 
     fig = plt.figure(figsize=(args.width / args.dpi, args.height / args.dpi), dpi=args.dpi)
     fig.patch.set_facecolor(args.background_color)
@@ -1416,8 +1678,13 @@ def render(args: argparse.Namespace) -> None:
     marker_z_lift = args.marker_lift_ft / 1000.0 * args.z_exaggeration
     pin_height = args.pin_height_ft / 1000.0 * args.z_exaggeration
     projected_labels: list[tuple[float, float, float, str, str, str]] = []
+    projected_unit_symbols: list[tuple[float, float, float, str, str, float, float]] = []
+    projected_ip_symbols: list[tuple[float, float, float, str]] = []
 
+    objective_feature_count = 0
     if args.show_objective_features:
+        if not args.camp_obj_data or not args.object_dir:
+            raise SystemExit("--show-objective-features requires both --camp-obj-data and --object-dir.")
         objective_features = collect_objective_features(
             args.camp_obj_data,
             args.object_dir,
@@ -1428,6 +1695,9 @@ def render(args: argparse.Namespace) -> None:
             max_per_objective=args.objective_feature_max_per_objective,
             limit=args.objective_feature_limit,
         )
+        objective_feature_count = len(objective_features)
+        if not objective_features and not args.allow_empty_objective_features:
+            raise SystemExit("No objective features matched the 3D crop/filter; refusing a landmark-empty deliverable.")
         draw_objective_features(
             ax,
             objective_features,
@@ -1437,7 +1707,52 @@ def render(args: argparse.Namespace) -> None:
             z_exaggeration=args.z_exaggeration,
             alpha_scale=args.objective_feature_alpha,
             height_scale=args.objective_feature_height_scale,
+            footprint_scale=args.objective_feature_footprint_scale,
         )
+
+    # Keep each tactical edge as one straight BMS segment while anchoring its
+    # endpoints to terrain, so it remains positionally comparable to units.
+    if args.show_killboxes:
+        selected_killboxes = {normalize_label(item) for item in args.killbox_label}
+        for spec in mission_context.get("map_killboxes") or []:
+            label = str(spec.get("label") or "").strip()
+            if selected_killboxes and normalize_label(label) not in selected_killboxes:
+                continue
+            points = [
+                (safe_float(point.get("grid_x")), safe_float(point.get("grid_y")))
+                for point in spec.get("points") or []
+                if point.get("grid_x") is not None and point.get("grid_y") is not None
+            ]
+            if len(points) < 3:
+                continue
+            for start, end in zip(points, [*points[1:], points[0]]):
+                # Plot the genuine BMS edge rather than closing the polygon on
+                # the crop boundary. Matplotlib then clips the continuing edge
+                # at the visible image frame.
+                (start_x, start_y), (end_x, end_y) = start, end
+                x1, y1 = grid_to_nm(start_x, start_y, center_x, center_y)
+                x2, y2 = grid_to_nm(end_x, end_y, center_x, center_y)
+                # Retain a straight BMS edge, but terrain-reference its two end
+                # points.  A single horizontal plane caused obvious parallax
+                # against ground-anchored battalion symbols in oblique views.
+                z1 = (sample_elevation_ft(args.heightmap, start_x, start_y) + args.killbox_lift_ft) / 1000.0 * args.z_exaggeration
+                z2 = (sample_elevation_ft(args.heightmap, end_x, end_y) + args.killbox_lift_ft) / 1000.0 * args.z_exaggeration
+                ax.plot([x1, x2], [y1, y2], [z1, z2], color="#071012", linewidth=args.killbox_linewidth + 2.2, alpha=1.0, zorder=88)
+                ax.plot([x1, x2], [y1, y2], [z1, z2], color=args.killbox_color, linewidth=args.killbox_linewidth, alpha=args.killbox_alpha, zorder=89)
+
+    if args.show_ground_units and cam_decode:
+        ground_units = collect_objective_battalions(cam_decode, packages, mission_context)
+        for unit in ground_units:
+            grid_x = safe_float(unit.get("grid_x"))
+            grid_y = safe_float(unit.get("grid_y"))
+            if not point_in_bounds(grid_x, grid_y, overlay_bounds, pad=0.5):
+                continue
+            x, y = grid_to_nm(grid_x, grid_y, center_x, center_y)
+            ground_z = sample_elevation_ft(args.heightmap, grid_x, grid_y) / 1000.0 * args.z_exaggeration
+            z = ground_z + args.ground_unit_lift_ft / 1000.0 * args.z_exaggeration
+            class_name = str(unit.get("class_name") or "").upper()
+            affiliation = str(unit.get("affiliation") or "hostile").lower()
+            projected_unit_symbols.append((x, y, z, class_name, affiliation, grid_x, grid_y))
 
     # ADA rings first, beneath labels and route lines.
     theta = np.linspace(0, 2 * math.pi, 220)
@@ -1505,6 +1820,21 @@ def render(args: argparse.Namespace) -> None:
             ax.plot(xs, ys, zs, color=args.ingress_color, linewidth=args.ingress_linewidth, alpha=args.ingress_alpha, zorder=81)
             if args.ingress_marker_alpha > 0:
                 ax.scatter(xs, ys, zs, s=20, color=args.ingress_color, edgecolors="#061012", linewidths=0.6, alpha=args.ingress_marker_alpha, depthshade=False, zorder=82)
+        if args.ingress_highlight_waypoint >= 0:
+            wanted = normalize_callsign(args.ingress_route_callsign)
+            route = next((item for item in routes if normalize_callsign(item.get("callsign")) == wanted), None)
+            waypoints = list(route.get("waypoints") or []) if route else []
+            if args.ingress_highlight_waypoint < len(waypoints):
+                waypoint = waypoints[args.ingress_highlight_waypoint]
+                grid_x = safe_float(waypoint.get("grid_x"))
+                grid_y = safe_float(waypoint.get("grid_y"))
+                if point_in_bounds(grid_x, grid_y, overlay_bounds, pad=0.0):
+                    x, y = grid_to_nm(grid_x, grid_y, center_x, center_y)
+                    ground = sample_elevation_ft(args.heightmap, grid_x, grid_y)
+                    planned_agl = max(safe_float(waypoint.get("grid_z")), args.ingress_lift_ft)
+                    z = (ground + planned_agl) / 1000.0 * args.z_exaggeration
+                    ax.scatter([x], [y], [z], marker="o", s=88, facecolors="#f7fbff", edgecolors="#061012", linewidths=1.5, alpha=1.0, depthshade=False, zorder=83)
+                    projected_labels.append((x, y, z + 0.18, f"STPT {args.ingress_highlight_waypoint}", "#f7fbff", args.ingress_color))
     elif args.ingress_line:
         xs, ys, zs = route_points_for_labels(
             args.ingress_line,
@@ -1550,6 +1880,8 @@ def render(args: argparse.Namespace) -> None:
         normalized_mark_label = normalize_label(label)
         if normalized_mark_label in args.hide_mark_label:
             continue
+        if args.ip_only_marks and not normalized_mark_label.startswith("IP"):
+            continue
         if normalized_mark_label.isdigit() or normalized_mark_label in {
             "10W",
             "10E",
@@ -1562,7 +1894,11 @@ def render(args: argparse.Namespace) -> None:
         }:
             continue
         color = "#2ee878" if normalize_label(label) != "ORION" else "#f5f6f0"
+        is_ip = normalized_mark_label.startswith("IP")
         marker = "D" if normalize_label(label) != "ORION" else "s"
+        if is_ip:
+            projected_ip_symbols.append((x, y, z + 0.18, label))
+            continue
         ax.scatter([x], [y], [z], marker=marker, s=args.mark_size, color=color, edgecolors="#06150b", linewidths=1.2, alpha=args.marker_alpha, depthshade=False)
         dx, dy = label_offsets[label_count % len(label_offsets)]
         label_count += 1
@@ -1650,6 +1986,8 @@ def render(args: argparse.Namespace) -> None:
         ax.text2D(0.025, 0.035, f"Vertical exaggeration {args.z_exaggeration:g}x | view {view_bounds[0]:.1f}-{view_bounds[1]:.1f} / {view_bounds[2]:.1f}-{view_bounds[3]:.1f} grid", transform=ax.transAxes, color="#c8d5d2", fontsize=9)
 
     ax.view_init(elev=args.camera_elev, azim=args.camera_azim)
+    if args.orthographic:
+        ax.set_proj_type("ortho")
     if args.camera_distance > 0:
         try:
             ax.dist = args.camera_distance
@@ -1688,6 +2026,64 @@ def render(args: argparse.Namespace) -> None:
             bbox={"facecolor": "#071012", "edgecolor": edge, "alpha": args.label_box_alpha, "pad": 2.8},
             zorder=5000,
         )
+    # Compactly stagger battalions that are co-located or within one campaign
+    # grid square.  This exposes different branch symbols while keeping the
+    # leader short enough that the tactical side of the boundary stays clear.
+    unit_clusters: list[list[int]] = []
+    for item_index, (_, _, _, _, _, grid_x, grid_y) in enumerate(projected_unit_symbols):
+        assigned = False
+        for cluster in unit_clusters:
+            if any(
+                math.hypot(grid_x - projected_unit_symbols[other][5], grid_y - projected_unit_symbols[other][6]) <= 1.45
+                for other in cluster
+            ):
+                cluster.append(item_index)
+                assigned = True
+                break
+        if not assigned:
+            unit_clusters.append([item_index])
+    cluster_by_index = {item_index: cluster for cluster in unit_clusters for item_index in cluster}
+
+    for item_index, (x, y, z, class_name, affiliation, grid_x, grid_y) in enumerate(projected_unit_symbols):
+        xp, yp, _ = proj3d.proj_transform(x, y, z, ax.get_proj())
+        cluster = cluster_by_index[item_index]
+        index = cluster.index(item_index)
+        count = len(cluster)
+        if count > 1:
+            angle = -math.pi / 2.0 + (2.0 * math.pi * index / count)
+            radius = args.ground_unit_fan_offset
+            offset = (math.cos(angle) * radius, math.sin(angle) * radius)
+        else:
+            offset = (0.0, 0.0)
+        artist = mil2525_unit_artist(class_name, affiliation, args.ground_unit_icon_size, args.ground_unit_alpha)
+        arrowprops = None
+        if count > 1 or offset != (0.0, 0.0):
+            arrowprops = {"arrowstyle": "-", "color": "#252525", "linewidth": 0.8, "alpha": 0.8}
+        ax.add_artist(
+            AnnotationBbox(
+                artist,
+                (xp, yp),
+                xycoords="data",
+                xybox=offset,
+                boxcoords="offset points",
+                frameon=False,
+                pad=0,
+                arrowprops=arrowprops,
+                zorder=6100,
+            )
+        )
+    for x, y, z, label in projected_ip_symbols:
+        xp, yp, _ = proj3d.proj_transform(x, y, z, ax.get_proj())
+        ax.add_artist(
+            AnnotationBbox(
+                mil2525_ip_artist(label, args.ip_icon_size, args.ip_alpha),
+                (xp, yp),
+                xycoords="data",
+                frameon=False,
+                pad=0,
+                zorder=6200,
+            )
+        )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     save_kwargs: dict[str, Any] = {"facecolor": fig.get_facecolor()}
     if args.tight:
@@ -1701,7 +2097,7 @@ def render(args: argparse.Namespace) -> None:
         cropped = cropped.resize((args.width, args.height), Image.Resampling.LANCZOS)
         cropped.save(args.out)
     if args.fill_background:
-        fill_render_background(args.out, args.background_color, args.fill_background_threshold)
+        fill_render_background(args.out, args.background_color, args.fill_background_threshold, args.fill_background_blur)
     draw_attack_geometry_overlays(
         args.out,
         north_vector=north_vector,
@@ -1713,6 +2109,15 @@ def render(args: argparse.Namespace) -> None:
         show_compass=not args.no_compass,
         show_friendly=not args.no_friendly_approach,
         view_preset=args.view_preset,
+    )
+    tag_3d_provenance(
+        args.out,
+        args=args,
+        mission_context=mission_context,
+        overlay_bounds=overlay_bounds,
+        terrain_bounds=bounds,
+        unit_count=len(projected_unit_symbols),
+        feature_count=objective_feature_count,
     )
     print(f"Wrote {args.out}")
 
@@ -1757,6 +2162,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-title", action="store_true")
     parser.add_argument("--no-footer", action="store_true")
     parser.add_argument("--crop-label", nargs="+", default=["CRO", "BLU", "SA6", "10W", "10E", "SA5", "WWO", "BAN"], help="Named marks/ADA labels used to frame the crop.")
+    parser.add_argument("--crop-grid-bounds", nargs=4, type=float, metavar=("WEST", "SOUTH", "EAST", "NORTH"), help="Exact BMS grid crop, used instead of --crop-label.")
     parser.add_argument("--margin-grid", type=float, default=None)
     parser.add_argument("--view-extra-grid", type=float, default=None, help="Add visible map around the tactical crop without changing which overlays are included.")
     parser.add_argument("--terrain-extra-grid", type=float, default=None, help="Render extra terrain outside the tactical crop so oblique views can fill the frame.")
@@ -1770,12 +2176,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--box-y-scale", type=float, default=None)
     parser.add_argument("--camera-elev", type=float, default=None)
     parser.add_argument("--camera-azim", type=float, default=None)
+    parser.add_argument("--north-up", action="store_true", help="Use a near-vertical north-up camera while retaining shallow 3D relief.")
     parser.add_argument("--camera-distance", type=float, default=None, help="Matplotlib 3D camera distance. Smaller values zoom in; <=0 leaves default.")
+    parser.add_argument("--orthographic", action="store_true", help="Use orthographic 3D projection; useful for an edge-to-edge aligned terrain view without perspective side wedges.")
     parser.add_argument("--map-texture-alpha", type=float, default=None)
+    parser.add_argument("--texture-wash", type=float, default=0.0, help="Blend the terrain texture toward the pale briefing style. Range 0-1.")
     parser.add_argument("--hillshade-strength", type=float, default=None, help="Blend hillshade into the draped map texture. 0 disables it; 1 is strongest.")
     parser.add_argument("--background-color", default=None)
     parser.add_argument("--fill-background", action="store_true", help="Replace the solid render background with an enlarged terrain/map underlay after cropping.")
     parser.add_argument("--fill-background-threshold", type=float, default=45.0)
+    parser.add_argument("--fill-background-blur", type=float, default=7.0, help="Gaussian blur radius for the fill-background underlay.")
     parser.add_argument("--show-individual-routes", action="store_true", help="Draw each selected flight path instead of relying only on aggregate ingress lines.")
     parser.add_argument("--ingress-line", nargs="*", default=[], help="Named marks to connect as a single ingress line, e.g. BLU ORION 10W.")
     parser.add_argument("--ingress-route-callsign", default="", help="Draw a translucent decoded route segment for this callsign through the close-up view.")
@@ -1784,6 +2194,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ingress-alpha", type=float, default=0.72)
     parser.add_argument("--ingress-outline-alpha", type=float, default=0.45)
     parser.add_argument("--ingress-marker-alpha", type=float, default=0.55)
+    parser.add_argument("--ingress-highlight-waypoint", type=int, default=-1, help="Show a precise labelled route waypoint in the close-up; use the decoded zero-based BMS steerpoint index.")
     parser.add_argument("--ingress-lift-ft", type=float, default=1700.0)
     parser.add_argument("--ingress-route-pad-grid", type=float, default=4.0)
     parser.add_argument("--friendly-origin-grid", nargs=2, type=float, metavar=("GRID_X", "GRID_Y"), help="Override the derived friendly pre-entry origin used by the attack-direction pointer.")
@@ -1793,9 +2204,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ad-label-offset", action="append", default=[], type=lambda item: item.split("=", 1), help="Override ADA label offset as LABEL=dx,dy in map NM.")
     parser.add_argument("--mark-label-offset", action="append", default=[], type=lambda item: item.split("=", 1), help="Override named mark label offset as LABEL=dx,dy in map NM.")
     parser.add_argument("--hide-mark-label", action="append", default=[], help="Suppress a named mark label/marker from the 3D overlay, e.g. BAN.")
+    parser.add_argument("--ip-only-marks", action="store_true", help="Show only IP control-point graphics from named map marks.")
     parser.add_argument("--camp-obj-data", type=Path, help="Optional CampObjData.XML for objective feature/building overlays.")
     parser.add_argument("--object-dir", type=Path, help="Optional TerrData/Objects directory for objective feature names/layouts.")
     parser.add_argument("--show-objective-features", action="store_true", help="Draw simplified 3D objective features from CampObjData/FED records.")
+    parser.add_argument("--allow-empty-objective-features", action="store_true", help="Diagnostic only: allow a feature-enabled render with no matched landmarks.")
+    parser.add_argument("--show-killboxes", action="store_true", help="Draw mission-context killbox polygons on the terrain surface.")
+    parser.add_argument("--killbox-label", action="append", default=[], help="Limit killbox rendering to this label; repeat as needed.")
+    parser.add_argument("--killbox-color", default="#ffd166")
+    parser.add_argument("--killbox-linewidth", type=float, default=4.2)
+    parser.add_argument("--killbox-alpha", type=float, default=0.96)
+    parser.add_argument("--killbox-lift-ft", type=float, default=90.0)
+    parser.add_argument("--show-ground-units", action="store_true", help="Draw decoded friendly and hostile battalions at their BMS positions.")
+    parser.add_argument("--ground-unit-size", type=float, default=260.0, help=argparse.SUPPRESS)
+    parser.add_argument("--ground-unit-font-size", type=float, default=10.0, help=argparse.SUPPRESS)
+    parser.add_argument("--ground-unit-echelon-offset", type=float, default=10.0, help=argparse.SUPPRESS)
+    parser.add_argument("--ground-unit-icon-size", type=float, default=42.0)
+    parser.add_argument("--ground-unit-fan-offset", type=float, default=34.0)
+    parser.add_argument("--ground-unit-lift-ft", type=float, default=180.0)
+    parser.add_argument("--ground-unit-alpha", type=float, default=0.98)
+    parser.add_argument("--ip-icon-size", type=float, default=38.0)
+    parser.add_argument("--ip-alpha", type=float, default=0.76)
     parser.add_argument("--objective-feature-filter", action="append", default=[], help="Regex filter for objective names to include in 3D feature overlays.")
     parser.add_argument("--objective-feature-exclude", action="append", default=[], help="Regex filter for objective names to exclude from 3D feature overlays.")
     parser.add_argument(
@@ -1808,6 +2237,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--objective-feature-limit", type=int, default=260, help="Maximum number of feature primitives to draw; <=0 means no limit.")
     parser.add_argument("--objective-feature-alpha", type=float, default=1.0, help="Opacity multiplier for objective feature primitives.")
     parser.add_argument("--objective-feature-height-scale", type=float, default=1.0, help="Height multiplier for objective feature primitives.")
+    parser.add_argument("--objective-feature-footprint-scale", type=float, default=1.0, help="Plan-view size multiplier for objective feature primitives.")
     parser.add_argument("--route-linewidth", type=float, default=3.0)
     parser.add_argument("--route-lift-ft", type=float, default=1200.0)
     parser.add_argument("--route-pad-grid", type=float, default=8.0)
@@ -1826,7 +2256,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ad-size", type=float, default=None)
     parser.add_argument("--tight", action="store_true", help="Use tight bbox cropping instead of preserving the exact output frame.")
     parser.add_argument("--post-crop", nargs=4, type=int, metavar=("LEFT", "TOP", "RIGHT", "BOTTOM"), help="Crop the rendered frame, then resize back to output dimensions.")
-    args = apply_view_preset(parser.parse_args())
+    args = parser.parse_args()
+    post_crop_supplied = args.post_crop is not None
+    box_x_scale_supplied = args.box_x_scale is not None
+    box_y_scale_supplied = args.box_y_scale is not None
+    args = apply_view_preset(args)
+    if args.north_up:
+        # At azimuth -90° the campaign's +Y (north) projects vertically upward.
+        # 82° leaves enough elevation to read bridges and buildings as 3D forms.
+        args.camera_elev = 82.0
+        args.camera_azim = -90.0
+        if not post_crop_supplied:
+            args.post_crop = None
+        if not box_x_scale_supplied:
+            args.box_x_scale = 1.0
+        if not box_y_scale_supplied:
+            args.box_y_scale = 1.0
     args.ad_label_offset = {key: value for key, value in args.ad_label_offset if key and value}
     args.mark_label_offset = {key: value for key, value in args.mark_label_offset if key and value}
     args.hide_mark_label = {normalize_label(item) for item in args.hide_mark_label if item}

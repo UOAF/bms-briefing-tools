@@ -1,0 +1,116 @@
+{
+  "schema_version": 2,
+  "generated_utc": "2026-08-31T14:05:01.870106+00:00",
+  "package_ids": [
+    6939,
+    6957
+  ],
+  "images": [
+    {
+      "name": "01_route_threat_map.png",
+      "description": "High-level package overview from origin airbases to the target area, with route flow and threats.",
+      "source": "01_route_threat_map.png",
+      "sha256": "33d6088e2ca0aa91c30f80d5537519691cadec2046028610f550894f953c83ea",
+      "width": 2700,
+      "height": 1530,
+      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "product_key": "route"
+    },
+    {
+      "name": "02_target_area_map.png",
+      "description": "Target-area package flow, named positions, enemy air axes, and strategic rings.",
+      "source": "02_target_area_map.png",
+      "sha256": "9b41017083123a426e618687b532f4a5897fc41ab2cfc620188287dcfbe15518",
+      "width": 1764,
+      "height": 990,
+      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "product_key": "target"
+    },
+    {
+      "name": "03_objective_area_map.png",
+      "description": "Close objective-area map for target prosecution details.",
+      "source": "03_objective_area_map.png",
+      "sha256": "532f2ffdef4340d9cd65b65b64c452da75a469470ff76c40247480d2ac4ebd7b",
+      "width": 2240,
+      "height": 1260,
+      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "product_key": "objective"
+    },
+    {
+      "name": "04_weather_map.png",
+      "description": "Weather review map, when available.",
+      "source": "04_weather_map.png",
+      "sha256": "2adba4887ad350b951b1e8620dd528e065378cbf1b84430339d0cb68e3825c76",
+      "width": 2425,
+      "height": 1360,
+      "rendered_utc": "2026-08-31T14:05:01.870106+00:00",
+      "product_key": "weather"
+    },
+    {
+      "name": "05_3d_killbox1_southwest.png",
+      "description": "North-up oblique terrain view of southwest Killbox 1 with decoded ground units, IPs, landmarks, and killbox geometry.",
+      "optional": true,
+      "provenance_status": "approved-existing-no-command-metadata",
+      "source_note": "User-approved Event 744 image retained; the current CAM clock advanced 2.102 seconds after its source decode, and its unit pattern was cross-checked against the refreshed objective map.",
+      "source": "05_3d_killbox1_southwest.png",
+      "sha256": "eccab8230da3c1a81608b768841b2c3cc981365b41f25b72661ad5db9d09dfc3",
+      "width": 2400,
+      "height": 1350,
+      "rendered_utc": null,
+      "product_key": null
+    },
+    {
+      "name": "06_3d_killbox1_southwest_west_to_east.png",
+      "description": "West-to-east attack-perspective terrain view from IP C5 toward the Killbox 1 leading edge.",
+      "optional": true,
+      "provenance_status": "approved-existing-no-command-metadata",
+      "source_note": "User-approved Event 744 image retained; the current CAM clock advanced 2.102 seconds after its source decode, and its unit pattern was cross-checked against the refreshed objective map.",
+      "source": "06_3d_killbox1_southwest_west_to_east.png",
+      "sha256": "fb340af33cdd896d4680151e9af0fec0e3061e27f17e46830a47abadfbfd709a",
+      "width": 2400,
+      "height": 1350,
+      "rendered_utc": null,
+      "product_key": null
+    }
+  ],
+  "sources": {
+    "campaign_save": {
+      "path": "C:\\Falcon BMS 4.38\\Data\\Campaign\\744pre.cam",
+      "size": 212087,
+      "mtime_utc": "2026-08-31T13:26:00.768700+00:00",
+      "sha256": "e6888d03b3321e4c0ade719b7dfdb4d223a6e651224ffa51e7f8be928326eb20"
+    },
+    "cam_decode": {
+      "path": "C:\\Users\\SPQR\\Documents\\New project 4\\outputs\\744pre\\cam_decode.json",
+      "size": 6118645,
+      "mtime_utc": "2026-08-31T13:38:57.476772+00:00",
+      "sha256": "8c27e194bfdcb452a319977c800635fa3c2c53c8f4ba516ab7f6ebcb638b16fb"
+    },
+    "mission_context": {
+      "path": "C:\\Users\\SPQR\\Documents\\New project 4\\inputs\\744pre-player-packages-context.json",
+      "size": 21151,
+      "mtime_utc": "2026-08-31T14:03:29.757436+00:00",
+      "sha256": "98c1aced52f1dee4c8e629ecb7a48d50f2df4e243dfe8db3a361af9e2b0aec22"
+    },
+    "map_source": {
+      "path": "C:\\Falcon BMS 4.38\\Docs\\05 Maps\\8_KTO_16k_Skyvector.png",
+      "size": 115907469,
+      "mtime_utc": "2025-06-29T14:57:35.130994+00:00",
+      "sha256": "187f1a19b7f3945655c4f0c81f36ec4c09566e9a7e94656f1013cceada77390f"
+    },
+    "syntheses": [
+      {
+        "path": "C:\\Users\\SPQR\\Documents\\New project 4\\outputs\\744pre\\pkg6939\\briefing_synthesis.json",
+        "size": 4455380,
+        "mtime_utc": "2026-08-31T14:04:18.231659+00:00",
+        "sha256": "7d0ef738c61d2f001344ab7574dbb86945213a1b858ea824370ca85b7da78df8"
+      },
+      {
+        "path": "C:\\Users\\SPQR\\Documents\\New project 4\\outputs\\744pre\\pkg6957\\briefing_synthesis.json",
+        "size": 4451896,
+        "mtime_utc": "2026-08-31T14:04:18.226655+00:00",
+        "sha256": "b29a1f57d04a095e4604dca8fb19320afe80e0c9456214165f5a5d33cc5bdc63"
+      }
+    ]
+  }
+}

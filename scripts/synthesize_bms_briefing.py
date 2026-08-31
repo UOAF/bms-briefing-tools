@@ -340,6 +340,17 @@ def context_contract_map(context: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
+def context_mission_display_map(context: dict[str, Any]) -> dict[str, str]:
+    """Return player-facing mission names that deliberately supersede BMS planning labels."""
+    result: dict[str, str] = {}
+    for callsign, mission in (context.get("mission_display_overrides") or {}).items():
+        clean_callsign = str(callsign or "").strip()
+        clean_mission = str(mission or "").strip()
+        if clean_callsign and clean_mission:
+            result[clean_callsign] = clean_mission
+    return result
+
+
 def context_a2a_tacan_map(context: dict[str, Any]) -> dict[str, str]:
     result: dict[str, str] = {}
     for item in context.get("a2a_tacan_assignments", []) or []:
@@ -715,12 +726,31 @@ def waypoint_summary(
         target = resolve_target(target_id, objectives, deltas_by_num, deltas_by_key, unit_index)
         if target and target.get("kind") == "unresolved" and vu_num(target_id) == 0:
             target = None
-        if action in AIRBASE_WAYPOINT_ACTIONS and not target_is_airbase(target, airbase_objectives):
-            airbase = nearest_airbase_objective_for_waypoint(waypoint, airbase_objectives)
-            if airbase:
-                target = dict(airbase)
-                target["original_target"] = target_id
-                target["basis"] = "nearest airbase objective at takeoff/landing waypoint"
+        if action in AIRBASE_WAYPOINT_ACTIONS:
+            nearest_airbase = nearest_airbase_objective_for_waypoint(waypoint, airbase_objectives)
+            target_airbase = airbase_ref_for_target(target, airbase_objectives)
+            target_distance = None
+            if target_airbase and waypoint.get("grid_x") is not None and waypoint.get("grid_y") is not None:
+                target_distance = math.hypot(
+                    safe_float(target_airbase.get("grid_x")) - safe_float(waypoint.get("grid_x")),
+                    safe_float(target_airbase.get("grid_y")) - safe_float(waypoint.get("grid_y")),
+                )
+            stale_or_wrong_id = target_airbase is not None and (
+                target_distance is None or target_distance > AIRBASE_WAYPOINT_MATCH_DISTANCE_GRID
+            )
+            if nearest_airbase and (not target_is_airbase(target, airbase_objectives) or stale_or_wrong_id):
+                original_target = dict(target) if target else {"id": target_id}
+                target = dict(nearest_airbase)
+                target["original_target"] = original_target
+                target["basis"] = "nearest coordinate-aligned airbase objective at takeoff/landing waypoint"
+                if stale_or_wrong_id:
+                    target["identity_conflict"] = {
+                        "target_id": vu_num(target_id),
+                        "target_name": original_target.get("name"),
+                        "target_distance_grid": round(float(target_distance or 0.0), 2),
+                        "resolved_airbase_id": target.get("camp_id"),
+                        "resolved_airbase_name": target.get("name"),
+                    }
         waypoints.append(
             {
                 "index": waypoint.get("index"),
@@ -1796,6 +1826,30 @@ def target_area_point(
             "basis": "Planner-defined primary weather target anchors " + ", ".join(item[0] for item in explicit_points),
         }
 
+    # Planner-designated weather anchors may be ordinary correlated INI marks
+    # rather than mission-context overrides. Honor the requested labels before
+    # falling back to the centroid of every correlated objective mark.
+    requested_keys = {target_label(label) for label in requested_labels if target_label(label)}
+    correlated_points: list[tuple[str, float, float]] = []
+    for match in plan_correlation.get("point_matches", []):
+        label = str(match.get("display") or match.get("label") or "").strip()
+        if target_label(label) not in requested_keys:
+            continue
+        grid = match.get("campaign_grid") or {}
+        if grid.get("grid_x") is None or grid.get("grid_y") is None:
+            continue
+        correlated_points.append((label, safe_float(grid.get("grid_x")), safe_float(grid.get("grid_y"))))
+    if correlated_points:
+        return {
+            "action": "TARGET_AREA",
+            "arrive_hhmm": None,
+            "arrive_local_hhmm": None,
+            "grid_x": round(sum(item[1] for item in correlated_points) / len(correlated_points), 1),
+            "grid_y": round(sum(item[2] for item in correlated_points) / len(correlated_points), 1),
+            "anchor_labels": [item[0] for item in correlated_points],
+            "basis": "Planner-defined primary weather target anchors " + ", ".join(item[0] for item in correlated_points),
+        }
+
     excluded_labels = {"GRD", "GUARDPOST", "GUARD POST", "BAR", "BARRIER"}
     grids: list[tuple[float, float]] = []
     labels: list[str] = []
@@ -2066,6 +2120,21 @@ def nearest_airbase_objective_for_waypoint(
     if not candidates:
         return None
     return min(candidates, key=lambda item: item[:3])[3]
+
+
+def airbase_ref_for_target(
+    target: dict[str, Any] | None,
+    airbase_objectives: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not target:
+        return None
+    camp_id = safe_int(target.get("camp_id"))
+    if not camp_id:
+        return None
+    return next(
+        (airbase for airbase in airbase_objectives if safe_int(airbase.get("camp_id")) == camp_id),
+        None,
+    )
 
 
 def objective_destroyed(delta: dict[str, Any] | None) -> bool:
@@ -2368,6 +2437,21 @@ def synthesize(
     mission_context: dict[str, Any] | None = None,
     object_catalog: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # Mission planners may use a player-facing name for a BMS objective (for
+    # example a theater-specific airbase alias) without mutating the campaign
+    # save or the extracted CampObjData source.
+    objective_name_overrides = (mission_context or {}).get("objective_name_overrides") or {}
+    if isinstance(objective_name_overrides, dict):
+        objectives = {
+            objective_id: {
+                **objective,
+                "name": objective_name_overrides.get(
+                    str(objective_id),
+                    objective_name_overrides.get(objective_id, objective.get("name")),
+                ),
+            }
+            for objective_id, objective in objectives.items()
+        }
     deltas = objective_delta_map(cam_decode)
     deltas_by_key = objective_delta_key_map(cam_decode)
     unit_index = build_unit_index(cam_decode)
@@ -2414,6 +2498,7 @@ def synthesize(
         package_id = int(package.get("camp_id") or 0)
         package_context = context_by_package.get(package_id, {})
         contract_by_callsign = context_contract_map(package_context)
+        mission_display_by_callsign = context_mission_display_map(package_context)
         callsigns = [str(flight.get("callsign") or "").strip() for flight in flights]
         a2a_tacan_by_callsign = package_assignments(mission_context or {}, package_id, callsigns)
         # Explicit per-flight values remain a supported mission-specific
@@ -2440,7 +2525,10 @@ def synthesize(
                 "camp_id": flight.get("camp_id"),
                 "vu_id": flight.get("id"),
                 "callsign": flight.get("callsign"),
-                "mission": flight.get("mission_short"),
+                "mission": mission_display_by_callsign.get(
+                    str(flight.get("callsign") or "").strip(),
+                    flight.get("mission_short"),
+                ),
                 "owner": flight.get("owner"),
                 "team": teams.get(flight.get("owner")),
                 "aircraft_count": flight.get("aircraft_count") or aircraft_count_from_roster(flight.get("roster")),

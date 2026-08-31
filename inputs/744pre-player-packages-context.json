@@ -1,0 +1,360 @@
+{
+  "source": "User-provided mission-planner interpretation, 2026-08-30",
+  "event": "744",
+  "campaign_prefix": "744pre",
+  "route_name": "Daegu killbox interdiction and Pohang air-defense suppression",
+  "objective_name_overrides": {},
+  "deck_structure": "Treat packages 6939 and 6957 as one integrated player operation and one briefing deck.",
+  "campaign_history": {
+    "prior_event": "743",
+    "player_facing_summary": "Event 744 continues the fight around Daegu. Prior-event material is context only; current package tasking and the 744pre save govern this brief."
+  },
+  "a2a_tacan_scheme": {
+    "first_package_start": 15,
+    "package_stride": 10,
+    "flight_block_size": 5,
+    "wingman_offset": 63
+  },
+  "map_objective_crop_labels": ["KI1", "KI2", "KI3"],
+  "map_objective_explicit_grid_bounds": [577.0, 210.0, 646.0, 273.0],
+  "map_objective_display_labels": ["KI1", "KI2", "KI3", "10A", "10B", "10N", "IP M7", "IP P7", "IP C5", "IP HAM6"],
+  "map_objective_crop_label_margin_grid": 8.0,
+  "map_render_profiles": {
+    "route": {
+      "margin_grid": 18.0,
+      "flow_width_multiplier": 1.0,
+      "label_multiplier": 1.0,
+      "small_label_multiplier": 1.0,
+      "origin_label_multiplier": 1.0
+    },
+    "target": {
+      "explicit_grid_bounds": [532.0, 185.0, 728.0, 295.0],
+      "margin_grid": 12.0,
+      "flow_context_key": "map_target_flow_groups",
+      "flow_width_multiplier": 0.42,
+      "label_multiplier": 0.72,
+      "small_label_multiplier": 0.62,
+      "origin_label_multiplier": 0.62
+    },
+    "objective": {
+      "explicit_grid_bounds": [577.0, 210.0, 646.0, 273.0],
+      "margin_grid": 6.0,
+      "offshore_origin_label_scale": 0.5,
+      "label_multiplier": 1.45,
+      "small_label_multiplier": 1.30,
+      "origin_label_multiplier": 1.15,
+      "required_labels": ["KI1", "KI2", "KI3", "10A", "10B", "10N", "IP M7", "IP P7", "IP C5", "IP HAM6", "Pohang", "Offshore group"]
+    },
+    "weather": {
+      "weather_alpha": 132,
+      "player_route_opacity": 0.20,
+      "weather_label_font_size": 42,
+      "ao_label_font_size": 44,
+      "ini_label_font_size": 44,
+      "route_label_font_size": 32,
+      "scale_label_font_size": 44
+    }
+  },
+  "briefing_image_products": [
+    {
+      "name": "05_3d_killbox1_southwest.png",
+      "description": "North-up oblique terrain view of southwest Killbox 1 with decoded ground units, IPs, landmarks, and killbox geometry.",
+      "provenance_status": "approved-existing-no-command-metadata",
+      "source_note": "User-approved Event 744 image retained; the current CAM clock advanced 2.102 seconds after its source decode, and its unit pattern was cross-checked against the refreshed objective map."
+    },
+    {
+      "name": "06_3d_killbox1_southwest_west_to_east.png",
+      "description": "West-to-east attack-perspective terrain view from IP C5 toward the Killbox 1 leading edge.",
+      "provenance_status": "approved-existing-no-command-metadata",
+      "source_note": "User-approved Event 744 image retained; the current CAM clock advanced 2.102 seconds after its source decode, and its unit pattern was cross-checked against the refreshed objective map."
+    }
+  ],
+  "map_killboxes": [
+    {
+      "label": "KI1",
+      "points": [
+        {"grid_x": 608.3, "grid_y": 241.0},
+        {"grid_x": 622.2, "grid_y": 233.7},
+        {"grid_x": 634.1, "grid_y": 253.5},
+        {"grid_x": 607.6, "grid_y": 269.7},
+        {"grid_x": 597.5, "grid_y": 250.5}
+      ]
+    },
+    {
+      "label": "KI2",
+      "points": [
+        {"grid_x": 602.9, "grid_y": 226.5},
+        {"grid_x": 619.9, "grid_y": 221.7},
+        {"grid_x": 622.2, "grid_y": 233.7},
+        {"grid_x": 608.3, "grid_y": 241.0}
+      ]
+    },
+    {
+      "label": "KI3",
+      "points": [
+        {"grid_x": 602.9, "grid_y": 226.5},
+        {"grid_x": 619.9, "grid_y": 221.7},
+        {"grid_x": 619.9, "grid_y": 212.7},
+        {"grid_x": 597.8, "grid_y": 212.9}
+      ]
+    }
+  ],
+  "map_package_color_legend": [
+    {"package_id": 6939, "color": "blue", "label": "PKG 6939 — DEAD / EAGLES"},
+    {"package_id": 6957, "color": "amber", "label": "PKG 6957 — AI / TARCAP"}
+  ],
+  "named_points": [
+    {"label": "KI1", "name": "Killbox 1", "meaning": "Eastern killbox and threatened friendly-front sector."},
+    {"label": "KI2", "name": "Killbox 2", "meaning": "Central killbox; Hammer 6 attacks its western edge."},
+    {"label": "KI3", "name": "Killbox 3", "meaning": "Western killbox; mountainous terrain to its south provides low-level masking for Plasma 3."},
+    {"label": "10A", "name": "SA-10 Alpha", "meaning": "Mobile, currently undeployed SA-10 battalion with missile supply assessed RED."},
+    {"label": "10B", "name": "SA-10 Bravo", "meaning": "Mobile, currently undeployed SA-10 battalion with missile supply assessed RED."},
+    {"label": "10N", "name": "SA-10 North", "meaning": "Coastal SA-10 east of the killboxes threatening Killbox 1 and the Alpha/Bravo attack; missile supply assessed BLACK and reliably attackable from altitude."}
+  ],
+  "packages": [
+    {
+      "package_id": 6939,
+      "mission_display_overrides": {"Plasma 3": "DEAD"},
+      "weather_target_labels": ["10A", "10B", "10N"],
+      "briefing_read": "Strategic air-defense suppression and forward fighter screen. Low SA-10 missile supply is a general feature of the target set: Alpha and Bravo are assessed RED, while North is assessed BLACK. Plasma 3 destroys mobile SA-10 Alpha and Bravo; Hawkeye 6 destroys coastal SA-10 North; Devil 1, Eagle 5, and Lancer 7 protect the attacks and then press toward Pohang when the relevant SAM gate is open.",
+      "sad_contracts": [
+        {
+          "callsign": "Plasma 3",
+          "contract": "Find and destroy SA-10 Alpha and Bravo",
+          "sector": "South of Killbox 3 to Alpha/Bravo",
+          "intent": "Hook south of Killbox 3 and use the mountainous terrain for a masked ingress if either SA-10 becomes active. Push north, locate and destroy both Flap Lid radars, then destroy the battalions in place with CBU and GBU-54. Alpha and Bravo are mobile, currently undeployed, and their missile supply is assessed RED. They are not expected to be an immediate medium-altitude package threat unless they deploy or radiate. Execute at the briefed TOT."
+        },
+        {
+          "callsign": "Hawkeye 6",
+          "contract": "Destroy SA-10 North",
+          "sector": "Coast east of the killboxes",
+          "intent": "Find and destroy SA-10 North, the coastal site threatening Killbox 1 and constraining attacks on Alpha and Bravo. Its missile supply is assessed BLACK; plan the primary attack from altitude, which should provide a reliable attack solution against the site. Continue to respect any observed radiation or launches. Confirm the site neutralized so the eastern fighter screen can press toward Pohang."
+        }
+      ],
+      "cap_contracts": [
+        {
+          "callsign": "Devil 1",
+          "contract": "Western safe patrol, then forward patrol and Pohang sweep",
+          "sector": "Safe patrol STPT 3-4; forward patrol STPT 5-6; southwest-to-northeast Pohang axis",
+          "intent": "Establish the western safe patrol at STPT 3-4, outside SA-10 North's WEZ. If Alpha or Bravo is active, remain west and provide standoff cover until Plasma 3 confirms its tasking complete. Move to the desired forward patrol at STPT 5-6 only after SA-10 North is confirmed down and Alpha/Bravo are no longer factor. If SA-10 North remains active, stay at STPT 3-4 for the duration. Once the forward gate is open, press Pohang southwest-to-northeast and intercept bandits departing the airfield."
+        },
+        {
+          "callsign": "Eagle 5",
+          "contract": "First-arriving western safe patrol, then forward patrol and Pohang sweep",
+          "sector": "Safe patrol STPT 3-4 near Dongsong-ri; forward patrol STPT 5-6; west-to-east Pohang axis",
+          "intent": "Arrive at the western screen at 1814Z, one minute before Plasma 3's 1815Z DEAD time. Establish the safe patrol at STPT 3-4, outside SA-10 North's WEZ. If Alpha or Bravo is active, stand off west and cover Plasma 3 until it confirms the sites are no longer factor. Move to the desired forward patrol at STPT 5-6 only after SA-10 North is confirmed down and Alpha/Bravo are no longer factor. If SA-10 North remains active, stay at STPT 3-4. Once the forward gate is open, push west-to-east onto Pohang and intercept bandits departing the airfield."
+        },
+        {
+          "callsign": "Lancer 7",
+          "contract": "Safe northeast block, then forward northeast patrol",
+          "sector": "Safe patrol STPT 3-4; forward patrol STPT 5-6; north-northeast threat axis",
+          "intent": "Establish the safe patrol at STPT 3-4, outside SA-10 North's WEZ, and support Hawkeye 6 from standoff while blocking the north-northeast approach. If Alpha or Bravo is active, remain west of the factor threats until Plasma 3 completes its tasking. Move to the desired forward patrol at STPT 5-6 only after SA-10 North is confirmed down and Alpha/Bravo are no longer factor. If SA-10 North remains active, stay at STPT 3-4. Intercept naval aviation and other bandits arriving from the north-northeast."
+        }
+      ],
+      "fallback_logic": "The Eagle screen defaults to the safe western patrol geometry at STPT 3-4. If Alpha or Bravo is active, the Eagles remain west until Plasma 3 confirms its DEAD tasking complete. STPT 5-6 are the desired forward patrol points but lie inside SA-10 North's threat area; the Eagles may use them only after SA-10 North is confirmed down and Alpha/Bravo are no longer factor. If SA-10 North never goes down, all three Eagle flights remain at STPT 3-4 and do not press Pohang."
+    },
+    {
+      "package_id": 6957,
+      "weather_target_labels": ["KI1", "KI2", "KI3"],
+      "briefing_read": "Killbox interdiction package. The three relevant SA-10 battalions are generally missile-depleted—Alpha and Bravo are assessed RED, while North is assessed BLACK—but remain factor threats until confirmed neutralized. Spade 7 holds local TARCAP over the killboxes while four AI flights attack enemy maneuver forces on the western/forward edges of Killboxes 1-3. AI execution is independent of the Alpha/Bravo SEAD result; if those SA-10s are active, use low-altitude pop-up attacks with standoff PGMs rather than waiting.",
+      "cap_contracts": [
+        {
+          "callsign": "Spade 7",
+          "contract": "Killbox TARCAP",
+          "sector": "Killboxes and friendly front line",
+          "intent": "Protect the AI flights over the killboxes and intercept bandits entering the killbox area. Secondary priorities are protecting friendly troops from fixed-wing attack and supporting defensive Eagle flights, but remain on station and do not abandon the killbox screen."
+        }
+      ],
+      "strike_contracts": [
+        {
+          "callsign": "Mudhen 7",
+          "contract": "Interdict west Killbox 1 lead elements",
+          "sector": "Western side of Killbox 1",
+          "intent": "Attack the forward edge of enemy troops maneuvering toward friendly forces. This is a priority sector because a breakthrough is possible."
+        },
+        {
+          "callsign": "Plasma 7",
+          "contract": "Interdict southwest Killbox 3 lead elements",
+          "sector": "Southwestern side of Killbox 3",
+          "intent": "Attack enemy forces preparing to move south or northwest to outflank and attack friendly forces."
+        },
+        {
+          "callsign": "Cyborg 5",
+          "contract": "Reattack Mudhen 7 target area",
+          "sector": "Western side of Killbox 1",
+          "intent": "Arrive roughly three minutes after Mudhen 7, receive a target-area lowdown, and continue working the same sector for maximum effect."
+        },
+        {
+          "callsign": "Hammer 6",
+          "contract": "Interdict west Killbox 2 lead elements",
+          "sector": "Western side of Killbox 2",
+          "intent": "Attack the leading edge of enemy troops. Expect a high SHORAD threat, including SA-19 near Steer 6 and SA-13s in the area."
+        }
+      ],
+      "fallback_logic": "All AI flights attack regardless of the Alpha/Bravo status. If Alpha or Bravo is active and factor, execute low-altitude pop-up attacks with standoff PGMs; do not hold or wait for the SA-10s to be destroyed."
+    }
+  ],
+  "commander_intent": "Protect friendly forces and break the enemy maneuver on the Daegu front while stripping the remaining strategic SAM cover and denying Pohang as a fighter source. Low missile supply is a general theme across the SA-10 target set: Alpha and Bravo are assessed RED, while North is assessed BLACK. Package 6939 exploits that depletion to suppress the mobile/coastal SA-10s—Hawkeye 6 can reliably attack SA-10 North from altitude—while Package 6957 maintains continuous killbox interdiction under a dedicated local TARCAP.",
+  "package_flow_contracts": [
+    {
+      "package_id": 6939,
+      "phase": "Initial Eagle screen",
+      "geometry": "Devil 1, Eagle 5, and Lancer 7 establish their safe patrols at STPT 3-4, outside SA-10 North's WEZ.",
+      "gate": "Default geometry on arrival. Eagle 5 reaches the screen at 1814Z, one minute before Plasma 3's 1815Z DEAD time."
+    },
+    {
+      "package_id": 6939,
+      "phase": "Alpha/Bravo hold",
+      "geometry": "If SA-10 Alpha or Bravo is active, all three Eagle flights stand off to the west and cover Plasma 3 from the safe patrol.",
+      "gate": "Remain west until Plasma 3 confirms Alpha and Bravo are no longer factor."
+    },
+    {
+      "package_id": 6939,
+      "phase": "Forward Eagle patrol",
+      "geometry": "STPT 5-6 are the desired forward patrol points for Devil 1, Eagle 5, and Lancer 7, but they are inside SA-10 North's threat area.",
+      "gate": "Advance from STPT 3-4 to STPT 5-6 only after SA-10 North is confirmed down and Alpha/Bravo are no longer factor. If SA-10 North survives, remain at STPT 3-4 for the mission."
+    }
+  ],
+  "deconfliction": [
+    "Plasma 3 works south of Killbox 3, then north onto SA-10 Alpha and Bravo; its masked route must remain clear of the Killbox 3 AI flow.",
+    "Hawkeye 6 and Lancer 7 work the eastern/coastal SA-10 North problem.",
+    "Devil 1, Eagle 5, and Lancer 7 initially use safe patrol STPT 3-4 outside SA-10 North's WEZ. If Alpha/Bravo are active, they stand off west until Plasma 3 completes its tasking. They advance to desired patrol STPT 5-6 only after SA-10 North is down and Alpha/Bravo are no longer factor; otherwise they remain at STPT 3-4.",
+    "After the forward-patrol gate opens, Devil 1 and Eagle 5 may press Pohang on their briefed axes while Lancer 7 maintains the north-northeast block.",
+    "Spade 7 remains over the killboxes and does not chase threats away from its primary station area.",
+    "Mudhen 7 and Cyborg 5 sequence onto the same Killbox 1 sector; Cyborg 5 checks in for Mudhen 7's target-area lowdown.",
+    "All AI flights continue their attacks regardless of Alpha/Bravo status and use low-altitude pop-up/standoff profiles if either site becomes factor."
+  ],
+  "map_mark_overrides": [
+    {"label": "IP M7", "name": "Mudhen 7 IP", "grid_x": 583.0, "grid_y": 247.0, "objective_only": true, "label_scale": 0.5},
+    {"label": "IP P7", "name": "Plasma 7 IP", "grid_x": 585.0, "grid_y": 223.0, "objective_only": true, "label_scale": 0.5},
+    {"label": "IP C5", "name": "Cyborg 5 IP", "grid_x": 584.0, "grid_y": 254.0, "objective_only": true, "label_scale": 0.5},
+    {"label": "IP HAM6", "name": "Hammer 6 IP", "grid_x": 586.0, "grid_y": 232.0, "objective_only": true, "label_scale": 0.5},
+    {"label": "10A", "name": "SA-10 Alpha", "from_ppt_label": "A", "grid_x": 641.0, "grid_y": 237.0},
+    {"label": "10B", "name": "SA-10 Bravo", "from_ppt_label": "B", "grid_x": 629.0, "grid_y": 225.0},
+    {"label": "10N", "name": "SA-10 North", "from_ppt_label": "10", "grid_x": 684.0, "grid_y": 283.0, "edge_cue": true}
+  ],
+  "map_threat_ring_overrides": [
+    {"label": "10A", "threat_range_grid": 85.0, "ring_style": "dotted-outline"},
+    {"label": "10B", "threat_range_grid": 85.0, "ring_style": "dotted-outline"},
+    {"label": "10N", "threat_range_grid": 85.0, "ring_style": "normal"}
+  ],
+  "map_target_flow_groups": [
+    {
+      "label": "Plasma 3 DEAD",
+      "compact_label": "P3 DEAD — 10B/10A",
+      "color": [188, 112, 255],
+      "callsigns": ["Plasma 3"],
+      "label_fraction": 0.4,
+      "label_offset": [0, -42],
+      "stages": [{"type": "origin"}, {"grid_x": 523.0, "grid_y": 212.0}, {"grid_x": 542.0, "grid_y": 211.0}, {"grid_x": 597.0, "grid_y": 197.0}, {"grid_x": 625.0, "grid_y": 198.0}, {"type": "target", "label": "10B"}, {"type": "target", "label": "10A"}]
+    },
+    {
+      "label": "Hawkeye 6 DEAD",
+      "compact_label": "H6 DEAD — 10N",
+      "color": [188, 112, 255],
+      "callsigns": ["Hawkeye 6"],
+      "label_fraction": 0.72,
+      "label_offset": [18, -32],
+      "stages": [{"grid_x": 597.0, "grid_y": 270.0}, {"grid_x": 666.0, "grid_y": 282.0}, {"type": "target", "label": "10N"}]
+    },
+    {
+      "label": "Devil 1 CAP",
+      "compact_label": "CAP",
+      "color": "blue",
+      "render_mode": "dual-cap",
+      "show_label": false,
+      "callsigns": ["Devil 1"],
+      "label_fraction": 0.5,
+      "label_offset": [12, -30],
+      "stages": [{"grid_x": 611.0, "grid_y": 190.0}, {"grid_x": 632.0, "grid_y": 203.0}, {"grid_x": 638.0, "grid_y": 207.0}, {"grid_x": 659.0, "grid_y": 221.0}]
+    },
+    {
+      "label": "Eagle 5 CAP",
+      "compact_label": "CAP",
+      "color": "blue",
+      "render_mode": "dual-cap",
+      "show_label": false,
+      "callsigns": ["Eagle 5"],
+      "label_fraction": 0.5,
+      "label_offset": [10, -38],
+      "stages": [{"grid_x": 573.0, "grid_y": 238.0}, {"grid_x": 601.0, "grid_y": 238.0}, {"grid_x": 608.0, "grid_y": 239.0}, {"grid_x": 640.0, "grid_y": 235.0}]
+    },
+    {
+      "label": "Lancer 7 CAP",
+      "compact_label": "CAP",
+      "color": "blue",
+      "render_mode": "dual-cap",
+      "show_label": false,
+      "callsigns": ["Lancer 7"],
+      "label_fraction": 0.5,
+      "label_offset": [10, 22],
+      "stages": [{"grid_x": 552.0, "grid_y": 259.0}, {"grid_x": 591.0, "grid_y": 263.0}, {"grid_x": 616.0, "grid_y": 268.0}, {"grid_x": 652.0, "grid_y": 272.0}]
+    },
+    {
+      "label": "Killbox AI",
+      "compact_label": "AI",
+      "color": "amber",
+      "callsigns": ["Mudhen 7", "Plasma 7", "Cyborg 5", "Hammer 6"],
+      "show_label": false,
+      "stages": [{"type": "origin"}, {"type": "ini", "label": "KI1"}, {"type": "ini", "label": "KI2"}, {"type": "ini", "label": "KI3"}]
+    },
+    {
+      "label": "Killbox TARCAP",
+      "compact_label": "SPADE 7 TARCAP",
+      "color": "amber",
+      "callsigns": ["Spade 7"],
+      "show_label": true,
+      "label_fraction": 0.5,
+      "label_offset": [0, -22],
+      "stages": [{"type": "action", "action": "WP_CAP", "occurrence": 0}, {"type": "action", "action": "WP_CAP", "occurrence": 1}]
+    }
+  ],
+  "map_flow_groups": [
+    {
+      "label": "ALPHA / BRAVO DEAD",
+      "compact_label": "A/B DEAD (P3)",
+      "weather_label": "A/B DEAD",
+      "color": [188, 112, 255],
+      "callsigns": ["Plasma 3"],
+      "stages": [{"type": "origin"}, {"grid_x": 523.0, "grid_y": 212.0}, {"grid_x": 542.0, "grid_y": 211.0}, {"grid_x": 597.0, "grid_y": 197.0}, {"grid_x": 625.0, "grid_y": 198.0}, {"type": "target", "label": "10B"}, {"type": "target", "label": "10A"}]
+    },
+    {
+      "label": "SA-10 NORTH DEAD",
+      "compact_label": "10N DEAD (H6)",
+      "weather_label": "10N DEAD",
+      "color": [188, 112, 255],
+      "callsigns": ["Hawkeye 6"],
+      "stages": [{"type": "origin"}, {"grid_x": 500.0, "grid_y": 277.0}, {"grid_x": 531.0, "grid_y": 273.0}, {"grid_x": 548.0, "grid_y": 271.0}, {"grid_x": 560.0, "grid_y": 271.0}, {"grid_x": 584.0, "grid_y": 271.0}, {"grid_x": 597.0, "grid_y": 270.0}, {"grid_x": 666.0, "grid_y": 282.0}, {"type": "target", "label": "10N"}]
+    },
+    {
+      "label": "EAGLE SAFE TO FORWARD PATROL",
+      "compact_label": "EAGLES: SAFE 3-4 → FWD 5-6",
+      "weather_label": "EAGLE SCREEN",
+      "color": "blue",
+      "callsigns": ["Devil 1", "Eagle 5", "Lancer 7"],
+      "stages": [
+        {"type": "origin"},
+        {"grid_x": 578.7, "grid_y": 229.0},
+        {"grid_x": 608.0, "grid_y": 234.7},
+        {"grid_x": 620.7, "grid_y": 238.0},
+        {"grid_x": 650.3, "grid_y": 242.7}
+      ]
+    },
+    {
+      "label": "KILLBOX INTERDICTION",
+      "compact_label": "AI (M7, P7, C5, H6)",
+      "weather_label": "KILLBOX AI",
+      "color": "amber",
+      "callsigns": ["Mudhen 7", "Plasma 7", "Cyborg 5", "Hammer 6"],
+      "stages": [{"type": "origin"}, {"type": "ini", "label": "KI1"}, {"type": "ini", "label": "KI2"}, {"type": "ini", "label": "KI3"}]
+    },
+    {
+      "label": "KILLBOX TARCAP",
+      "compact_label": "TARCAP (Spade7)",
+      "weather_label": "TARCAP",
+      "color": "amber",
+      "callsigns": ["Spade 7"],
+      "stages": [{"type": "origin"}, {"type": "action", "action": "WP_CAP", "occurrence": 0}, {"type": "action", "action": "WP_CAP", "occurrence": 1}]
+    }
+  ]
+}

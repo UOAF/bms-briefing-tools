@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
+
+from bms_milstd2525 import canonical_unit_kind, unit_glyph_primitives
 from PIL.PngImagePlugin import PngInfo
 
 from render_bms_package_map import (
@@ -389,9 +391,18 @@ def crop_for_combined_map(
     flow_groups: list[dict[str, Any]],
     named_positions: list[dict[str, Any]],
     objective_positions: list[dict[str, Any]],
+    ground_units: list[dict[str, Any]],
     args: argparse.Namespace,
 ) -> tuple[int, int, int, int]:
-    labeled_crop = crop_for_requested_labels(named_positions, args.combined_crop_labels, args)
+    if args.combined_objective_explicit_grid_bounds:
+        west, south, east, north = args.combined_objective_explicit_grid_bounds
+        return (
+            max(0, math.floor(west)),
+            max(0, math.floor(MAP_GRID_SIZE - north)),
+            min(MAP_GRID_SIZE, math.ceil(east)),
+            min(MAP_GRID_SIZE, math.ceil(MAP_GRID_SIZE - south)),
+        )
+    labeled_crop = crop_for_requested_labels(named_positions, args.combined_crop_labels, args, ground_units)
     if labeled_crop:
         return labeled_crop
 
@@ -423,6 +434,7 @@ def crop_for_requested_labels(
     named_positions: list[dict[str, Any]],
     labels: list[str] | None,
     args: argparse.Namespace,
+    extra_points: list[dict[str, Any]] | None = None,
 ) -> tuple[int, int, int, int] | None:
     wanted = {normalized_marker_label(label) for label in labels or [] if normalized_marker_label(label)}
     if not wanted:
@@ -436,7 +448,7 @@ def crop_for_requested_labels(
     missing = sorted(wanted - found)
     if missing:
         raise SystemExit(f"Could not find combined crop label(s): {', '.join(missing)}")
-    return crop_for_points(selected, args.combined_crop_label_margin_grid, args.aspect_ratio)
+    return crop_for_points([*selected, *(extra_points or [])], args.combined_crop_label_margin_grid, args.aspect_ratio)
 
 
 def point_inside_image(point: tuple[float, float], width: int, height: int, pad: float = 0.0) -> bool:
@@ -512,6 +524,65 @@ def draw_flow_arrow(
         draw.line((start[0], start[1], end[0], end[1]), fill=(5, 28, 38, 180), width=width + 7)
         draw.line((start[0], start[1], end[0], end[1]), fill=color + (205,), width=width)
     draw_arrowhead(draw, points[-2], points[-1], color + (235,), size=24)
+
+
+def draw_dual_cap_circuits(
+    draw: ImageDraw.ImageDraw,
+    points: list[tuple[float, float]],
+    color: tuple[int, int, int],
+    width: int,
+    label_font: ImageFont.ImageFont,
+    map_width: int,
+    map_height: int,
+    origin: tuple[float, float] | None = None,
+    callsign_label: str = "",
+) -> None:
+    """Draw SAFE and FWD racetracks with a decisive hold/gate between them."""
+    if len(points) < 4:
+        draw_flow_arrow(draw, points, color, width)
+        return
+
+    def racetrack(start: tuple[float, float], end: tuple[float, float]) -> tuple[float, float]:
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        distance = max(math.hypot(dx, dy), 1.0)
+        offset = max(15.0, min(34.0, distance * 0.18))
+        px, py = -dy / distance * offset, dx / distance * offset
+        loop = [(start[0] + px, start[1] + py), (end[0] + px, end[1] + py), (end[0] - px, end[1] - py), (start[0] - px, start[1] - py)]
+        for first, second in zip(loop, [*loop[1:], loop[0]]):
+            draw.line((first[0], first[1], second[0], second[1]), fill=(5, 28, 38, 185), width=width + 6)
+            draw.line((first[0], first[1], second[0], second[1]), fill=color + (220,), width=width)
+        draw_arrowhead(draw, loop[0], loop[1], color + (240,), size=20)
+        draw_arrowhead(draw, loop[2], loop[3], color + (240,), size=20)
+        center = ((start[0] + end[0]) / 2.0, (start[1] + end[1]) / 2.0)
+        draw_fitted_text_box(draw, center, "CAP", label_font, map_width, map_height, fill=color, bg=LABEL_BG)
+        return center
+
+    if origin is not None:
+        # A deliberate feeder shows who owns the first, SAFE patrol circuit.
+        draw_flow_arrow(draw, [origin, points[0]], color, max(3, width - 1))
+        if callsign_label:
+            # Origins frequently sit outside the tight target-area crop.  Anchor the
+            # callsign on the visible feeder segment, never beyond the slide edge.
+            feeder_start = origin
+            if not point_inside_image(origin, map_width, map_height, 12):
+                feeder_start = clip_segment_to_rect(origin, points[0], map_width, map_height, pad=20)
+            feeder_mid = (
+                feeder_start[0] + (points[0][0] - feeder_start[0]) * 0.58,
+                feeder_start[1] + (points[0][1] - feeder_start[1]) * 0.58,
+            )
+            draw_fitted_text_box(
+                draw, feeder_mid, callsign_label, label_font, map_width, map_height,
+                fill=color, bg=LABEL_BG,
+            )
+
+    safe_center = racetrack(points[0], points[1])
+    fwd_center = racetrack(points[2], points[3])
+    gate = ((safe_center[0] + fwd_center[0]) / 2.0, (safe_center[1] + fwd_center[1]) / 2.0)
+    radius = max(15, width * 3)
+    diamond = [(gate[0], gate[1] - radius), (gate[0] + radius, gate[1]), (gate[0], gate[1] + radius), (gate[0] - radius, gate[1])]
+    draw.polygon(diamond, fill=(9, 24, 33, 235), outline=color + (255,))
+    draw.line([*diamond, diamond[0]], fill=color + (255,), width=max(3, width // 2))
+    draw_fitted_text_box(draw, (gate[0], gate[1] - radius - 10), "HOLD", label_font, map_width, map_height, fill=color, bg=LABEL_BG)
 
 
 def point_along_polyline(points: list[tuple[float, float]], fraction: float) -> tuple[float, float]:
@@ -648,6 +719,13 @@ def merge_named_positions(
         key = canonical_named_position_key(position.get("label"))
         if not key or key in seen:
             continue
+        raw_label = normalized_label(position.get("label"))
+        if raw_label and any(
+            normalized_label(override.get("source_label")) == raw_label
+            for override in override_positions
+            if override.get("source_label")
+        ):
+            continue
         family = tactical_factor_family(position.get("label"))
         if family and any(
             tactical_factor_family(override.get("label")) == family
@@ -669,7 +747,7 @@ def co_located_factor_marker(
     named_positions: list[dict[str, Any]],
     max_distance_grid: float = 2.5,
 ) -> bool:
-    factor_keys = {"2", "3", "5", "6", "10", "10A", "10B", "10C", "10W", "10E", "10S", "11", "17"}
+    factor_keys = {"2", "3", "5", "6", "10", "10A", "10B", "10C", "10N", "10W", "10E", "10S", "11", "17"}
     for position in named_positions:
         if canonical_named_position_key(position.get("label")) not in factor_keys:
             continue
@@ -769,6 +847,563 @@ def collect_strategic_air_defenses(packages: list[dict[str, Any]]) -> list[dict[
     )
 
 
+def collect_visible_enemy_units(packages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collect deduplicated enemy ground-unit records exposed by package intelligence."""
+    units: dict[tuple[int, float, float], dict[str, Any]] = {}
+    for package in packages:
+        enemy = package.get("enemy_situation") or {}
+        for unit in enemy.get("closest_units") or []:
+            if not valid_map_grid(unit.get("grid_x"), unit.get("grid_y")):
+                continue
+            key = (
+                safe_int(unit.get("camp_id"), -1),
+                round(safe_float(unit.get("grid_x")), 1),
+                round(safe_float(unit.get("grid_y")), 1),
+            )
+            units[key] = unit
+    return list(units.values())
+
+
+def point_in_grid_polygon(x: float, y: float, polygon: list[tuple[float, float]]) -> bool:
+    inside = False
+    previous = len(polygon) - 1
+    for current in range(len(polygon)):
+        x1, y1 = polygon[current]
+        x2, y2 = polygon[previous]
+        if ((y1 > y) != (y2 > y)) and x < (x2 - x1) * (y - y1) / ((y2 - y1) or 1e-9) + x1:
+            inside = not inside
+        previous = current
+    return inside
+
+
+def decoded_unit_equipment(unit: dict[str, Any], limit: int = 3) -> str:
+    names: list[str] = []
+    for item in (unit.get("unit_type") or {}).get("vehicle_template") or []:
+        name = str(item.get("vehicle_name") or "").strip()
+        if name and name not in names:
+            names.append(name)
+        if len(names) >= limit:
+            break
+    return "; ".join(names)
+
+
+def collect_objective_ground_units(
+    cam_decode: dict[str, Any],
+    packages: list[dict[str, Any]],
+    mission_context: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Build a readable brigade-level ground picture plus discrete enemy ADA."""
+    polygons = [
+        [
+            (safe_float(point.get("grid_x")), safe_float(point.get("grid_y")))
+            for point in spec.get("points") or []
+            if valid_map_grid(point.get("grid_x"), point.get("grid_y"))
+        ]
+        for spec in mission_context.get("map_killboxes") or []
+        if isinstance(spec, dict)
+    ]
+    polygons = [polygon for polygon in polygons if len(polygon) >= 3]
+    if not polygons:
+        return collect_visible_enemy_units(packages)
+
+    teams_by_id = {safe_int(team.get("who"), -1): team for team in cam_decode.get("teams") or []}
+    friendly_owners = {
+        safe_int(flight.get("owner"), -1)
+        for package in packages
+        for flight in package.get("flights") or []
+        if safe_int(flight.get("owner"), -1) >= 0
+    }
+    enemy_owners: set[int] = set()
+    for package in packages:
+        enemy_owners.update(enemy_owner_ids(package, teams_by_id))
+
+    reference_points = [point for polygon in polygons for point in polygon]
+    for polygon in polygons:
+        reference_points.append(
+            (
+                sum(point[0] for point in polygon) / len(polygon),
+                sum(point[1] for point in polygon) / len(polygon),
+            )
+        )
+
+    result: dict[tuple[str, int], dict[str, Any]] = {}
+    for brigade in cam_decode.get("brigades") or []:
+        owner = safe_int(brigade.get("owner"), -1)
+        x = safe_float(brigade.get("x"))
+        y = safe_float(brigade.get("y"))
+        inside_killbox = any(point_in_grid_polygon(x, y, polygon) for polygon in polygons)
+        near_killbox = min((math.hypot(x - px, y - py) for px, py in reference_points), default=9999.0) <= 22.0
+        if owner in enemy_owners and not inside_killbox:
+            continue
+        if owner in friendly_owners and not near_killbox:
+            continue
+        if owner not in enemy_owners and owner not in friendly_owners:
+            continue
+        class_name = str((((brigade.get("unit_type") or {}).get("unit_class") or {}).get("name")) or "Unit")
+        item = {
+            "camp_id": safe_int(brigade.get("camp_id"), -1),
+            "team": str((teams_by_id.get(owner) or {}).get("name") or owner),
+            "affiliation": "friendly" if owner in friendly_owners else "hostile",
+            "echelon": "brigade",
+            "class_name": class_name,
+            "category": "maneuver",
+            "grid_x": x,
+            "grid_y": y,
+            "equipment": decoded_unit_equipment(brigade),
+        }
+        result[(item["affiliation"], item["camp_id"])] = item
+
+    # Preserve discrete, player-relevant enemy ADA locations that are not
+    # represented by maneuver-brigade frames.
+    for unit in collect_visible_enemy_units(packages):
+        if str(unit.get("class_name") or "").upper() != "AIR DEFENSE":
+            continue
+        x = safe_float(unit.get("grid_x"))
+        y = safe_float(unit.get("grid_y"))
+        if min((math.hypot(x - px, y - py) for px, py in reference_points), default=9999.0) > 18.0:
+            continue
+        item = dict(unit)
+        item.update({"affiliation": "hostile", "echelon": "battalion"})
+        result[("hostile", safe_int(item.get("camp_id"), -1))] = item
+    grouped: dict[tuple[str, str, float, float, str], dict[str, Any]] = {}
+    for item in result.values():
+        key = (
+            str(item.get("affiliation") or "hostile"),
+            str(item.get("echelon") or "battalion"),
+            round(safe_float(item.get("grid_x")), 1),
+            round(safe_float(item.get("grid_y")), 1),
+            str(item.get("class_name") or "Unit").upper(),
+        )
+        if key not in grouped:
+            grouped[key] = dict(item)
+            grouped[key]["count"] = 1
+        else:
+            grouped[key]["count"] = safe_int(grouped[key].get("count"), 1) + 1
+    return list(grouped.values())
+
+
+def collect_objective_battalions(
+    cam_decode: dict[str, Any],
+    packages: list[dict[str, Any]],
+    mission_context: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Select decoded battalions at their actual BMS campaign positions."""
+    # BMSUtils' compatibility decode does not expose the unit-class record.
+    # Retain readable MIL symbols when a freshly decoded CAM is used; the map
+    # still takes every coordinate directly from that new CAM record.
+    entity_class_fallback = {
+        152: "Tank", 161: "Tank", 158: "Motor Rifle", 5291: "Motor Rifle",
+        2620: "Cavalry", 181: "HQ", 681: "HQ", 827: "Infantry",
+        1531: "Towed Gun", 673: "Mech", 154: "Mech",
+    }
+    polygons = [
+        [
+            (safe_float(point.get("grid_x")), safe_float(point.get("grid_y")))
+            for point in spec.get("points") or []
+            if valid_map_grid(point.get("grid_x"), point.get("grid_y"))
+        ]
+        for spec in mission_context.get("map_killboxes") or []
+        if isinstance(spec, dict)
+    ]
+    polygons = [polygon for polygon in polygons if len(polygon) >= 3]
+    if not polygons:
+        return []
+    teams_by_id = {safe_int(team.get("who"), -1): team for team in cam_decode.get("teams") or []}
+    friendly_owners = {
+        safe_int(flight.get("owner"), -1)
+        for package in packages
+        for flight in package.get("flights") or []
+        if safe_int(flight.get("owner"), -1) >= 0
+    }
+    enemy_owners: set[int] = set()
+    for package in packages:
+        enemy_owners.update(enemy_owner_ids(package, teams_by_id))
+    reference_points = [point for polygon in polygons for point in polygon]
+    for polygon in polygons:
+        reference_points.append(
+            (
+                sum(point[0] for point in polygon) / len(polygon),
+                sum(point[1] for point in polygon) / len(polygon),
+            )
+        )
+
+    units: list[dict[str, Any]] = []
+    for battalion in cam_decode.get("battalions") or []:
+        owner = safe_int(battalion.get("owner"), -1)
+        if owner not in friendly_owners and owner not in enemy_owners:
+            continue
+        x = safe_float(battalion.get("x"))
+        y = safe_float(battalion.get("y"))
+        class_name = str((((battalion.get("unit_type") or {}).get("unit_class") or {}).get("name")) or "")
+        if not class_name:
+            class_name = entity_class_fallback.get(safe_int(battalion.get("entity_type"), -1), "Unit")
+        inside_killbox = any(point_in_grid_polygon(x, y, polygon) for polygon in polygons)
+        distance_to_killbox = min((math.hypot(x - px, y - py) for px, py in reference_points), default=9999.0)
+        if owner in enemy_owners:
+            discrete_ada = class_name.upper() in {"AIR DEFENSE", "SHORAD"} and distance_to_killbox <= 18.0
+            if not inside_killbox and not discrete_ada:
+                continue
+        elif distance_to_killbox > 22.0:
+            continue
+        units.append(
+            {
+                "camp_id": safe_int(battalion.get("camp_id"), -1),
+                "team": str((teams_by_id.get(owner) or {}).get("name") or owner),
+                "affiliation": "friendly" if owner in friendly_owners else "hostile",
+                "echelon": "battalion",
+                "class_name": class_name,
+                "grid_x": x,
+                "grid_y": y,
+                "equipment": decoded_unit_equipment(battalion),
+            }
+        )
+    return units
+
+
+def mil2525_unit_label(unit: dict[str, Any]) -> str:
+    equipment = str(unit.get("equipment") or "").upper()
+    for token in ("SA-10", "SA-11", "SA-13", "SA-17", "SA-19", "BM-21", "D-30"):
+        if token in equipment:
+            base = token
+            count = safe_int(unit.get("count"), 1)
+            return f"{count}× {base}" if count > 1 else base
+    class_name = str(unit.get("class_name") or "UNIT").upper()
+    base = {
+        "AIR DEFENSE": "ADA",
+        "ROCKET": "RKT",
+        "ROCKET ARTILLERY": "RKT ARTY",
+        "TOWED GUN": "ARTY",
+        "TOWED ARTILLERY": "ARTY",
+        "SP ARTILLERY": "SP ARTY",
+        "ARMORED": "ARM",
+        "MECH": "MECH",
+        "INFANTRY": "INF",
+        "ENGINEER": "ENG",
+        "SUPPLY": "SUP",
+        "MOTOR RIFLE": "MOT INF",
+        "HQ": "HQ",
+    }.get(class_name, class_name[:8])
+    count = safe_int(unit.get("count"), 1)
+    return f"{count}× {base}" if count > 1 else base
+
+
+def draw_mil2525_enemy_units(
+    overlay: Image.Image,
+    projector: Projector,
+    units: list[dict[str, Any]],
+    reserved_positions: list[dict[str, Any]] | None = None,
+) -> None:
+    """Draw compact MIL-STD-2525-style ground-unit symbols with leaders."""
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    half = max(16, min(24, int(projector.scale * 1.2)))
+    line_width = max(3, min(5, projector.scale // 4))
+    icon_width = max(2, min(3, line_width - 1))
+    icon_font = load_font(max(11, int(projector.scale * 1.15)), bold=True)
+    label_font = load_font(max(11, int(projector.scale * 1.05)), bold=True)
+    placed: list[tuple[float, float, float, float]] = []
+    for position in reserved_positions or []:
+        xy = projector.grid(position.get("grid_x"), position.get("grid_y"))
+        if not point_inside_image(xy, overlay.width, overlay.height, 4):
+            continue
+        placed.append((xy[0] - 34, xy[1] - 30, xy[0] + 112, xy[1] + 42))
+    spacing = half * 2.4
+    candidate_offsets = [
+        (0.0, 0.0),
+        (0.0, -spacing),
+        (spacing, 0.0),
+        (-spacing, 0.0),
+        (0.0, spacing),
+        (spacing, -spacing),
+        (-spacing, -spacing),
+        (spacing, spacing),
+        (-spacing, spacing),
+        (spacing * 1.8, 0.0),
+        (-spacing * 1.8, 0.0),
+        (0.0, spacing * 1.8),
+        (0.0, -spacing * 1.8),
+        (spacing * 2.8, 0.0),
+        (-spacing * 2.8, 0.0),
+        (spacing * 2.2, -spacing * 1.7),
+        (-spacing * 2.2, -spacing * 1.7),
+        (spacing * 2.2, spacing * 1.7),
+        (-spacing * 2.2, spacing * 1.7),
+    ]
+    for radius_multiplier in (3.0, 3.8, 4.6, 5.4, 6.2):
+        radius = spacing * radius_multiplier
+        for angle in range(0, 360, 30):
+            radians = math.radians(angle)
+            candidate_offsets.append((radius * math.cos(radians), radius * math.sin(radians)))
+    ink = (25, 10, 10, 255)
+    for unit in sorted(units, key=lambda item: (safe_float(item.get("grid_y")), safe_float(item.get("grid_x"))), reverse=True):
+        actual = projector.grid(unit.get("grid_x"), unit.get("grid_y"))
+        if not point_inside_image(actual, overlay.width, overlay.height, half + 4):
+            continue
+        label = mil2525_unit_label(unit)
+        label_bbox = draw.textbbox((0, 0), label, font=label_font)
+        label_width = max(half * 2, label_bbox[2] - label_bbox[0] + 10)
+        symbol_height = half * 2 + (label_bbox[3] - label_bbox[1]) + 11
+        chosen = actual
+        chosen_box = (actual[0] - label_width / 2, actual[1] - half - 12, actual[0] + label_width / 2, actual[1] - half - 12 + symbol_height)
+        for dx, dy in candidate_offsets:
+            candidate = (actual[0] + dx, actual[1] + dy)
+            box = (
+                candidate[0] - label_width / 2 - 4,
+                candidate[1] - half - 16,
+                candidate[0] + label_width / 2 + 4,
+                candidate[1] - half - 16 + symbol_height + 8,
+            )
+            if box[0] < 4 or box[1] < 4 or box[2] > overlay.width - 4 or box[3] > overlay.height - 4:
+                continue
+            if any(not (box[2] < other[0] or box[0] > other[2] or box[3] < other[1] or box[1] > other[3]) for other in placed):
+                continue
+            chosen = candidate
+            chosen_box = box
+            break
+        placed.append(chosen_box)
+        friendly = str(unit.get("affiliation") or "hostile").lower() == "friendly"
+        frame = (50, 135, 255, 255) if friendly else (238, 40, 40, 255)
+        frame_fill = (222, 238, 255, 225) if friendly else (255, 225, 225, 220)
+        label_fill = (210, 232, 255) if friendly else (255, 220, 220)
+        label_bg = (0, 42, 92, 220) if friendly else (72, 0, 0, 215)
+        if math.hypot(chosen[0] - actual[0], chosen[1] - actual[1]) > 2:
+            draw.line((actual[0], actual[1], chosen[0], chosen[1]), fill=frame, width=max(2, line_width - 1))
+            draw.ellipse((actual[0] - 3, actual[1] - 3, actual[0] + 3, actual[1] + 3), fill=frame)
+
+        cx, cy = chosen
+        if friendly:
+            frame_points = [
+                (cx - half, cy - half * 0.72),
+                (cx + half, cy - half * 0.72),
+                (cx + half, cy + half * 0.72),
+                (cx - half, cy + half * 0.72),
+            ]
+        else:
+            frame_points = [(cx, cy - half), (cx + half, cy), (cx, cy + half), (cx - half, cy)]
+        draw.polygon(frame_points, fill=frame_fill, outline=frame)
+        draw.line([*frame_points, frame_points[0]], fill=frame, width=line_width, joint="curve")
+        echelon_y = cy - half - 10
+        echelon = "X" if str(unit.get("echelon") or "").lower() == "brigade" else "II"
+        draw.text((cx, echelon_y), echelon, font=label_font, fill=frame, anchor="ms")
+
+        class_name = str(unit.get("class_name") or "").upper()
+        if class_name == "AIR DEFENSE":
+            arc_box = (cx - half * 0.48, cy - half * 0.05, cx + half * 0.48, cy + half * 0.55)
+            draw.arc(arc_box, 180, 360, fill=ink, width=icon_width)
+            draw.line((cx, cy + half * 0.25, cx, cy - half * 0.45), fill=ink, width=icon_width)
+        elif class_name in {"ROCKET", "ROCKET ARTILLERY"}:
+            for offset in (-half * 0.32, 0.0, half * 0.32):
+                draw.line((cx + offset, cy + half * 0.38, cx + offset, cy - half * 0.28), fill=ink, width=icon_width)
+                draw.polygon(
+                    [(cx + offset, cy - half * 0.48), (cx + offset - 3, cy - half * 0.23), (cx + offset + 3, cy - half * 0.23)],
+                    fill=ink,
+                )
+        elif class_name in {"TOWED GUN", "TOWED ARTILLERY", "SP ARTILLERY"}:
+            dot = max(3, half // 5)
+            draw.ellipse((cx - dot, cy - dot, cx + dot, cy + dot), fill=ink)
+            draw.line((cx - half * 0.48, cy, cx + half * 0.48, cy), fill=ink, width=icon_width)
+        elif class_name in {"MECH", "MOTOR RIFLE"}:
+            # BMS motor-rifle formations are shown as mechanized infantry:
+            # one centered composite, with the infantry cross integrated over
+            # the armored oval rather than stacked above it.
+            draw.ellipse((cx - half * 0.60, cy - half * 0.34, cx + half * 0.60, cy + half * 0.34), outline=ink, width=icon_width)
+            draw.line((cx - half * 0.42, cy - half * 0.28, cx + half * 0.42, cy + half * 0.28), fill=ink, width=icon_width)
+            draw.line((cx + half * 0.42, cy - half * 0.28, cx - half * 0.42, cy + half * 0.28), fill=ink, width=icon_width)
+        elif class_name == "INFANTRY":
+            draw.line((cx - half * 0.50, cy - half * 0.40, cx + half * 0.50, cy + half * 0.40), fill=ink, width=icon_width)
+            draw.line((cx + half * 0.50, cy - half * 0.40, cx - half * 0.50, cy + half * 0.40), fill=ink, width=icon_width)
+        elif class_name == "ARMORED":
+            draw.ellipse((cx - half * 0.60, cy - half * 0.34, cx + half * 0.60, cy + half * 0.34), outline=ink, width=icon_width)
+        else:
+            code = {"ENGINEER": "E", "SUPPLY": "S", "HQ": "HQ"}.get(class_name, "U")
+            draw.text((cx, cy), code, font=icon_font, fill=ink, anchor="mm")
+
+        draw_fitted_text_box(
+            draw,
+            (cx, cy + half + 5),
+            label,
+            label_font,
+            overlay.width,
+            overlay.height,
+            fill=label_fill,
+            bg=label_bg,
+            pad=2,
+            anchor="ma",
+        )
+
+
+def draw_mil2525_battalions_exact(
+    overlay: Image.Image,
+    projector: Projector,
+    units: list[dict[str, Any]],
+) -> None:
+    """Draw individual battalions at decoded BMS positions without type labels."""
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    # Keep the symbols readable on a slide without letting a higher-resolution
+    # objective render inflate them into oversized, unfamiliar-looking glyphs.
+    half = max(16, min(24, int(projector.scale * 1.2)))
+    line_width = max(3, min(5, projector.scale // 4))
+    icon_width = max(2, min(3, line_width))
+    echelon_font = load_font(max(11, int(projector.scale * 1.15)), bold=True)
+    grouped: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
+    for unit in units:
+        actual = projector.grid(unit.get("grid_x"), unit.get("grid_y"))
+        grouped[(round(actual[0]), round(actual[1]))].append(unit)
+
+    for (actual_x, actual_y), group in sorted(grouped.items(), key=lambda item: (item[0][1], item[0][0])):
+        if not point_inside_image((actual_x, actual_y), overlay.width, overlay.height, half + 2):
+            continue
+        if len(group) > 1:
+            draw.ellipse((actual_x - 2, actual_y - 2, actual_x + 2, actual_y + 2), fill=(25, 25, 25, 245))
+        for index, unit in enumerate(group):
+            if len(group) == 1:
+                cx, cy = float(actual_x), float(actual_y)
+            else:
+                angle = -math.pi / 2 + (2 * math.pi * index / len(group))
+                fan_radius = half * 1.45
+                cx = actual_x + fan_radius * math.cos(angle)
+                cy = actual_y + fan_radius * math.sin(angle)
+                draw.line((actual_x, actual_y, cx, cy), fill=(35, 35, 35, 210), width=1)
+
+            friendly = str(unit.get("affiliation") or "hostile").lower() == "friendly"
+            frame = (50, 135, 255, 255) if friendly else (238, 40, 40, 255)
+            frame_fill = (222, 238, 255, 225) if friendly else (255, 225, 225, 225)
+            ink = (20, 20, 20, 255)
+            if friendly:
+                frame_points = [
+                    (cx - half, cy - half * 0.72),
+                    (cx + half, cy - half * 0.72),
+                    (cx + half, cy + half * 0.72),
+                    (cx - half, cy + half * 0.72),
+                ]
+            else:
+                frame_points = [(cx, cy - half), (cx + half, cy), (cx, cy + half), (cx - half, cy)]
+            draw.polygon(frame_points, fill=frame_fill, outline=frame)
+            draw.line([*frame_points, frame_points[0]], fill=frame, width=line_width, joint="curve")
+            draw.text((cx, cy - half - 4), "II", font=echelon_font, fill=frame, anchor="ms")
+
+            class_name = str(unit.get("class_name") or "").upper()
+            if canonical_unit_kind(class_name) == "headquarters":
+                if friendly:
+                    staff_x = cx - half
+                    staff_y = cy + half * 0.72
+                else:
+                    staff_x = cx - half * 0.5
+                    staff_y = cy + half * 0.5
+                draw.line((staff_x, staff_y, staff_x, staff_y + half * 0.72), fill=frame, width=line_width)
+            symbol_w = half * 1.20
+            symbol_h = half * 1.12
+            for primitive in unit_glyph_primitives(class_name):
+                values = primitive.values
+                if primitive.kind == "line":
+                    draw.line(
+                        (
+                            cx + values[0] * symbol_w,
+                            cy - values[1] * symbol_h,
+                            cx + values[2] * symbol_w,
+                            cy - values[3] * symbol_h,
+                        ),
+                        fill=ink,
+                        width=icon_width,
+                    )
+                elif primitive.kind in {"ellipse", "filled_ellipse"}:
+                    x1, y1, x2, y2 = values
+                    box = (
+                        cx + x1 * symbol_w,
+                        cy - y2 * symbol_h,
+                        cx + x2 * symbol_w,
+                        cy - y1 * symbol_h,
+                    )
+                    if primitive.kind == "filled_ellipse":
+                        draw.ellipse(box, fill=ink)
+                    else:
+                        draw.ellipse(box, outline=ink, width=icon_width)
+                elif primitive.kind == "filled_polygon":
+                    points = [
+                        (cx + values[offset] * symbol_w, cy - values[offset + 1] * symbol_h)
+                        for offset in range(0, len(values), 2)
+                    ]
+                    draw.polygon(points, fill=ink)
+                elif primitive.kind == "arc":
+                    x1, y1, x2, y2, theta1, theta2 = values
+                    draw.arc(
+                        (
+                            cx + x1 * symbol_w,
+                            cy - y2 * symbol_h,
+                            cx + x2 * symbol_w,
+                            cy - y1 * symbol_h,
+                        ),
+                        int(180 + theta1),
+                        int(180 + theta2),
+                        fill=ink,
+                        width=icon_width,
+                    )
+                elif primitive.kind in {"text_e", "text_s"}:
+                    draw.text(
+                        (cx, cy),
+                        "E" if primitive.kind == "text_e" else "S",
+                        font=echelon_font,
+                        fill=ink,
+                        anchor="mm",
+                    )
+
+
+def apply_context_air_defense_ring_overrides(
+    air_defenses: list[dict[str, Any]],
+    named_positions: list[dict[str, Any]],
+    mission_context: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Force planner-named WEZ rings and allow deployment-state styling."""
+    specs = mission_context.get("map_threat_ring_overrides") or []
+    if not isinstance(specs, list):
+        return air_defenses
+    positions = {
+        canonical_named_position_key(item.get("label")): item
+        for item in named_positions
+        if canonical_named_position_key(item.get("label"))
+    }
+    result = list(air_defenses)
+    for spec in specs:
+        if not isinstance(spec, dict):
+            continue
+        key = canonical_named_position_key(spec.get("label"))
+        position = positions.get(key)
+        if not position:
+            continue
+        grid_x = safe_float(position.get("grid_x"))
+        grid_y = safe_float(position.get("grid_y"))
+        nearby = [
+            item
+            for item in result
+            if math.hypot(
+                safe_float(item.get("grid_x")) - grid_x,
+                safe_float(item.get("grid_y")) - grid_y,
+            )
+            <= safe_float(spec.get("match_radius_grid"), 3.0)
+        ]
+        result = [item for item in result if item not in nearby]
+        base = dict(nearby[0]) if nearby else {}
+        radius_grid = safe_float(
+            spec.get("threat_range_grid"),
+            max(safe_float(base.get("air_range")), safe_float(base.get("low_air_range")), 85.0),
+        )
+        base.update(
+            {
+                "grid_x": grid_x,
+                "grid_y": grid_y,
+                "air_range": radius_grid,
+                "low_air_range": radius_grid,
+                "ring_style": str(spec.get("ring_style") or "normal"),
+                "planner_ring_label": str(spec.get("label") or key),
+            }
+        )
+        result.append(base)
+    return sorted(
+        result,
+        key=lambda item: max(safe_float(item.get("air_range")), safe_float(item.get("low_air_range"))),
+        reverse=True,
+    )
+
+
 def draw_low_opacity_air_defense_rings(
     overlay: Image.Image,
     projector: Projector,
@@ -798,14 +1433,94 @@ def draw_low_opacity_air_defense_rings(
             continue
         radius = projector.radius(radius_grid)
         box = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
-        draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
-        draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
+        ring_style = str(air_defense.get("ring_style") or "normal").strip().lower()
+        if ring_style in {"dotted", "dotted-outline", "undeployed"}:
+            # A broken, unfilled outline communicates a potential WEZ for a
+            # mobile system assessed unlikely to be deployed.
+            dot_radius = max(3, ring_width // 2 + 1)
+            # Dense, fine dots retain the NATO suspected-position convention at
+            # slide scale without reading as a coarse, sparse dashed circle.
+            for angle in range(0, 360, 2):
+                radians = math.radians(angle)
+                dot_x = center[0] + radius * math.cos(radians)
+                dot_y = center[1] + radius * math.sin(radians)
+                draw.ellipse(
+                    (
+                        dot_x - dot_radius,
+                        dot_y - dot_radius,
+                        dot_x + dot_radius,
+                        dot_y + dot_radius,
+                    ),
+                    fill=THREAT_RING + (outline_alpha,),
+                )
+        else:
+            draw.ellipse(box, fill=THREAT_FILL + (fill_alpha,))
+            draw.ellipse(box, outline=THREAT_RING + (outline_alpha,), width=ring_width)
         if point_inside_image(center, overlay.width, overlay.height, 16) and not co_located_factor_marker(
             air_defense,
             named_positions or [],
         ):
             label = contextual_air_defense_label(air_defense, named_positions or [], compact_labels)
             draw_text_box(draw, center, label, font, fill=(255, 230, 230), bg=THREAT_LABEL_BG[:3] + (label_alpha,), pad=2, anchor="mm")
+
+
+def draw_context_killboxes(
+    overlay: Image.Image,
+    projector: Projector,
+    mission_context: dict[str, Any],
+) -> None:
+    """Draw planner-defined killbox boundaries as a quiet objective layer."""
+    specs = mission_context.get("map_killboxes") or []
+    if not isinstance(specs, list):
+        return
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    outline = FLOW_COLOR_NAMES["amber"] + (235,)
+    fill = FLOW_COLOR_NAMES["amber"] + (30,)
+    width = max(4, projector.scale // 2)
+    for spec in specs:
+        if not isinstance(spec, dict):
+            continue
+        points = [
+            projector.grid(point.get("grid_x"), point.get("grid_y"))
+            for point in spec.get("points") or []
+            if valid_map_grid(point.get("grid_x"), point.get("grid_y"))
+        ]
+        if len(points) < 3:
+            continue
+        draw.polygon(points, fill=fill)
+        draw.line([*points, points[0]], fill=outline, width=width, joint="curve")
+
+
+def draw_context_package_color_legend(
+    draw: ImageDraw.ImageDraw,
+    mission_context: dict[str, Any],
+    font: ImageFont.ImageFont,
+    map_width: int,
+    map_height: int,
+) -> None:
+    specs = mission_context.get("map_package_color_legend") or []
+    if not isinstance(specs, list):
+        return
+    y = 24
+    for spec in specs:
+        if not isinstance(spec, dict):
+            continue
+        label = str(spec.get("label") or f"PKG {spec.get('package_id') or ''}").strip()
+        if not label:
+            continue
+        color = color_from_context(spec.get("color"), FLOW_BLUE)
+        bbox = draw_fitted_text_box(
+            draw,
+            (26, y),
+            label,
+            font,
+            map_width,
+            map_height,
+            fill=color,
+            bg=(9, 13, 15, 225),
+            anchor="la",
+        )
+        y = bbox[3] + 12
 
 
 def objective_path(args: argparse.Namespace) -> Path | None:
@@ -887,14 +1602,28 @@ def draw_flow_groups(
             )
             origin_labels.append(((origin_xy[0] + marker_radius + 8, origin_xy[1] - marker_radius - 2), origin_label, "la"))
             labeled_origins.add(origin_label)
-        draw_flow_arrow(draw, points, color, width=max(8, int(scale * width_multiplier)))
-        if show_flow_labels:
+        flow_width = max(4, int(scale * width_multiplier))
+        if group.get("render_mode") == "dual-cap":
+            origin_data = group.get("origin_point") or {}
+            origin = projector.grid(origin_data.get("grid_x"), origin_data.get("grid_y")) if valid_map_grid(origin_data.get("grid_x"), origin_data.get("grid_y")) else None
+            draw_dual_cap_circuits(
+                draw, points, color, flow_width, label_font, map_width, map_height,
+                origin=origin, callsign_label=str(group.get("callsign_label") or ""),
+            )
+        else:
+            draw_flow_arrow(draw, points, color, width=flow_width)
+        if show_flow_labels and group.get("show_label", True):
             original_label = str(group.get("label"))
             label = str(group.get("compact_label") if compact_labels and group.get("compact_label") else original_label)
             fraction, label_offset = next(
                 (spec for prefix, spec in flow_label_specs.items() if original_label.startswith(prefix)),
                 (0.55, (14, -24)),
             )
+            if group.get("label_fraction") is not None:
+                fraction = safe_float(group.get("label_fraction"), fraction)
+            custom_offset = group.get("label_offset")
+            if isinstance(custom_offset, (list, tuple)) and len(custom_offset) >= 2:
+                label_offset = (safe_float(custom_offset[0]), safe_float(custom_offset[1]))
             if compact_labels and original_label.startswith("East Fighter Screen"):
                 label_offset = (34, -58)
             route_point = point_along_polyline(points, fraction)
@@ -944,16 +1673,30 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         ]
     if not origins:
         raise SystemExit(f"No active enemy fighter/strike squadron origins found within {args.radius_nm:g} NM.")
-    flow_groups = package_flow_groups(packages, syntheses) if include_flow else []
+    flow_groups = (
+        package_flow_groups(packages, syntheses, context_key=args.combined_flow_context_key)
+        if include_flow and args.show_combined_flows
+        else []
+    )
     named_positions = (
         merge_named_positions(named_position_points(packages), sa10_named_positions(syntheses, packages))
         if include_flow
         else []
     )
+    if include_flow and args.combined_crop_mode != "objective-area":
+        named_positions = [position for position in named_positions if not position.get("objective_only")]
     objective_positions = objective_crop_points(syntheses, packages, named_positions) if include_flow else []
     air_defenses = collect_strategic_air_defenses(packages) if include_flow and args.combined_threat_rings else []
+    visible_enemy_units = (
+        collect_objective_battalions(cam_decode, packages, mission_context)
+        if include_flow and args.show_visible_enemy_units
+        else []
+    )
+    if include_flow and args.combined_threat_rings:
+        air_defenses = apply_context_air_defense_ring_overrides(air_defenses, named_positions, mission_context)
 
-    crop = crop_for_combined_map(anchors, flow_groups, named_positions, objective_positions, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
+    crop = crop_for_combined_map(anchors, flow_groups, named_positions, objective_positions, visible_enemy_units, args) if include_flow else crop_for_air_threat_map(origins, anchors, args)
+    inset_layout = bool(args.combined_objective_inset_16x9 and include_flow and args.combined_crop_mode == "objective-area")
     base, source_scale_x, source_scale_y, _ = open_base_map(args.map_source or (args.campaign_dir / "Korea.tm"))
     source_crop = (
         max(0, math.floor(crop[0] * source_scale_x)),
@@ -962,6 +1705,24 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         min(base.height, math.ceil(crop[3] * source_scale_y)),
     )
     crop_image = base.crop(source_crop).convert("RGBA")
+    inset_background: Image.Image | None = None
+    inset_canvas_crop: tuple[int, int, int, int] | None = None
+    if inset_layout:
+        aspect = parse_aspect_ratio(args.aspect_ratio)
+        crop_height_grid = crop[3] - crop[1]
+        background_width_grid = max(crop[2] - crop[0], int(math.ceil(crop_height_grid * aspect)))
+        crop_center_x = (crop[0] + crop[2]) / 2
+        background_left = max(0, math.floor(crop_center_x - background_width_grid / 2))
+        background_right = min(MAP_GRID_SIZE, background_left + background_width_grid)
+        background_left = max(0, background_right - background_width_grid)
+        inset_canvas_crop = (background_left, crop[1], background_right, crop[3])
+        background_source_crop = (
+            max(0, math.floor(background_left * source_scale_x)),
+            max(0, math.floor(crop[1] * source_scale_y)),
+            min(base.width, math.ceil(background_right * source_scale_x)),
+            min(base.height, math.ceil(crop[3] * source_scale_y)),
+        )
+        inset_background = base.crop(background_source_crop).convert("RGBA")
     if hasattr(base, "close"):
         base.close()
     map_width = (crop[2] - crop[0]) * args.scale
@@ -995,6 +1756,8 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
             compact_labels=args.presentation_profile == "slide",
             named_positions=named_positions,
         )
+    if include_flow and args.show_killboxes:
+        draw_context_killboxes(overlay, projector, mission_context)
 
     anchor_points = [projector.grid(anchor.get("grid_x"), anchor.get("grid_y")) for anchor in anchors]
     ax = [point[0] for point in anchor_points]
@@ -1004,12 +1767,13 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         draw.rounded_rectangle(ao_box, radius=18, outline=BLUE + (220,), width=4, fill=BLUE_SOFT)
         draw_text_box(draw, (ao_box[0] + 8, ao_box[1] - 10), "PLAYER AO", label_font, fill=BLUE, bg=LABEL_BG)
 
-    for origin in origins:
-        target_anchor = origin.get("nearest_anchor") or anchors[0]
-        end = projector.grid(target_anchor.get("grid_x"), target_anchor.get("grid_y"))
-        origin_xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
-        start = clip_segment_to_rect(origin_xy, end, map_width, map_height)
-        draw_arrow(draw, start, end, width=max(5, args.scale // 2))
+    if (not include_flow or args.show_combined_air_axes) and not inset_layout:
+        for origin in origins:
+            target_anchor = origin.get("nearest_anchor") or anchors[0]
+            end = projector.grid(target_anchor.get("grid_x"), target_anchor.get("grid_y"))
+            origin_xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
+            start = clip_segment_to_rect(origin_xy, end, map_width, map_height)
+            draw_arrow(draw, start, end, width=max(5, args.scale // 2))
 
     if include_flow:
         draw_flow_groups(
@@ -1036,14 +1800,37 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
                 map_width,
                 map_height,
             )
-        draw_named_positions(draw, projector, named_positions, label_font, marker_size=marker_size, map_width=map_width, map_height=map_height)
+        if visible_enemy_units:
+            draw_mil2525_battalions_exact(overlay, projector, visible_enemy_units)
+        display_positions = named_positions
+        if args.show_visible_enemy_units and args.combined_crop_mode == "objective-area":
+            display_labels = mission_context.get("map_objective_display_labels") or args.combined_crop_labels or []
+            wanted = {normalized_marker_label(label) for label in display_labels}
+            display_positions = [
+                position
+                for position in named_positions
+                if normalized_marker_label(position.get("label")) in wanted
+            ]
+        if inset_layout:
+            edge_cue_positions = [position for position in display_positions if position.get("edge_cue")]
+            display_positions = [position for position in display_positions if not position.get("edge_cue")]
+        else:
+            edge_cue_positions = []
+        draw_named_positions(draw, projector, display_positions, label_font, marker_size=marker_size, map_width=map_width, map_height=map_height)
+        if args.show_package_color_legend:
+            draw_context_package_color_legend(draw, mission_context, label_font, map_width, map_height)
 
     origin_label_font = load_font(
         max(15, int(args.scale * 1.45 * (args.slide_origin_label_multiplier if args.presentation_profile == "slide" else 1.0))),
         bold=True,
     )
+    offshore_origin_label_font = load_font(
+        max(9, int(getattr(origin_label_font, "size", 15) * args.combined_offshore_origin_label_scale)),
+        bold=True,
+    )
     label_offsets = [(16, -34), (16, 16), (-16, -34), (-16, 16), (24, -4), (-24, -4)]
-    for index, origin in enumerate(origins):
+    visible_origins = origins if (not include_flow or args.show_combined_air_axes) and not inset_layout else []
+    for index, origin in enumerate(visible_origins):
         origin_xy = projector.grid(origin.get("grid_x"), origin.get("grid_y"))
         target_anchor = origin.get("nearest_anchor") or anchors[0]
         target_xy = projector.grid(target_anchor.get("grid_x"), target_anchor.get("grid_y"))
@@ -1077,10 +1864,14 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
             anchor = "la" if dx >= 0 else "ra"
         else:
             label_xy, anchor = edge_label_position(xy, map_width, map_height)
-        origin_label = compact_label_text(origin) if args.presentation_profile == "slide" else label_text(origin)
+        if args.combined_edge_air_origin_name_only and not point_inside_image(origin_xy, map_width, map_height, 20) and is_airbase_origin(origin):
+            origin_label = str(origin.get("name") or "Airbase").split("(", 1)[0].strip()
+        else:
+            origin_label = compact_label_text(origin) if args.presentation_profile == "slide" else label_text(origin)
         label_fill = (255, 226, 218) if is_airbase_origin(origin) else TEXT
         label_bg = (72, 8, 8, 210) if is_airbase_origin(origin) else LABEL_BG
-        draw_fitted_text_box(draw, label_xy, origin_label, origin_label_font, map_width, map_height, fill=label_fill, bg=label_bg, anchor=anchor)
+        selected_origin_font = offshore_origin_label_font if not is_airbase_origin(origin) else origin_label_font
+        draw_fitted_text_box(draw, label_xy, origin_label, selected_origin_font, map_width, map_height, fill=label_fill, bg=label_bg, anchor=anchor)
         meta = f"{compass_sector(math.degrees(math.atan2(safe_float(origin['grid_x']) - safe_float(origin['nearest_anchor']['grid_x']), safe_float(origin['grid_y']) - safe_float(origin['nearest_anchor']['grid_y']))) % 360)} | {origin['distance_nm']:.0f} NM | {origin['available_airframes']} a/c"
         if args.presentation_profile != "slide":
             meta_y = label_xy[1] + (24 if anchor == "la" else 24)
@@ -1105,6 +1896,40 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
         )
 
     output = Image.alpha_composite(map_image, overlay)
+    if inset_layout:
+        # Preserve an undistorted, full-height tactical crop and fill the
+        # surrounding 16:9 canvas with contiguous map terrain.
+        aspect = parse_aspect_ratio(args.aspect_ratio)
+        canvas_width = max(output.width, int(round(output.height * aspect)))
+        canvas = inset_background.resize((canvas_width, output.height), Image.Resampling.BICUBIC) if inset_background else Image.new("RGBA", (canvas_width, output.height), (12, 17, 20, 255))
+        x_offset = (canvas_width - output.width) // 2
+        canvas.paste(output, (x_offset, 0))
+        output = canvas
+        if inset_canvas_crop:
+            canvas_draw = ImageDraw.Draw(output, "RGBA")
+            canvas_projector = Projector(inset_canvas_crop, args.scale)
+            radius = max(9, int(args.scale * (args.slide_marker_multiplier if args.presentation_profile == "slide" else 1.0)))
+            for origin in origins:
+                target_anchor = origin.get("nearest_anchor") or anchors[0]
+                origin_xy = canvas_projector.grid(origin.get("grid_x"), origin.get("grid_y"))
+                target_xy = canvas_projector.grid(target_anchor.get("grid_x"), target_anchor.get("grid_y"))
+                xy = clip_segment_to_rect(origin_xy, target_xy, output.width, output.height)
+                draw_arrow(canvas_draw, xy, target_xy, width=max(5, args.scale // 2))
+                if is_airbase_origin(origin):
+                    canvas_draw.rectangle((xy[0] - radius - 2, xy[1] - radius - 2, xy[0] + radius + 2, xy[1] + radius + 2), fill=(40, 0, 0, 155))
+                    canvas_draw.rectangle((xy[0] - radius, xy[1] - radius, xy[0] + radius, xy[1] + radius), fill=(235, 38, 38, 245), outline=(255, 240, 225, 255), width=2)
+                    canvas_draw.line((xy[0] - radius + 3, xy[1] + radius - 3, xy[0] + radius - 3, xy[1] - radius + 3), fill=(255, 245, 235, 245), width=max(2, radius // 4))
+                else:
+                    canvas_draw.polygon([(xy[0], xy[1] - radius), (xy[0] + radius, xy[1]), (xy[0], xy[1] + radius), (xy[0] - radius, xy[1])], fill=RED + (245,), outline=(255, 245, 245, 255))
+                label_xy, anchor = edge_label_position(xy, output.width, output.height)
+                if args.combined_edge_air_origin_name_only and is_airbase_origin(origin):
+                    origin_label = str(origin.get("name") or "Airbase").split("(", 1)[0].strip()
+                else:
+                    origin_label = compact_label_text(origin) if args.presentation_profile == "slide" else label_text(origin)
+                selected_font = offshore_origin_label_font if not is_airbase_origin(origin) else origin_label_font
+                draw_fitted_text_box(canvas_draw, label_xy, origin_label, selected_font, output.width, output.height, fill=(255, 226, 218) if is_airbase_origin(origin) else TEXT, bg=(72, 8, 8, 210) if is_airbase_origin(origin) else LABEL_BG, anchor=anchor)
+            if edge_cue_positions:
+                draw_named_positions(canvas_draw, canvas_projector, edge_cue_positions, label_font, marker_size=marker_size, map_width=output.width, map_height=output.height)
     out = output_path or args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     pnginfo = PngInfo()
@@ -1112,6 +1937,8 @@ def draw_air_threat_map(args: argparse.Namespace, *, include_flow: bool = False,
     pnginfo.add_text("bms_crop_bounds", json.dumps(list(crop)))
     pnginfo.add_text("bms_north_up", "true")
     pnginfo.add_text("bms_aspect_ratio", args.aspect_ratio or "native")
+    if args.combined_objective_inset_16x9:
+        pnginfo.add_text("bms_objective_layout", "full-height tactical inset")
     output.convert("RGB").save(out, pnginfo=pnginfo)
     return out
 
@@ -1190,7 +2017,18 @@ def context_map_mark_overrides(syntheses: list[dict[str, Any]], packages: list[d
         explicit_x = item.get("grid_x")
         explicit_y = item.get("grid_y")
         if valid_map_grid(explicit_x, explicit_y):
-            result.append({"label": label, "grid_x": explicit_x, "grid_y": explicit_y, "name": item.get("name")})
+            result.append(
+                {
+                    "label": label,
+                    "grid_x": explicit_x,
+                    "grid_y": explicit_y,
+                    "name": item.get("name"),
+                    "source_label": item.get("from_ppt_label") or item.get("source_label"),
+                    "objective_only": bool(item.get("objective_only", False)),
+                    "label_scale": safe_float(item.get("label_scale"), 1.0),
+                    "edge_cue": bool(item.get("edge_cue", False)),
+                }
+            )
             seen.add(label.upper())
             continue
 
@@ -1222,7 +2060,18 @@ def context_map_mark_overrides(syntheses: list[dict[str, Any]], packages: list[d
         else:
             chosen = candidates[0]
         grid = chosen.get("campaign_grid") or {}
-        result.append({"label": label, "grid_x": grid.get("grid_x"), "grid_y": grid.get("grid_y"), "name": item.get("name")})
+        result.append(
+            {
+                "label": label,
+                "grid_x": grid.get("grid_x"),
+                "grid_y": grid.get("grid_y"),
+                "name": item.get("name"),
+                "source_label": item.get("from_ppt_label") or item.get("source_label"),
+                "objective_only": bool(item.get("objective_only", False)),
+                "label_scale": safe_float(item.get("label_scale"), 1.0),
+                "edge_cue": bool(item.get("edge_cue", False)),
+            }
+        )
         seen.add(label.upper())
     return result
 
@@ -1367,11 +2216,12 @@ def context_flow_stage_point(
 def context_package_flow_groups(
     packages: list[dict[str, Any]],
     syntheses: list[dict[str, Any]] | None,
+    context_key: str = "map_flow_groups",
 ) -> list[dict[str, Any]]:
     if not syntheses:
         return []
     context = mission_context_from_syntheses(syntheses)
-    flow_specs = context.get("map_flow_groups") or []
+    flow_specs = context.get(context_key) or context.get("map_flow_groups") or []
     if not isinstance(flow_specs, list):
         return []
 
@@ -1408,13 +2258,23 @@ def context_package_flow_groups(
                 "points": path,
                 "color": color_from_context(spec.get("color"), FLOW_BLUE),
                 "origin_label": (origin or {}).get("origin_label"),
+                "origin_point": origin,
+                "callsign_label": str(spec.get("callsign_label") or " / ".join(spec.get("callsigns") or [])),
+                "show_label": spec.get("show_label", True),
+                "label_fraction": spec.get("label_fraction"),
+                "label_offset": spec.get("label_offset"),
+                "render_mode": str(spec.get("render_mode") or ""),
             }
         )
     return groups
 
 
-def package_flow_groups(packages: list[dict[str, Any]], syntheses: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-    custom_groups = context_package_flow_groups(packages, syntheses)
+def package_flow_groups(
+    packages: list[dict[str, Any]],
+    syntheses: list[dict[str, Any]] | None = None,
+    context_key: str = "map_flow_groups",
+) -> list[dict[str, Any]]:
+    custom_groups = context_package_flow_groups(packages, syntheses, context_key=context_key)
     if custom_groups:
         return custom_groups
 
@@ -1607,12 +2467,16 @@ def draw_named_positions(
         "10W": (-18, -34, "ra"),
         "10E": (15, -28, "la"),
         "10S": (14, 20, "la"),
-        "10A": (15, 20, "la"),
+        "10A": (-15, -26, "ra"),
         "10B": (15, -28, "la"),
         "10C": (15, 30, "la"),
         "11": (-15, 22, "ra"),
         "IP1": (15, 22, "la"),
         "IP2": (15, -22, "la"),
+        "IP M7": (-15, 20, "ra"),
+        "IP C5": (-15, -24, "ra"),
+        "IP P7": (15, 20, "la"),
+        "IP HAM6": (15, -24, "la"),
         "6": (14, 22, "la"),
         "JEW": (14, -11, "la"),
         "CRO": (14, 16, "la"),
@@ -1620,17 +2484,36 @@ def draw_named_positions(
     }
     for index, position in enumerate(positions):
         xy = projector.grid(position.get("grid_x"), position.get("grid_y"))
+        is_edge_cue = False
         if map_width is not None and map_height is not None and not point_inside_image(xy, map_width, map_height, marker_size + 4):
-            continue
+            if not position.get("edge_cue"):
+                continue
+            clipped = clip_segment_to_rect(xy, (map_width / 2, map_height / 2), map_width, map_height)
+            xy = (
+                min(map_width - marker_size - 3, max(marker_size + 3, clipped[0])),
+                min(map_height - marker_size - 3, max(marker_size + 3, clipped[1])),
+            )
+            is_edge_cue = True
         size = marker_size
         diamond = [(xy[0], xy[1] - size), (xy[0] + size, xy[1]), (xy[0], xy[1] + size), (xy[0] - size, xy[1])]
         draw.polygon(diamond, fill=GREEN + (230,), outline=(0, 18, 5, 255))
         label = compact_named_label(position.get("label"))
         dx, dy, anchor = fixed_offsets.get(label.upper(), (13, -10 if index % 2 == 0 else 18, "la"))
+        if is_edge_cue and map_width is not None and map_height is not None:
+            if xy[0] >= map_width / 2:
+                dx, dy, anchor = -15, 18, "ra"
+            else:
+                dx, dy, anchor = 15, 18, "la"
+        label_scale = max(0.25, safe_float(position.get("label_scale"), 1.0))
+        position_font = (
+            load_font(max(8, int(getattr(font, "size", 16) * label_scale)), bold=True)
+            if abs(label_scale - 1.0) > 0.01
+            else font
+        )
         if map_width is not None and map_height is not None:
-            draw_fitted_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+            draw_fitted_text_box(draw, (xy[0] + dx, xy[1] + dy), label, position_font, map_width, map_height, fill=TEXT, bg=LABEL_BG, anchor=anchor)
         else:
-            draw_text_box(draw, (xy[0] + dx, xy[1] + dy), label, font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
+            draw_text_box(draw, (xy[0] + dx, xy[1] + dy), label, position_font, fill=TEXT, bg=LABEL_BG, anchor=anchor)
 
 
 def draw_friendly_origins(
@@ -1756,6 +2639,13 @@ def parse_args() -> argparse.Namespace:
         help="Frame --combined-out around these named INI/PPT/context labels, e.g. CRO SA5 10W 10E BAN WWO.",
     )
     parser.add_argument(
+        "--combined-objective-explicit-grid-bounds",
+        type=float,
+        nargs=4,
+        metavar=("WEST", "SOUTH", "EAST", "NORTH"),
+        help="Exact objective crop in BMS grid coordinates; overrides objective crop labels.",
+    )
+    parser.add_argument(
         "--combined-crop-label-margin-grid",
         type=float,
         default=8.0,
@@ -1861,6 +2751,59 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Draw role/callsign labels on combined package-flow lines. Disable for tight objective close-ups when labels obscure the objective.",
+    )
+    parser.add_argument(
+        "--show-combined-flows",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Draw friendly package-flow lines on combined maps.",
+    )
+    parser.add_argument(
+        "--combined-flow-context-key",
+        default="map_flow_groups",
+        help="Mission-context key containing the flow-group specification for this product.",
+    )
+    parser.add_argument(
+        "--show-combined-air-axes",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Draw enemy air-origin axes and labels on combined maps.",
+    )
+    parser.add_argument(
+        "--combined-edge-air-origin-name-only",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use only the airbase name when an enemy air origin is clipped to the map edge.",
+    )
+    parser.add_argument(
+        "--combined-offshore-origin-label-scale",
+        type=float,
+        default=1.0,
+        help="Scale factor for offshore enemy-origin labels; useful for decluttering tight objective maps.",
+    )
+    parser.add_argument(
+        "--combined-objective-inset-16x9",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Place a narrow objective close-up as a full-height inset on an exact 16:9 canvas instead of widening its tactical crop.",
+    )
+    parser.add_argument(
+        "--show-killboxes",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Draw planner-defined killbox polygons from mission context.",
+    )
+    parser.add_argument(
+        "--show-package-color-legend",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Draw the mission-context package color key on a combined map.",
+    )
+    parser.add_argument(
+        "--show-visible-enemy-units",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Draw visible enemy ground units with hostile MIL-STD-2525-style symbols.",
     )
     return parser.parse_args()
 

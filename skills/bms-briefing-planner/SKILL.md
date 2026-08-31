@@ -104,6 +104,8 @@ Before final delivery:
 - Treat standard 2D briefing maps as north-up and omit the compass by default. Preserve the distance scale. Use an orientation graphic only for a deliberately rotated/nonstandard 2D product or an oblique 3D view.
 - Confirm `01_route_threat_map.png` is below the user/platform size limit when one exists; keep it below 20 MB by default.
 - Confirm `briefing_images/manifest.json` points to the selected current variant, not stale assets.
+- Confirm the guarded manifest hashes match every canonical image and that no unmanifested candidate/check PNG remains in `briefing_images`.
+- Confirm current maps carry source/context/profile provenance. If an approved crop or style is mission-specific, it must live in mission-context `map_render_profiles`, never as an event-specific constant in renderer code.
 - For optional 3D target imagery, use the renderer's `attack-geometry` preset unless the planner asks for another style. Confirm edge-to-edge terrain, a readable N/E compass, a friendly-package approach pointer derived from decoded routes, and ADA pins/ground markers/labels/WEZ rings tied to the same decoded active-radar coordinate.
 - For optional hype video, keep mission facts derived from the current brief/map pack, use mission-specific voice lines rather than old narration, duck music/SFX under voice, and produce a share-friendly under-10 MB variant when requested.
 - State clearly if a section could not be generated because required source data is absent.

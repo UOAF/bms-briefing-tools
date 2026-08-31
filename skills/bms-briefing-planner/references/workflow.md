@@ -10,6 +10,8 @@ Treat the current mission as a clean room:
 - Check whether old output folders are style references or current mission inputs.
 - Prevent prior-mission leakage. Examples of forbidden carryover unless restated: `Route Black`, `Guardpost`, `Barrier`, `Tiger`, `Joule`, `Crown`, named SA-10 geometry, or old package IDs.
 - Put user-provided planner intent into a mission-context JSON file under `inputs/`, not directly into renderer code.
+- Store approved per-product framing and styling under mission-context `map_render_profiles`. Exact bounds, label multipliers, route widths, and a chosen flow-context key are mission data; never hard-code an event's coordinates or crop in a reusable renderer.
+- Store selected optional/3D deliverables under mission-context `briefing_image_products`. Keep candidates and `*_check`/`*_candidate` files outside the canonical `briefing_images` folder.
 - Store planner-approved objective-map framing in `map_objective_crop_labels` (and optional `map_objective_crop_label_margin_grid`) so guarded image-pack rebuilds preserve the chosen tactical box.
 - Canonicalize target/threat aliases in mission context. A physical site should not survive as both a raw mark and a planner label (`SA5` plus `5`, duplicate `11`, prior-event `SA-10 East` plus current `SA-10 Alpha`). Planner `map_mark_overrides` win.
 - For phased missions, store mandatory objectives, optional follow-on objectives, movement gates, hold criteria, and named attack points explicitly. If a subset of an ordered flight list branches to another CAP, name those callsigns directly instead of encoding the instruction as an unstable ordinal.
@@ -85,6 +87,8 @@ Do not rely on a fresh `manifest.json` alone as proof that images are current; i
 
 During iteration, render only the product being corrected. For example, add `--product weather` to the guarded pack command for a weather-only change. The pack renderer stages candidates in a temporary directory, promotes them only after the selected render succeeds, and archives every changed canonical predecessor under `outputs/<prefix>/_image_history/<UTC timestamp>`. Do not bypass this with manual deletion or a whole-pack rerender when only one product failed.
 
+The guarded pack manifest is the canonical inventory. It must record image hashes, dimensions, render timestamps, package IDs, and source fingerprints. Treat a PNG in `briefing_images` but absent from the manifest as a failed hygiene check, not as another possible final.
+
 ## 3. Correlate Planner Intent
 
 Correlate the planner prompt with decoded data:
@@ -112,6 +116,7 @@ If a decoded value conflicts with planner/in-game observation, investigate the r
 
 - Bad INI coordinate conversion can place marks far from the in-game map.
 - Objective names can be wrong if takeoff/landing target IDs are interpreted as generic objectives instead of airbase objectives.
+- For takeoff/landing waypoints, compare the referenced airbase objective to the waypoint coordinates. If the stored target ID is geographically inconsistent but a real airbase objective is colocated with the waypoint, use the coordinate-aligned airbase in player products and retain the stale ID/name as an `identity_conflict` in synthesis/workup evidence. Do not hide this with a display-name alias.
 - Enemy airbases can be misnamed or mis-typed if objective/object tables are not joined correctly.
 
 ## 4. Build The Transitional Workup
