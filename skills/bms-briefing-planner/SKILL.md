@@ -32,6 +32,7 @@ but the root mission brief and deck-facing image pack should be combined.
 - Read [image-qa.md](references/image-qa.md) before rendering, rerendering, or judging briefing images.
 - Read [community-publishing.md](references/community-publishing.md) before uploading mission files, creating an event signup sheet, changing its sharing permissions, or preparing the Discord announcement/banner.
 - Read [event-banner-criteria.md](references/event-banner-criteria.md) before generating, editing, or approving a UOAF event banner.
+- Read [aircraft-loadout-visual-contract.md](references/aircraft-loadout-visual-contract.md) before generating or editing a banner in which aircraft stores or hardpoint assignments must be recognizable.
 
 ## Planner Intake
 
@@ -112,6 +113,7 @@ Before final delivery:
 - For community publishing, confirm every inventoried prefix file exists in the event folder, the signup sheet reflects only current player packages, the prior pilot entries are blank, its INI and briefing links resolve to current-event files, and link sharing is verified as `anyone`/`writer` before reporting success.
 - Confirm the Discord timestamp is calculated from the actual event date and UTC briefing time; never copy a timestamp from a prior announcement.
 - Confirm event banners meet the subtle-realism criteria: credible terrain and target scale, restrained atmosphere, no neon weapon effects, no HUD overlays, and no oversized or glowing ground targets unless the user explicitly requests a stylized exception.
+- When a banner depicts a specified aircraft loadout, confirm a machine-readable visual-loadout contract reconciles to current mission/planner truth, includes every occupied and deliberately empty station, locks non-target aircraft, and is used verbatim in the image prompt and final visual QA.
 - Confirm current maps carry source/context/profile provenance. If an approved crop or style is mission-specific, it must live in mission-context `map_render_profiles`, never as an event-specific constant in renderer code.
 - For optional 3D target imagery, use the renderer's `attack-geometry` preset unless the planner asks for another style. Confirm edge-to-edge terrain, a readable N/E compass, a friendly-package approach pointer derived from decoded routes, and ADA pins/ground markers/labels/WEZ rings tied to the same decoded active-radar coordinate.
 - For optional hype video, keep mission facts derived from the current brief/map pack, use mission-specific voice lines rather than old narration, duck music/SFX under voice, and produce a share-friendly under-10 MB variant when requested.

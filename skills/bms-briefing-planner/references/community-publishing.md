@@ -140,6 +140,13 @@ and mission character. Read and apply
 wording, compass/aircraft motif, proportions, and colors; do not let image
 generation reinterpret it or add unrelated unit markings.
 
+When aircraft stores or hardpoint assignments must be recognizable, also follow
+[aircraft-loadout-visual-contract.md](aircraft-loadout-visual-contract.md).
+First create `inputs/<prefix>-banner-loadout.json` from the selected flight's
+decoded CAM slots, including rack occupancy, empty stations, prohibited stores,
+and any formation aircraft that must not change. Use a planner override only
+when it deliberately differs from the current campaign plan.
+
 Keep the event number and operation title readable at Discord preview size.
 Save the final banner under:
 

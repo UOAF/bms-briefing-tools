@@ -65,8 +65,15 @@ def check_structured_loadout_adapter() -> bool:
         ),
     }
     count, loadouts = record_loadouts(record)
-    ok = count == 1 and loadouts == [{"weapon_ids": [0, 101, 202], "weapon_counts": [0, 2, 4]}]
-    return status("pyopencam structured loadouts", ok, "adapter preserved IDs/counts" if ok else repr(loadouts))
+    expected_slots = [
+        {"bms_slot": 0, "weapon_id": 0, "count": 0, "occupied": False},
+        {"bms_slot": 1, "weapon_id": 101, "count": 2, "occupied": True},
+        {"bms_slot": 2, "weapon_id": 202, "count": 4, "occupied": True},
+    ]
+    ok = count == 1 and loadouts == [
+        {"weapon_ids": [0, 101, 202], "weapon_counts": [0, 2, 4], "store_slots": expected_slots}
+    ]
+    return status("pyopencam structured loadouts", ok, "adapter preserved indexed stations" if ok else repr(loadouts))
 
 
 def default_presentations_skill_dir() -> Path:

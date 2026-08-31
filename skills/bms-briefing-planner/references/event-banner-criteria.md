@@ -29,6 +29,11 @@ cinematic, but the world should still look physically believable.
 - Keep aircraft geometry, stores, scale, perspective, lighting, and formation
   believable. Reject malformed wings, duplicated tails, impossible pylons, or
   aircraft that do not fit the mission character.
+- When stores must be recognizable, read and use
+  [aircraft-loadout-visual-contract.md](aircraft-loadout-visual-contract.md).
+  Extract the current flight's ordered BMS loadout slots, including empty slots,
+  then translate them through the applicable airframe mapping. Do not ask the
+  planner to reconstruct routine station assignments.
 - Default to aircraft in formation or tactically suggestive flight rather than
   visible weapons impacts.
 - Do not include purple or neon missiles, energy projectiles, glowing exhaust
