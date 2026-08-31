@@ -92,6 +92,8 @@ Use consistent visual semantics:
 - Offshore/non-airbase enemy origins: separate marker such as red diamond or arrow-source marker.
 - Friendly departure bases on route map: friendly-colored airbase marker/label.
 
+Use one shared MIL-STD-2525 glyph implementation for 2D and 3D unit overlays. Do not redraw unit interiors independently in each renderer. Mechanized infantry is one integrated symbol—the infantry X crosses through the armor oval—and the echelon indicator remains outside the frame. Battalion positions come from the current CAM decode; screen-space staggering may separate coincident symbols, but it must retain a leader to the decoded point and must never change the underlying grid coordinate.
+
 Standard 2D briefing maps are north-up. Do not draw a compass or north arrow on them; that convention is assumed and the edge ornament wastes slide space. Retain the distance scale. If a special 2D product is rotated away from north-up, its orientation indicator must be intentionally sized and placed for slide readability. Oblique 3D target views still require their projected N/E compass because screen direction no longer implies map direction.
 
 Use compact labels on slide maps:
@@ -143,6 +145,9 @@ When a map fails, name the failed gate and rerender that product only when possi
 - Keep automatic predecessors under `_image_history/<UTC timestamp>`. Do not delete prior canonical images merely because a new candidate exists.
 - A targeted render must leave non-selected canonical image hashes unchanged. Verify this when a user has already approved the rest of the set.
 - Preserve source/reference 3D images and screen snips. Derive new variants from them or their recorded preset; do not replace or remove the originals.
+- Preserve the approved map texture and crop while correcting overlays. A route, label, or symbol correction does not authorize substituting a different base texture, re-autofitting the viewport, or changing zoom.
+- Write approved exact crop/style values to `map_render_profiles`; a screenshot crop or repeatedly approved framing is a render contract, not a suggestion to the next auto-fit pass.
+- The canonical folder contains only manifest-listed deliverables. Move diagnostic variants to `_map_diagnostics` or `_image_history`; never ask the user to identify the final among `candidate`, `check`, and numbered files.
 
 ## Common Fixes
 
@@ -222,6 +227,9 @@ Weather:
 - When the planner explicitly asks for the in-game satmap/photoreal look, use the BMS NewTerrain `Photoreal\16K` numeric DDS tiles with `--photoreal-tile-dir` as an opt-in variant, not the default. The Korea 16K set indexes as a sparse 32x32 top-left-origin tile grid; use `--photoreal-tile-origin top-left` if overriding defaults. Always render a quick orientation probe before promoting a new theater's tiled texture.
 - For airbases, include runway and taxiway geometry plus actual buildings/shelters. Filter PAPI, lights, taxi signs, fences, vehicles, ground-support equipment, and unknown scatter so they do not become fake buildings.
 - Use actual objective/FED feature data for simplified buildings when available: `CampObjData.XML` plus `Data\TerrData\Objects\ObjectiveRelatedData` and feature names from `Falcon4_FCD.xml`. The actual BMS 3D model/texture pipeline is separate work; the current briefing renderer uses simplified geometry, not faithful BMS models.
+- When `--show-objective-features` is requested, require both `CampObjData.XML` and the object directory and fail a deliverable render if no features match. A successful command that silently omitted the requested city/bridges is a failed image.
+- Record the full 3D render command, tactical/terrain bounds, projection, current CAM/context hashes, decoded unit count, and feature count in PNG metadata. This is required to reproduce an approved view without rediscovering camera settings by eye.
+- Prefer native edge-to-edge terrain from camera/projection and terrain bounds. Do not repair side wedges with blur, stretch, mirrored fill, or broad background replacement in a final. Those operations create washed-out/soft-side artifacts that are hard to notice until slide placement.
 - If adding buildings along ingress and target area, cap the number of rendered features per objective and use lower opacity/height. This gives urban/industrial context without burying the target. Exclude bridges/roads/HAWK sites unless the user specifically asks for landmark or bridge context.
 - Use the cleaned feature mode as the default mental model: `runway-and-buildings` keeps runway/taxi geometry and real structures; `buildings` suppresses runway/taxi; `all` is diagnostic only.
 - Inspect 3D images visually after every render at slide size. Reject the render if it has black/flat gutters, a cropped compass/pointer, an ambiguous friendly-origin sector, or if terrain/targets cannot be understood without zooming. Prefer fixing target anchors or an explicit friendly origin before hand-tuning camera/crop values.
